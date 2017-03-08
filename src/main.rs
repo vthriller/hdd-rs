@@ -42,11 +42,11 @@ fn identify(file: File) -> Result<[u8; 512], Error> {
 }
 
 // XXX why swap characters?
-// FIXME uneven `len` cases
-fn read_string(arr: [u8; 512], start: usize, len: usize) -> String {
-	let fin = start + len;
+fn read_string(arr: [u8; 512], word_start: usize, word_fin: usize) -> String {
+	let start = word_start * 2;
+	let fin = word_fin * 2 + 1;
 	let mut pos = start;
-	let mut output = String::with_capacity(len);
+	let mut output = String::with_capacity(fin - start);
 
 	while pos < fin {
 		output.push(arr[pos+1] as char);
@@ -70,8 +70,8 @@ fn main() {
 	).unwrap();
 
 	print!("{:?}\n", Id {
-		model: read_string(data, 54, 40),
-		firmware: read_string(data, 46, 8),
-		serial: read_string(data, 20, 20),
+		serial: read_string(data, 10, 19),
+		firmware: read_string(data, 23, 26),
+		model: read_string(data, 27, 46),
 	});
 }
