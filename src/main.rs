@@ -57,12 +57,21 @@ fn read_string(arr: [u8; 512], start: usize, len: usize) -> String {
 	String::from(output.trim())
 }
 
+#[derive(Debug)]
+struct Id {
+	model: String,
+	firmware: String,
+	serial: String,
+}
+
 fn main() {
 	let data = identify(
 		File::open("/dev/sda").unwrap()
 	).unwrap();
 
-	print!("Model:    {:?}\n", read_string(data, 54, 40));
-	print!("Firmware: {:?}\n", read_string(data, 46, 8));
-	print!("Serial:   {:?}\n", read_string(data, 20, 20));
+	print!("{:?}\n", Id {
+		model: read_string(data, 54, 40),
+		firmware: read_string(data, 46, 8),
+		serial: read_string(data, 20, 20),
+	});
 }
