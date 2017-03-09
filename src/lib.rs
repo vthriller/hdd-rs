@@ -10,7 +10,7 @@ use std::io::Error;
 const WIN_IDENTIFY: u8 = 0xec; // linux/hdreg.h:236
 const HDIO_DRIVE_CMD: c_ulong = 0x031f; // linux/hdreg.h:344
 
-fn identify(file: File) -> Result<[u16; 256], Error> {
+pub fn identify(file: File) -> Result<[u16; 256], Error> {
 	let mut data: [u8; 512+4] = [0; 516]; // XXX mut
 
 	data[0] = WIN_IDENTIFY; // command
@@ -64,12 +64,12 @@ fn read_string(arr: [u16; 256], start: usize, fin: usize) -> String {
 }
 
 #[derive(Debug)]
-enum Ternary {
+pub enum Ternary {
 	Unsupported, Disabled, Enabled
 }
 
 #[derive(Debug)]
-struct IdCommands {
+pub struct IdCommands {
 	device_reset: bool,
 	write_buffer: bool,
 	read_buffer: bool,
@@ -85,7 +85,7 @@ struct IdCommands {
 }
 
 #[derive(Debug)]
-struct Id {
+pub struct Id {
 	is_ata: bool, // probably redundant
 	incomplete: bool, // content of words other that 0 or 2 might be invalid
 
@@ -126,11 +126,7 @@ fn make_ternary(data: [u16; 256], word_sup: usize, bit_sup: usize, word_enabled:
 	}
 }
 
-fn main() {
-	let data = identify(
-		File::open("/dev/sda").unwrap()
-	).unwrap();
-
+pub fn parse_id(data: [u16; 256]) -> Id {
 	/*
 	TODO
 	w0       if 0x848a, CFA feature set is supported, and `is_ata`, `incomplete` are irrelevant
@@ -252,7 +248,7 @@ fn main() {
 	> If bit 14 of word 120 is set to one and bit 15 of word 120 is cleared to zero, the contents of word 120 contain valid information.
 	> If not, information is not valid in these words.
 	*/
-	print!("{:?}\n", Id {
+	Id {
 		is_ata: !is_set(data[0], 15),
 		incomplete: is_set(data[0], 2),
 
@@ -350,5 +346,5 @@ fn main() {
 		*/
 		smart_error_logging_supported: is_set(data[84], 0),
 		smart_self_test_supported: is_set(data[84], 1),
-	});
+	}
 }

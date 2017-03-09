@@ -5,3 +5,11 @@ authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 
 [dependencies]
 libc = "0.2"
+
+[lib]
+name = "smart"
+path = "src/lib.rs"
+
+[[bin]]
+name = "smart-rs"
+path = "src/bin.rs"
