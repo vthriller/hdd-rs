@@ -10,7 +10,7 @@ use std::io::Error;
 const WIN_IDENTIFY: u8 = 0xec; // linux/hdreg.h:236
 const HDIO_DRIVE_CMD: c_ulong = 0x031f; // linux/hdreg.h:344
 
-pub fn identify(file: File) -> Result<[u16; 256], Error> {
+pub fn identify(file: File) -> Result<[u8; 512], Error> {
 	let mut data: [u8; 512+4] = [0; 516]; // XXX mut
 
 	data[0] = WIN_IDENTIFY; // command
@@ -34,20 +34,31 @@ pub fn identify(file: File) -> Result<[u16; 256], Error> {
 	In practice though, first four bytes are unaltered input parameters. (XXX is it always the case?)
 	*/
 
+	// XXX mut? XXX copying
+	let mut output: [u8; 512] = [0; 512];
+
+	for i in 0..512 {
+		output[i] = data[4 + i];
+	}
+
+	Ok(output)
+}
+
+fn bytes_to_words(data: [u8; 512]) -> [u16; 256] {
 	// XXX mut?
 	let mut output: [u16; 256] = [0; 256];
 
 	for i in 0..256 {
 		if cfg!(target_endian = "little") {
-			output[i]  = (data[4 + 2 * i + 1] as u16) << 8;
-			output[i] += data[4 + 2 * i] as u16;
+			output[i]  = (data[2 * i + 1] as u16) << 8;
+			output[i] += data[2 * i] as u16;
 		} else {
-			output[i]  = (data[4 + 2 * i] as u16) << 8;
-			output[i] += data[4 + 2 * i + 1] as u16;
+			output[i]  = (data[2 * i] as u16) << 8;
+			output[i] += data[2 * i + 1] as u16;
 		}
 	}
 
-	Ok(output)
+	output
 }
 
 // TODO make sure characters are in the range of 0x20 to (and including) 0x7e
@@ -126,7 +137,8 @@ fn make_ternary(data: [u16; 256], word_sup: usize, bit_sup: usize, word_enabled:
 	}
 }
 
-pub fn parse_id(data: [u16; 256]) -> Id {
+pub fn parse_id(data: [u8; 512]) -> Id {
+	let data = bytes_to_words(data);
 	/*
 	TODO
 	w0       if 0x848a, CFA feature set is supported, and `is_ata`, `incomplete` are irrelevant
