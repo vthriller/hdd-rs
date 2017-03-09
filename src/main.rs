@@ -10,7 +10,7 @@ use std::io::Error;
 const WIN_IDENTIFY: u8 = 0xec; // linux/hdreg.h:236
 const HDIO_DRIVE_CMD: c_ulong = 0x031f; // linux/hdreg.h:344
 
-fn identify(file: File) -> Result<[u8; 512], Error> {
+fn identify(file: File) -> Result<[u16; 256], Error> {
 	let mut data: [u8; 512+4] = [0; 516]; // XXX mut
 
 	data[0] = WIN_IDENTIFY; // command
@@ -34,24 +34,28 @@ fn identify(file: File) -> Result<[u8; 512], Error> {
 	In practice though, first four bytes are unaltered input parameters. (XXX is it always the case?)
 	*/
 
-	// XXX copying this into another array that is 0.8% shorter might seem wasteful, however I find it more important to keeping the output clean
-	let mut output: [u8; 512] = [0; 512];
-	output.copy_from_slice(&data[4..]);
+	// XXX mut?
+	let mut output: [u16; 256] = [0; 256];
+
+	for i in 0..256 {
+		if cfg!(target_endian = "little") {
+			output[i]  = (data[4 + 2 * i + 1] as u16) << 8;
+			output[i] += data[4 + 2 * i] as u16;
+		} else {
+			output[i]  = (data[4 + 2 * i] as u16) << 8;
+			output[i] += data[4 + 2 * i + 1] as u16;
+		}
+	}
 
 	Ok(output)
 }
 
-// XXX why swap characters?
-fn read_string(arr: [u8; 512], word_start: usize, word_fin: usize) -> String {
-	let start = word_start * 2;
-	let fin = word_fin * 2 + 1;
-	let mut pos = start;
-	let mut output = String::with_capacity(fin - start);
+fn read_string(arr: [u16; 256], start: usize, fin: usize) -> String {
+	let mut output = String::with_capacity((fin - start) * 2);
 
-	while pos < fin {
-		output.push(arr[pos+1] as char);
-		output.push(arr[pos] as char);
-		pos += 2;
+	for i in start..fin {
+		output.push((arr[i] >> 8) as u8 as char);
+		output.push((arr[i] & 0xff) as u8 as char);
 	}
 
 	String::from(output.trim())
