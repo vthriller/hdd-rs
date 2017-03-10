@@ -7,16 +7,20 @@ use libc::c_ulong;
 
 use std::io::Error;
 
-const WIN_IDENTIFY: u8 = 0xec; // linux/hdreg.h:236
 const HDIO_DRIVE_CMD: c_ulong = 0x031f; // linux/hdreg.h:344
 
-pub fn identify(file: File) -> Result<[u8; 512], Error> {
+// see linux/hdreg.h
+pub const WIN_IDENTIFY: u8 = 0xec;
+pub const WIN_SMART: u8 = 0xb0;
+pub const SMART_READ_VALUES: u8 = 0xd0;
+
+pub fn ata_exec(file: &File, cmd: u8, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
 	let mut data: [u8; 512+4] = [0; 516]; // XXX mut
 
-	data[0] = WIN_IDENTIFY; // command
-	data[1] = 1; // nsector (sector for WIN_SMART)
-	data[2] = 0; // feature
-	data[3] = 1; // nsector
+	data[0] = cmd;
+	data[1] = sector;
+	data[2] = feature;
+	data[3] = nsector;
 
 	unsafe {
 		if ioctl(file.as_raw_fd(), HDIO_DRIVE_CMD, &data) == -1 {
@@ -359,4 +363,35 @@ pub fn parse_id(data: [u8; 512]) -> Id {
 		smart_error_logging_supported: is_set(data[84], 0),
 		smart_self_test_supported: is_set(data[84], 1),
 	}
+}
+
+#[derive(Debug)]
+pub struct SmartAttribute<'a> {
+	id: u8,
+	pre_fail: bool, // if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
+	online: bool,
+	flags: u16,
+	value: u8, // TODO? 0x00 | 0xfe | 0xff are invalid
+	// vendor-specific:
+	worst: u8,
+	raw: &'a [u8], // including the last byte, which is reserved
+}
+
+pub fn parse_smart_values<'a>(data: &'a [u8; 512]) -> Vec<SmartAttribute<'a>> {
+	// TODO cover bytes 0..1 362..511
+	let mut attrs = vec![];
+	for i in 0..30 {
+		let offset = 2 + i * 12;
+		if data[offset] == 0 { continue } // attribute table entry of id 0x0 is invalid
+		attrs.push(SmartAttribute {
+			id: data[offset],
+			pre_fail: data[offset + 1] & (1<<0) != 0,
+			online: data[offset + 1] & (1<<1) != 0,
+			flags: ((data[offset + 1] & !(0b11)) as u16) + ((data[offset + 2] as u16) << 8), // XXX endianness?
+			value: data[offset + 3],
+			worst: data[offset + 4],
+			raw: &data[offset + 5 .. offset + 12],
+		})
+	}
+	attrs
 }
