@@ -1,53 +1,3 @@
-use std::fs::File;
-use std::os::unix::io::AsRawFd;
-
-extern crate libc;
-use libc::ioctl;
-use libc::c_ulong;
-
-use std::io::Error;
-
-const HDIO_DRIVE_CMD: c_ulong = 0x031f; // linux/hdreg.h:344
-
-// see linux/hdreg.h
-pub const WIN_IDENTIFY: u8 = 0xec;
-pub const WIN_SMART: u8 = 0xb0;
-pub const SMART_READ_VALUES: u8 = 0xd0;
-
-pub fn ata_exec(file: &File, cmd: u8, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
-	let mut data: [u8; 512+4] = [0; 516]; // XXX mut
-
-	data[0] = cmd;
-	data[1] = sector;
-	data[2] = feature;
-	data[3] = nsector;
-
-	unsafe {
-		if ioctl(file.as_raw_fd(), HDIO_DRIVE_CMD, &data) == -1 {
-			return Err(Error::last_os_error());
-		}
-		// TODO ioctl() return values other than -1?
-	}
-
-	/*
-	Now, according to linux/Documentation/ioctl/hdio.txt, data contains:
-		[
-			status, error, nsector, _undefined,
-			(nsector * 512 bytes of data returned by the command),
-		]
-	In practice though, first four bytes are unaltered input parameters. (XXX is it always the case?)
-	*/
-
-	// XXX mut? XXX copying
-	let mut output: [u8; 512] = [0; 512];
-
-	for i in 0..512 {
-		output[i] = data[4 + i];
-	}
-
-	Ok(output)
-}
-
 fn bytes_to_words(data: [u8; 512]) -> [u16; 256] {
 	// XXX mut?
 	let mut output: [u16; 256] = [0; 256];
@@ -363,35 +313,4 @@ pub fn parse_id(data: [u8; 512]) -> Id {
 		smart_error_logging_supported: is_set(data[84], 0),
 		smart_self_test_supported: is_set(data[84], 1),
 	}
-}
-
-#[derive(Debug)]
-pub struct SmartAttribute<'a> {
-	id: u8,
-	pre_fail: bool, // if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
-	online: bool,
-	flags: u16,
-	value: u8, // TODO? 0x00 | 0xfe | 0xff are invalid
-	// vendor-specific:
-	worst: u8,
-	raw: &'a [u8], // including the last byte, which is reserved
-}
-
-pub fn parse_smart_values<'a>(data: &'a [u8; 512]) -> Vec<SmartAttribute<'a>> {
-	// TODO cover bytes 0..1 362..511
-	let mut attrs = vec![];
-	for i in 0..30 {
-		let offset = 2 + i * 12;
-		if data[offset] == 0 { continue } // attribute table entry of id 0x0 is invalid
-		attrs.push(SmartAttribute {
-			id: data[offset],
-			pre_fail: data[offset + 1] & (1<<0) != 0,
-			online: data[offset + 1] & (1<<1) != 0,
-			flags: ((data[offset + 1] & !(0b11)) as u16) + ((data[offset + 2] as u16) << 8), // XXX endianness?
-			value: data[offset + 3],
-			worst: data[offset + 4],
-			raw: &data[offset + 5 .. offset + 12],
-		})
-	}
-	attrs
 }

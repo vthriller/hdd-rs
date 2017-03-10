@@ -8,7 +8,7 @@ libc = "0.2"
 
 [lib]
 name = "smart"
-path = "src/lib.rs"
+path = "src/smart/mod.rs"
 
 [[bin]]
 name = "smart-rs"
