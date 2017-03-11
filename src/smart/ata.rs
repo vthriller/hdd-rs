@@ -13,6 +13,7 @@ const HDIO_DRIVE_CMD: c_ulong = 0x031f; // linux/hdreg.h:344
 pub const WIN_IDENTIFY: u8 = 0xec;
 pub const WIN_SMART: u8 = 0xb0;
 pub const SMART_READ_VALUES: u8 = 0xd0;
+pub const SMART_READ_THRESHOLDS: u8 = 0xd1;
 
 pub fn ata_exec(file: &File, cmd: u8, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
 	let mut data: [u8; 512+4] = [0; 516]; // XXX mut

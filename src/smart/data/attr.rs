@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub struct SmartAttribute<'a> {
 	id: u8,
@@ -16,10 +18,22 @@ pub struct SmartAttribute<'a> {
 	// vendor-specific:
 	worst: u8,
 	raw: &'a [u8], // including the last byte, which is reserved
+
+	thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 }
 
-pub fn parse_smart_values<'a>(data: &'a [u8; 512]) -> Vec<SmartAttribute<'a>> {
-	// TODO cover bytes 0..1 362..511
+pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: [u8; 512]) -> Vec<SmartAttribute<'a>> {
+	// TODO cover bytes 0..1 362..511 of data
+	// XXX what if some drive reports the same attribute multiple times?
+
+	let mut threshs = HashMap::<u8, u8>::new();
+	for i in 0..30 {
+		let offset = 2 + i * 12;
+		if raw_thresh[offset] == 0 { continue } // attribute table entry of id 0x0 is invalid
+		threshs.insert(raw_thresh[offset], raw_thresh[offset+1]);
+		// fields 2..11 are reserved
+	}
+
 	let mut attrs = vec![];
 	for i in 0..30 {
 		let offset = 2 + i * 12;
@@ -41,6 +55,9 @@ pub fn parse_smart_values<'a>(data: &'a [u8; 512]) -> Vec<SmartAttribute<'a>> {
 			value: data[offset + 3],
 			worst: data[offset + 4],
 			raw: &data[offset + 5 .. offset + 12],
+
+			// .get() returns Option<&T>, but threshs would not live long enough, and it's just easier to copy u8 using this map
+			thresh: threshs.get(&data[offset]).map(|t| *t),
 		})
 	}
 	attrs
