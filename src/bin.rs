@@ -77,7 +77,7 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 			val.value, val.worst,
 			match val.thresh {
 				Some(t) => format!("{:3}", t),
-				None => "?".to_string(),
+				None => "(?)".to_string(),
 			},
 			// TODO interpreted raw values
 			val.raw,
