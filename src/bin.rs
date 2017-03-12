@@ -110,7 +110,7 @@ fn main() {
 					print!("{:3} {}{}{}{}{}{} {:04x}    {:3}   {:3}    {} {:?}\n",
 						val.id,
 						bool_to_flag(val.pre_fail, 'P'),
-						bool_to_flag(val.online, 'O'),
+						bool_to_flag(!val.online, 'O'),
 						bool_to_flag(val.performance, 'S'),
 						bool_to_flag(val.error_rate, 'R'),
 						bool_to_flag(val.event_count, 'C'),
@@ -130,7 +130,7 @@ fn main() {
 				print!("    ││││└── C event count\n");
 				print!("    │││└─── R error rate\n");
 				print!("    ││└──── S speed/performance\n");
-				print!("    │└───── O updated online\n");
+				print!("    │└───── O updated during off-line testing\n");
 				print!("    └────── P prefailure warning\n");
 			} else {
 				print!("S.M.A.R.T. is disabled, cannot show attributes\n")
