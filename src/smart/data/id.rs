@@ -22,7 +22,7 @@ fn bytes_to_words(data: &[u8; 512]) -> [u16; 256] {
 fn read_string(arr: [u16; 256], start: usize, fin: usize) -> String {
 	let mut output = String::with_capacity((fin - start) * 2);
 
-	for i in start..fin {
+	for i in start..(fin+1) {
 		output.push((arr[i] >> 8) as u8 as char);
 		output.push((arr[i] & 0xff) as u8 as char);
 	}
