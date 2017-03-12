@@ -4,7 +4,11 @@ version = "0.1.0"
 authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 
 [dependencies]
+# library dependencies
 libc = "0.2"
+# main binary dependencies
+clap = ">=0.6.6"
+# (see also https://github.com/rust-lang/cargo/issues/1982)
 
 [lib]
 name = "smart"
