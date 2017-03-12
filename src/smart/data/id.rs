@@ -28,7 +28,7 @@ fn read_string(arr: [u16; 256], start: usize, fin: usize) -> String {
 	String::from(output.trim())
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Ternary {
 	Unsupported, Disabled, Enabled
 }
