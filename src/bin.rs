@@ -16,6 +16,10 @@ fn bool_to_sup(b: bool) -> &'static str {
 	}
 }
 
+fn bool_to_flag(b: bool, c: char) -> char {
+	if b { c } else { '-' }
+}
+
 fn main() {
 	let args = App::new("smart-rs")
 		.about("yet another S.M.A.R.T. querying tool")
@@ -94,7 +98,40 @@ fn main() {
 			if id.smart == id::Ternary::Enabled {
 				let data = ata::ata_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_VALUES, 1).unwrap();
 				let thresh = ata::ata_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_THRESHOLDS, 1).unwrap();
-				print!("{:?}\n", attr::parse_smart_values(&data, &thresh));
+
+				let values = attr::parse_smart_values(&data, &thresh);
+
+				// TODO attribute names
+				// TODO when-failed (now/past/never)
+
+				print!("S.M.A.R.T. attribute values:\n");
+				print!(" ID flags        value worst thresh raw\n");
+				for val in values {
+					print!("{:3} {}{}{}{}{}{} {:04x}    {:3}   {:3}    {} {:?}\n",
+						val.id,
+						bool_to_flag(val.pre_fail, 'P'),
+						bool_to_flag(val.online, 'O'),
+						bool_to_flag(val.performance, 'S'),
+						bool_to_flag(val.error_rate, 'R'),
+						bool_to_flag(val.event_count, 'C'),
+						bool_to_flag(val.self_preserving, 'K'),
+						val.flags,
+						val.value, val.worst,
+						match val.thresh {
+							Some(t) => format!("{:3}", t),
+							None => "?".to_string(),
+						},
+						// TODO interpreted raw values
+						val.raw,
+					);
+				}
+				// based on the output of 'smartctl -A -f brief' (part of 'smartctl -x')
+				print!("    │││││└─ K auto-keep\n");
+				print!("    ││││└── C event count\n");
+				print!("    │││└─── R error rate\n");
+				print!("    ││└──── S speed/performance\n");
+				print!("    │└───── O updated online\n");
+				print!("    └────── P prefailure warning\n");
 			} else {
 				print!("S.M.A.R.T. is disabled, cannot show attributes\n")
 			}
