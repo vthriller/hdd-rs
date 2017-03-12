@@ -35,48 +35,48 @@ pub enum Ternary {
 
 #[derive(Debug)]
 pub struct IdCommands {
-	device_reset: bool,
-	write_buffer: bool,
-	read_buffer: bool,
-	nop:  bool,
-	download_microcode: bool,
-	read_write_dma_queued: bool,
-	flush_cache: bool,
-	flush_cache_ext: bool,
-	write_dma_fua_ext: bool, // also WRITE MULTIPLE FUA EXT
-	write_dma_queued_fua_ext: bool,
-	write_uncorrectable: bool,
-	read_write_dma_ext_gpl: bool,
+	pub device_reset: bool,
+	pub write_buffer: bool,
+	pub read_buffer: bool,
+	pub nop:  bool,
+	pub download_microcode: bool,
+	pub read_write_dma_queued: bool,
+	pub flush_cache: bool,
+	pub flush_cache_ext: bool,
+	pub write_dma_fua_ext: bool, // also WRITE MULTIPLE FUA EXT
+	pub write_dma_queued_fua_ext: bool,
+	pub write_uncorrectable: bool,
+	pub read_write_dma_ext_gpl: bool,
 }
 
 #[derive(Debug)]
 pub struct Id {
-	is_ata: bool, // probably redundant
-	incomplete: bool, // content of words other that 0 or 2 might be invalid
+	pub is_ata: bool, // probably redundant
+	pub incomplete: bool, // content of words other that 0 or 2 might be invalid
 
-	serial: String,
-	firmware: String,
-	model: String,
+	pub serial: String,
+	pub firmware: String,
+	pub model: String,
 
-	trusted_computing_supported: bool,
+	pub trusted_computing_supported: bool,
 
-	ata_version: Option<&'static str>,
+	pub ata_version: Option<&'static str>,
 
-	commands_supported: IdCommands,
+	pub commands_supported: IdCommands,
 
-	power_mgmt_supported: bool,
-	write_cache: Ternary,
-	read_look_ahead: Ternary,
-	hpa: Ternary, // Host Protected Area
-	apm: Ternary, // Advanced Power Management
-	aam: Ternary, // Automatic Acoustic Management
-	gp_logging_supported: bool, // General Purpose Logging
-	wwn_supported: bool, // World Wide Name
-	security: Ternary,
+	pub power_mgmt_supported: bool,
+	pub write_cache: Ternary,
+	pub read_look_ahead: Ternary,
+	pub hpa: Ternary, // Host Protected Area
+	pub apm: Ternary, // Advanced Power Management
+	pub aam: Ternary, // Automatic Acoustic Management
+	pub gp_logging_supported: bool, // General Purpose Logging
+	pub wwn_supported: bool, // World Wide Name
+	pub security: Ternary,
 
-	smart: Ternary,
-	smart_error_logging_supported: bool,
-	smart_self_test_supported: bool,
+	pub smart: Ternary,
+	pub smart_error_logging_supported: bool,
+	pub smart_self_test_supported: bool,
 }
 
 fn is_set(word: u16, bit: usize) -> bool {

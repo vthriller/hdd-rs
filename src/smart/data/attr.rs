@@ -2,24 +2,24 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct SmartAttribute<'a> {
-	id: u8,
+	pub id: u8,
 
-	pre_fail: bool, // if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
-	online: bool,
+	pub pre_fail: bool, // if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
+	pub online: bool,
 	// In SFF-8035i rev 2, bits 2-5 are defined as vendor-specific, and 6-15 are reserved;
 	// however, these days the following seems to be universally interpreted the way it was once (probably) established by IBM, Maxtor and Quantum
-	performance: bool,
-	error_rate: bool,
-	event_count: bool,
-	self_preserving: bool,
-	flags: u16,
+	pub performance: bool,
+	pub error_rate: bool,
+	pub event_count: bool,
+	pub self_preserving: bool,
+	pub flags: u16,
 
-	value: u8, // TODO? 0x00 | 0xfe | 0xff are invalid
+	pub value: u8, // TODO? 0x00 | 0xfe | 0xff are invalid
 	// vendor-specific:
-	worst: u8,
-	raw: &'a [u8], // including the last byte, which is reserved
+	pub worst: u8,
+	pub raw: &'a [u8], // including the last byte, which is reserved
 
-	thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
+	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 }
 
 pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: &'a [u8; 512]) -> Vec<SmartAttribute<'a>> {
