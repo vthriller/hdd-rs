@@ -1,4 +1,4 @@
-fn bytes_to_words(data: [u8; 512]) -> [u16; 256] {
+fn bytes_to_words(data: &[u8; 512]) -> [u16; 256] {
 	// XXX mut?
 	let mut output: [u16; 256] = [0; 256];
 
@@ -91,7 +91,7 @@ fn make_ternary(data: [u16; 256], word_sup: usize, bit_sup: usize, word_enabled:
 	}
 }
 
-pub fn parse_id(data: [u8; 512]) -> Id {
+pub fn parse_id(data: &[u8; 512]) -> Id {
 	let data = bytes_to_words(data);
 	/*
 	TODO

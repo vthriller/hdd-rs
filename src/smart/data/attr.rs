@@ -22,7 +22,7 @@ pub struct SmartAttribute<'a> {
 	thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 }
 
-pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: [u8; 512]) -> Vec<SmartAttribute<'a>> {
+pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: &'a [u8; 512]) -> Vec<SmartAttribute<'a>> {
 	// TODO cover bytes 0..1 362..511 of data
 	// XXX what if some drive reports the same attribute multiple times?
 
