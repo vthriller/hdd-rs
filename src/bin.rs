@@ -9,6 +9,13 @@ use smart::data::attr;
 extern crate clap;
 use clap::{App, Arg};
 
+fn bool_to_sup(b: bool) -> &'static str {
+	match b {
+		false => "not supported",
+		true  => "supported",
+	}
+}
+
 fn main() {
 	let args = App::new("smart-rs")
 		.about("yet another S.M.A.R.T. querying tool")
@@ -46,7 +53,41 @@ fn main() {
 		let id = id::parse_id(&data);
 
 		if print_info {
-			print!("{:?}\n", id);
+			if id.incomplete { print!("WARNING: device reports information it provides is incomplete\n\n"); }
+
+			// XXX id.is_ata is deemed redundant and is skipped
+			// XXX we're skipping id.commands_supported for now as it is hardly of any interest to users
+
+			print!("Model:    {}\n", id.model);
+			print!("Firmware: {}\n", id.firmware);
+			print!("Serial:   {}\n", id.serial);
+			// TODO: id.wwn_supported is cool, but actual WWN ID is better
+
+			print!("\n");
+
+			print!("ATA version:\n{}\n", id.ata_version.unwrap_or("unknown"));
+
+			print!("\n");
+
+			// The following guide, when printed, is exactly 80 characters
+			// ... "..............................................................supported disabled\n"
+			print!("Host protected area:           {}\n", id.hpa);
+			print!("Advanced Power Management:     {}\n", id.apm);
+			print!("Automatic Acoustic Management: {}\n", id.aam);
+			print!("Read look-ahead:               {}\n", id.read_look_ahead);
+			print!("Write cache:                   {}\n", id.write_cache);
+			print!("Power management:              {}\n", bool_to_sup(id.power_mgmt_supported));
+			print!("General purpose logging:       {}\n", bool_to_sup(id.gp_logging_supported));
+			print!("Trusted computing:             {}\n", bool_to_sup(id.trusted_computing_supported));
+			print!("ATA security:                  {}\n", id.security);
+
+			print!("\n");
+
+			print!("S.M.A.R.T.:    {}\n", id.smart);
+			print!("Error logging: {}\n", bool_to_sup(id.smart_error_logging_supported));
+			print!("Self-test:     {}\n", bool_to_sup(id.smart_self_test_supported));
+
+			print!("\n");
 		}
 
 		if print_attrs {

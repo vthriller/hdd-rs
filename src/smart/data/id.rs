@@ -1,3 +1,5 @@
+use std::fmt;
+
 fn bytes_to_words(data: &[u8; 512]) -> [u16; 256] {
 	// XXX mut?
 	let mut output: [u16; 256] = [0; 256];
@@ -31,6 +33,16 @@ fn read_string(arr: [u16; 256], start: usize, fin: usize) -> String {
 #[derive(PartialEq, Eq, Debug)]
 pub enum Ternary {
 	Unsupported, Disabled, Enabled
+}
+
+impl fmt::Display for Ternary {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match *self {
+			Ternary::Unsupported => write!(f, "not supported"),
+			Ternary::Disabled    => write!(f, "supported, disabled"),
+			Ternary::Enabled     => write!(f, "supported, enabled"),
+		}
+	}
 }
 
 #[derive(Debug)]
