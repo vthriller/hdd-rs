@@ -9,6 +9,9 @@ use smart::data::attr;
 extern crate clap;
 use clap::{App, Arg};
 
+extern crate serde_json;
+use serde_json::value::ToJson;
+
 fn bool_to_sup(b: bool) -> &'static str {
 	match b {
 		false => "not supported",
@@ -109,6 +112,10 @@ fn main() {
 			.long("all") // smartctl-like
 			.help("equivalent to -iA")
 		)
+		.arg(Arg::with_name("json")
+			.long("json")
+			.help("Export data in JSON")
+		)
 		.arg(Arg::with_name("device")
 			.help("Device to query")
 			.required(true)
@@ -121,12 +128,19 @@ fn main() {
 	let print_info  = args.is_present("info") || args.is_present("all");
 	let print_attrs = args.is_present("attrs") || args.is_present("all");
 
+	let use_json = args.is_present("json");
+	let mut json_map = serde_json::Map::new();
+
 	if print_info || print_attrs {
 		let data = ata::ata_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
 
 		if print_info {
-			print_id(&id);
+			if use_json {
+				json_map.insert("info".to_string(), id.to_json().unwrap());
+			} else {
+				print_id(&id);
+			}
 		}
 
 		if print_attrs {
@@ -139,10 +153,18 @@ fn main() {
 				// TODO attribute names
 				// TODO when-failed (now/past/never)
 
-				print_attributes(&values);
+				if use_json {
+					json_map.insert("attributes".to_string(), values.to_json().unwrap());
+				} else {
+					print_attributes(&values);
+				}
 			} else {
 				print!("S.M.A.R.T. is disabled, cannot show attributes\n")
 			}
+		}
+
+		if use_json {
+			print!("{}\n", serde_json::to_string(&json_map).unwrap());
 		}
 	}
 }

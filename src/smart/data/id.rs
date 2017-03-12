@@ -30,7 +30,7 @@ fn read_string(arr: [u16; 256], start: usize, fin: usize) -> String {
 	String::from(output.trim())
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Serialize, Debug)]
 pub enum Ternary {
 	Unsupported, Disabled, Enabled
 }
@@ -45,7 +45,7 @@ impl fmt::Display for Ternary {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 pub struct IdCommands {
 	pub device_reset: bool,
 	pub write_buffer: bool,
@@ -61,7 +61,7 @@ pub struct IdCommands {
 	pub read_write_dma_ext_gpl: bool,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 pub struct Id {
 	pub is_ata: bool, // probably redundant
 	pub incomplete: bool, // content of words other that 0 or 2 might be invalid

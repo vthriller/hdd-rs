@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 pub struct SmartAttribute<'a> {
 	pub id: u8,
 

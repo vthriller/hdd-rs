@@ -6,8 +6,11 @@ authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 [dependencies]
 # library dependencies
 libc = "0.2"
+serde = "0.9"
+serde_derive = "0.9"
 # main binary dependencies
 clap = ">=0.6.6"
+serde_json = "0.9"
 # (see also https://github.com/rust-lang/cargo/issues/1982)
 
 [lib]
