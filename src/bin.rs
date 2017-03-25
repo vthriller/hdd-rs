@@ -4,6 +4,7 @@ extern crate smart;
 use smart::ata;
 use smart::data::id;
 use smart::data::attr;
+use smart::data::health;
 
 #[macro_use]
 extern crate clap;
@@ -96,6 +97,11 @@ fn main() {
 	let args = App::new("smart-rs")
 		.about("yet another S.M.A.R.T. querying tool")
 		.version(crate_version!())
+		.arg(Arg::with_name("health")
+			.short("H") // smartctl-like
+			.long("health") // smartctl-like
+			.help("Prints the health status of the device")
+		)
 		.arg(Arg::with_name("info")
 			.short("i") // smartctl-like
 			.long("info") // smartctl-like
@@ -110,7 +116,7 @@ fn main() {
 		.arg(Arg::with_name("all")
 			.short("a") // smartctl-like
 			.long("all") // smartctl-like
-			.help("equivalent to -iA")
+			.help("equivalent to -iHA")
 		)
 		.arg(Arg::with_name("json")
 			.long("json")
@@ -127,11 +133,12 @@ fn main() {
 
 	let print_info  = args.is_present("info") || args.is_present("all");
 	let print_attrs = args.is_present("attrs") || args.is_present("all");
+	let print_health = args.is_present("health") || args.is_present("all");
 
 	let use_json = args.is_present("json");
 	let mut json_map = serde_json::Map::new();
 
-	if print_info || print_attrs {
+	if print_info || print_attrs || print_health {
 		let data = ata::ata_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
 
@@ -140,6 +147,28 @@ fn main() {
 				json_map.insert("info".to_string(), id.to_json().unwrap());
 			} else {
 				print_id(&id);
+			}
+		}
+
+		if print_health {
+			if id.smart == id::Ternary::Enabled {
+				let data = ata::ata_task(&file,
+					ata::SMART_CMD, ata::SMART_STATUS,
+					0, 0, 0x4f, 0xc2, 0,
+				).unwrap();
+				let status = health::parse_smart_status(&data);
+
+				if use_json {
+					json_map.insert("health".to_string(), status.to_json().unwrap());
+				} else {
+					print!("S.M.A.R.T. health status: {}\n", match status {
+						Some(true) => "good",
+						Some(false) => "BAD",
+						None => "(unknown)",
+					});
+				}
+			} else {
+				print!("S.M.A.R.T. is disabled, cannot show health status\n")
 			}
 		}
 
