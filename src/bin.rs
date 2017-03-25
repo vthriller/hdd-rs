@@ -13,6 +13,8 @@ use clap::{App, Arg};
 extern crate serde_json;
 use serde_json::value::ToJson;
 
+use std::io::Write;
+
 fn bool_to_sup(b: bool) -> &'static str {
 	match b {
 		false => "not supported",
@@ -93,6 +95,21 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 	print!("    └────── P prefailure warning\n");
 }
 
+// this also helps maintaining serialized output (JSON) clean
+fn warn(msg: String) {
+	// XXX unused result
+	let _ = std::io::stderr().write(msg.as_bytes());
+}
+
+// XXX macro?
+fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F) where F: FnMut() -> () {
+	match *status {
+		id::Ternary::Unsupported => warn(format!("S.M.A.R.T. is not supported, cannot show {}\n", action_name)),
+		id::Ternary::Disabled => warn(format!("S.M.A.R.T. is disabled, cannot show {}\n", action_name)),
+		id::Ternary::Enabled => action(),
+	}
+}
+
 fn main() {
 	let args = App::new("smart-rs")
 		.about("yet another S.M.A.R.T. querying tool")
@@ -151,7 +168,7 @@ fn main() {
 		}
 
 		if print_health {
-			if id.smart == id::Ternary::Enabled {
+			when_smart_enabled(&id.smart, "health status", || {
 				let data = ata::ata_task(&file,
 					ata::SMART_CMD, ata::SMART_STATUS,
 					0, 0, 0x4f, 0xc2, 0,
@@ -167,13 +184,11 @@ fn main() {
 						None => "(unknown)",
 					});
 				}
-			} else {
-				print!("S.M.A.R.T. is disabled, cannot show health status\n")
-			}
+			});
 		}
 
 		if print_attrs {
-			if id.smart == id::Ternary::Enabled {
+			when_smart_enabled(&id.smart, "attributes", || {
 				let data = ata::ata_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_VALUES, 1).unwrap();
 				let thresh = ata::ata_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_THRESHOLDS, 1).unwrap();
 
@@ -187,9 +202,7 @@ fn main() {
 				} else {
 					print_attributes(&values);
 				}
-			} else {
-				print!("S.M.A.R.T. is disabled, cannot show attributes\n")
-			}
+			});
 		}
 
 		if use_json {
