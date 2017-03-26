@@ -11,6 +11,8 @@ serde_derive = "0.9"
 # main binary dependencies
 clap = ">=0.6.6"
 serde_json = "0.9"
+separator = "0.3.1"
+number_prefix = "0.2.7"
 # (see also https://github.com/rust-lang/cargo/issues/1982)
 
 [lib]

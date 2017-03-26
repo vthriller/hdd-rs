@@ -13,6 +13,11 @@ use clap::{App, Arg};
 extern crate serde_json;
 use serde_json::value::ToJson;
 
+extern crate separator;
+use separator::Separatable;
+extern crate number_prefix;
+use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
+
 use std::io::Write;
 
 fn bool_to_sup(b: bool) -> &'static str {
@@ -39,7 +44,18 @@ fn print_id(id: &id::Id) {
 
 	print!("\n");
 
-	print!("Capacity: {}\n", id.sectors * (id.sector_size_log as u64));
+	let capacity = id.sectors * (id.sector_size_log as u64);
+	print!("Capacity: {} bytes\n", capacity.separated_string());
+	print!("          ({}, {})\n",
+		match decimal_prefix(capacity as f32) {
+			Prefixed(p, x) => format!("{:.1} {}B", x, p),
+			Standalone(x)  => format!("{} bytes", x),
+		},
+		match binary_prefix(capacity as f32) {
+			Prefixed(p, x) => format!("{:.1} {}B", x, p),
+			Standalone(x)  => format!("{} bytes", x),
+		},
+	);
 	print!("Sector size (logical):  {}\n", id.sector_size_log);
 	print!("Sector size (physical): {}\n", id.sector_size_phy);
 
