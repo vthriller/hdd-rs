@@ -70,6 +70,10 @@ pub struct Id {
 	pub firmware: String,
 	pub model: String,
 
+	pub sectors: u64,
+	pub sector_size_phy: u32,
+	pub sector_size_log: u32,
+
 	pub trusted_computing_supported: bool,
 
 	pub ata_version: Option<&'static str>,
@@ -117,7 +121,6 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 	w49:8    DMA is supported
 	w50:0    device has a minimum Standby timer value that is device-specific
 	w59:8    if 1, w59:7..0 reflects the number of logical sectors currently set to transfer on READ/WRITE MULTIPLE command
-	w60..61  number of user addressable sectors
 	w63      Multiword DMA transfer modes
 	w64      PIO transfer modes
 	w65      minimum Multiword DMA transfer cycle time per word
@@ -186,12 +189,9 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 	w96       Streaming Transfer Time - DMA
 	w97       Streaming Access Latency - DMA and PIO
 	w98-99    Streaming Performance Granularity
-	w100-103  Total Number of User Addressable Sectors for the 48-bit Address feature set
 	w104      streaming Transfer Time - PIO
-	w106      physical sector size / Logical Sector Size
 	w107      Inter-seek delay for ISO 7779 standard acoustic testing
 	w108-111  World wide name
-	w117-118  Logical Sector Size
 	w128      Security status
 	w160      CFA power mode
 	w176-205  Current media serial number
@@ -226,6 +226,29 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 	> If bit 14 of word 120 is set to one and bit 15 of word 120 is cleared to zero, the contents of word 120 contain valid information.
 	> If not, information is not valid in these words.
 	*/
+
+	let sectors = ((data[61] as u64) << 16)
+	            +  (data[60] as u64);
+	let sectors_48bit = ((data[103] as u64) << 48)
+	                  + ((data[102] as u64) << 32)
+	                  + ((data[101] as u64) << 16)
+	                  +  (data[100] as u64);
+
+	// data[106] is valid if bit 14 is 1 and bit 15 is 0
+	let sector_size_valid = data[106] & ((1<<14) + (1<<15)) == (1<<14);
+
+	let sector_size_log = if sector_size_valid {
+		(
+			if data[106] & (1<<12) != 0 {
+				// if bit 12 is 1, logical sector size is >256 words and determined by words 117-118
+				((data[118] as u32) << 16) + (data[117] as u32)
+			} else { 256 }
+		) << 1 // convert words into bytes
+	} else {
+		// remember the times sectors were assumed to always be that long? yeah, those were the times…
+		512
+	};
+
 	Id {
 		is_ata: !is_set(data[0], 15),
 		incomplete: is_set(data[0], 2),
@@ -233,6 +256,18 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 		serial: read_string(data, 10, 19),
 		firmware: read_string(data, 23, 26),
 		model: read_string(data, 27, 46),
+
+		sectors: if sectors_48bit > 0 { sectors_48bit } else { sectors },
+
+		sector_size_phy: if sector_size_valid {
+			// bit 13 set to 1 indicates there's more than 1 logical sector per physical
+			if data[106] & (1<<13) != 0 {
+				// bits 0..3 of word 106 represent the size of physical sector in power of 2 logical sectors
+				// (that is, 0x2 is 1<<0x2 logical sectors per physical)
+				sector_size_log << (data[106] as u32 & 0xf)
+			} else { sector_size_log }
+		} else { 512 },
+		sector_size_log: sector_size_log,
 
 		trusted_computing_supported: is_set(data[48], 0),
 

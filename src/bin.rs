@@ -39,6 +39,12 @@ fn print_id(id: &id::Id) {
 
 	print!("\n");
 
+	print!("Capacity: {}\n", id.sectors * (id.sector_size_log as u64));
+	print!("Sector size (logical):  {}\n", id.sector_size_log);
+	print!("Sector size (physical): {}\n", id.sector_size_phy);
+
+	print!("\n");
+
 	print!("ATA version:\n{}\n", id.ata_version.unwrap_or("unknown"));
 
 	print!("\n");
