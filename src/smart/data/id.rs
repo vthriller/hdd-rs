@@ -70,7 +70,7 @@ pub struct Id {
 	pub firmware: String,
 	pub model: String,
 
-	pub sectors: u64,
+	pub capacity: u64,
 	pub sector_size_phy: u32,
 	pub sector_size_log: u32,
 
@@ -257,7 +257,7 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 		firmware: read_string(data, 23, 26),
 		model: read_string(data, 27, 46),
 
-		sectors: if sectors_48bit > 0 { sectors_48bit } else { sectors },
+		capacity: (sector_size_log as u64) * if sectors_48bit > 0 { sectors_48bit } else { sectors },
 
 		sector_size_phy: if sector_size_valid {
 			// bit 13 set to 1 indicates there's more than 1 logical sector per physical

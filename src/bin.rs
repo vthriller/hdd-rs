@@ -44,14 +44,13 @@ fn print_id(id: &id::Id) {
 
 	print!("\n");
 
-	let capacity = id.sectors * (id.sector_size_log as u64);
-	print!("Capacity: {} bytes\n", capacity.separated_string());
+	print!("Capacity: {} bytes\n", id.capacity.separated_string());
 	print!("          ({}, {})\n",
-		match decimal_prefix(capacity as f32) {
+		match decimal_prefix(id.capacity as f32) {
 			Prefixed(p, x) => format!("{:.1} {}B", x, p),
 			Standalone(x)  => format!("{} bytes", x),
 		},
-		match binary_prefix(capacity as f32) {
+		match binary_prefix(id.capacity as f32) {
 			Prefixed(p, x) => format!("{:.1} {}B", x, p),
 			Standalone(x)  => format!("{} bytes", x),
 		},
