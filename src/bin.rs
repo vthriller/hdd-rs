@@ -89,7 +89,7 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 	print!("S.M.A.R.T. attribute values:\n");
 	print!(" ID flags        value worst thresh raw\n");
 	for val in values {
-		print!("{:3} {}{}{}{}{}{} {:04x}    {:3}   {:3}    {} {:?}\n",
+		print!("{:3} {}{}{}{}{}{}{}    {:3}   {:3}    {} {:?}\n",
 			val.id,
 			bool_to_flag(val.pre_fail, 'P'),
 			bool_to_flag(!val.online, 'O'),
@@ -97,7 +97,8 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 			bool_to_flag(val.error_rate, 'R'),
 			bool_to_flag(val.event_count, 'C'),
 			bool_to_flag(val.self_preserving, 'K'),
-			val.flags,
+			if val.flags == 0 { "     ".to_string() }
+				else { format!("+{:04x}", val.flags) },
 			val.value, val.worst,
 			match val.thresh {
 				Some(t) => format!("{:3}", t),
