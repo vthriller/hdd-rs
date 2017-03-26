@@ -38,6 +38,11 @@ fn print_id(id: &id::Id) {
 	// XXX we're skipping id.commands_supported for now as it is hardly of any interest to users
 
 	print!("Model:    {}\n", id.model);
+	match id.rpm {
+		id::RPM::Unknown => (),
+		id::RPM::NonRotating => print!("RPM:      N/A (SSD or other non-rotating media)\n"),
+		id::RPM::RPM(i) => print!("RPM:      {}\n", i),
+	};
 	print!("Firmware: {}\n", id.firmware);
 	print!("Serial:   {}\n", id.serial);
 	// TODO: id.wwn_supported is cool, but actual WWN ID is better

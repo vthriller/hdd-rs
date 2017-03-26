@@ -46,6 +46,11 @@ impl fmt::Display for Ternary {
 }
 
 #[derive(Serialize, Debug)]
+pub enum RPM {
+	Unknown, NonRotating, RPM(u16)
+}
+
+#[derive(Serialize, Debug)]
 pub struct IdCommands {
 	pub device_reset: bool,
 	pub write_buffer: bool,
@@ -73,6 +78,8 @@ pub struct Id {
 	pub capacity: u64,
 	pub sector_size_phy: u32,
 	pub sector_size_log: u32,
+
+	pub rpm: RPM,
 
 	pub trusted_computing_supported: bool,
 
@@ -110,6 +117,10 @@ fn make_ternary(data: [u16; 256], word_sup: usize, bit_sup: usize, word_enabled:
 pub fn parse_id(data: &[u8; 512]) -> Id {
 	let data = bytes_to_words(data);
 	/*
+	TODO ATA8-ACS T13/1699-D Revision 3f field description
+		vs Revision 6a
+		vs crap knows what other revisions and standards
+
 	TODO
 	w0       if 0x848a, CFA feature set is supported, and `is_ata`, `incomplete` are irrelevant
 	w2       values regarding incomplete id output
@@ -201,8 +212,6 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 	w212-213  Verify Sector Count Mode 2 Only
 	w214      NV Cache Capabilities
 	w215-216  NV Cache Size in Logical Blocks (MSW)
-	w217      NV Cache Read Transfer Speed in MB/s
-	w218      NV Cache Write Transfer Speed in MB/s
 	w219      NV Cache Options
 	w220      Write-Read-Verify Mode
 	w222      Transport major revision number
@@ -268,6 +277,13 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 			} else { sector_size_log }
 		} else { 512 },
 		sector_size_log: sector_size_log,
+
+		rpm: match data[217] {
+			// all values except 0x0000 are reserved (TODO warning?)
+			0x0000 | 0xffff | 0x0002...0x0400 => RPM::Unknown,
+			0x0001 => RPM::NonRotating,
+			i => RPM::RPM(i),
+		},
 
 		trusted_computing_supported: is_set(data[48], 0),
 
