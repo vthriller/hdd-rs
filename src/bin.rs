@@ -87,9 +87,9 @@ fn print_id(id: &id::Id) {
 
 fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 	print!("S.M.A.R.T. attribute values:\n");
-	print!(" ID flags        value worst thresh raw\n");
+	print!(" ID flags        value worst thresh fail raw\n");
 	for val in values {
-		print!("{:3} {}{}{}{}{}{}{}    {:3}   {:3}    {} {:?}\n",
+		print!("{:3} {}{}{}{}{}{}{}    {:3}   {:3}    {} {} {:?}\n",
 			val.id,
 			bool_to_flag(val.pre_fail, 'P'),
 			bool_to_flag(!val.online, 'O'),
@@ -103,6 +103,13 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 			match val.thresh {
 				Some(t) => format!("{:3}", t),
 				None => "(?)".to_string(),
+			},
+			match val.thresh { // XXX pretty output only
+				None => "-   ",
+				Some(thresh) =>
+					if val.value <= thresh { "NOW " }
+					else if val.worst <= thresh { "past" }
+					else { "-   " }
 			},
 			// TODO interpreted raw values
 			val.raw,
@@ -217,7 +224,6 @@ fn main() {
 				let values = attr::parse_smart_values(&data, &thresh);
 
 				// TODO attribute names
-				// TODO when-failed (now/past/never)
 
 				if use_json {
 					json_map.insert("attributes".to_string(), values.to_json().unwrap());
