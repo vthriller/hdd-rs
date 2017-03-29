@@ -12,7 +12,7 @@ use std::{error, fmt, convert};
 
 use super::data::id;
 
-use regex::Regex;
+use regex::bytes::Regex;
 
 #[derive(Debug)]
 pub enum Error {
@@ -67,13 +67,15 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> (&'a Entry, bool) {
 		// TODO? put compiled `regex::Regex`es right in the `struct Entry`. This would be beneficial for lib users that test drives in bulk, less so for one-time users with popular drives
 		// TODO invalid regex should result in parsing error (or maybe not, maybe just stick to Option<Regex>)
 
+		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
+
 		// > [modelregexp] should never be "".
-		let re = Regex::new(format!("^{}$", entry.model).as_str()).unwrap();
-		if !re.is_match(id.model.as_str()) { continue }
+		let re = Regex::new(format!("(?-u)^{}$", entry.model).as_str()).unwrap();
+		if !re.is_match(id.model.as_bytes()) { continue }
 
 		if entry.firmware.len() > 0 {
-			let re = Regex::new(format!("^{}$", entry.firmware).as_str()).unwrap();
-			if !re.is_match(id.firmware.as_str()) { continue }
+			let re = Regex::new(format!("^(?-u){}$", entry.firmware).as_str()).unwrap();
+			if !re.is_match(id.firmware.as_bytes()) { continue }
 		}
 
 		// > The table will be searched from the start to end or until the first match
