@@ -1,8 +1,4 @@
-use super::presets;
-
 use nom::multispace;
-
-use std::collections::HashMap;
 
 named!(comment_block, do_parse!(
 	tag!("/*") >>
@@ -69,13 +65,13 @@ named!(string <String>, do_parse!(
 	})
 ));
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Entry {
 	pub family: String,
 	pub model: String, // TODO compiled regex?
 	pub firmware: String, // TODO compiled regex?
 	pub warning: String,
-	pub presets: Option<HashMap<u8, String>>,
+	pub presets: String,
 }
 
 named!(comma, do_parse!(whitespace >> char!(',') >> whitespace >> (&[])));
@@ -93,7 +89,7 @@ named!(entry <Entry>, do_parse!(
 		model: model,
 		firmware: firmware,
 		warning: warning,
-		presets: presets::parse(&presets),
+		presets: presets,
 	})
 ));
 

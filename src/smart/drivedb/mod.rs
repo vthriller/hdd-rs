@@ -14,6 +14,8 @@ use super::data::id;
 
 use regex::bytes::Regex;
 
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub enum Error {
 	IO(io::Error),
@@ -56,32 +58,35 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	}
 }
 
-fn merge_entries(default: &Entry, drive: &Entry) -> Entry {
-	let mut presets = match default.presets {
-		Some(ref x) => x.clone(),
-		None => return drive.clone(),
-	};
-	match drive.presets {
-		None => (),
-		Some(ref dpresets) => for (id, name) in dpresets {
-			presets.insert(*id, name.clone());
-		},
+fn merge_presets(default: &Option<HashMap<u8, String>>, drive: &Option<HashMap<u8, String>>) -> HashMap<u8, String> {
+	let mut output = HashMap::<u8, String>::new();
+	if let Some(ref dpresets) = *default {
+		for (id, name) in dpresets {
+			output.insert(*id, name.clone());
+		}
 	}
-	Entry {
-		family: drive.family.clone(),
-		model: drive.model.clone(),
-		firmware: drive.firmware.clone(),
-		warning: drive.warning.clone(),
-		presets: Some(presets)
+	if let Some(ref dpresets) = *drive {
+		for (id, name) in dpresets {
+			output.insert(*id, name.clone());
+		}
+	}
+	output
+}
+
+#[derive(Debug)]
+pub enum Match<'a> {
+	Default { presets: HashMap<u8, String> },
+	Found {
+		family: &'a String,
+		warning: &'a String, // TODO Option<>
+		presets: HashMap<u8, String>,
 	}
 }
 
-// returns entry for given drive id, and whether this drive is in the database or not
-// note: we don't return Option because we expect the default entry to be there
-pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> (Entry, bool) {
+pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 	let mut db = db.iter();
 	let _ = db.next(); // skip dummy svn-id entry
-	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry
+	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry (XXX)
 
 	for entry in db {
 		// TODO? put compiled `regex::Regex`es right in the `struct Entry`. This would be beneficial for lib users that test drives in bulk, less so for one-time users with popular drives
@@ -102,8 +107,17 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> (Entry, bool) {
 		}
 
 		// > The table will be searched from the start to end or until the first match
-		return (merge_entries(&default, &entry), true);
+		return Match::Found {
+			family: &entry.family,
+			warning: &entry.warning,
+			presets: merge_presets(
+				&presets::parse(&default.presets),
+				&presets::parse(&entry.presets),
+			),
+		};
 	}
 
-	(default.clone(), false)
+	Match::Default {
+		presets: presets::parse(&default.presets).unwrap(), // again, panic is kinda ok here, we're expecting default entry to have all that (XXX)
+	}
 }

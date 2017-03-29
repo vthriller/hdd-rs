@@ -32,7 +32,7 @@ fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
 }
 
-fn print_id(id: &id::Id, dbentry: &drivedb::Entry, in_db: bool) {
+fn print_id(id: &id::Id, dbentry: &drivedb::Match) {
 	if id.incomplete { print!("WARNING: device reports information it provides is incomplete\n\n"); }
 
 	// XXX id.is_ata is deemed redundant and is skipped
@@ -48,14 +48,16 @@ fn print_id(id: &id::Id, dbentry: &drivedb::Entry, in_db: bool) {
 	print!("Serial:   {}\n", id.serial);
 	// TODO: id.wwn_supported is cool, but actual WWN ID is better
 
-	if in_db {
-		print!("Model family according to drive database:\n  {}\n", dbentry.family);
-	} else {
-		print!("This drive is not in the drive database\n");
-	}
-
-	if dbentry.warning.len() > 0 {
-		print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", dbentry.warning);
+	match dbentry {
+		&drivedb::Match::Found { family, warning, presets: _ } => {
+			print!("Model family according to drive database:\n  {}\n", family);
+			if warning.len() > 0 {
+				print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", warning);
+			}
+		},
+		&drivedb::Match::Default { presets: _ } => {
+			print!("This drive is not in the drive database\n");
+		}
 	}
 
 	print!("\n");
@@ -209,20 +211,25 @@ fn main() {
 	if print_info || print_attrs || print_health {
 		let data = ata::ata_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
-		let (dbentry, in_db) = drivedb::match_entry(&id, &drivedb);
+		let dbentry = drivedb::match_entry(&id, &drivedb);
 
 		if print_info {
 			if use_json {
 				let mut info = id.to_json().unwrap();
-				if in_db {
-					info.as_object_mut().unwrap().insert("family".to_string(), dbentry.family.to_json().unwrap());
+
+				match dbentry {
+					drivedb::Match::Found { family, warning, presets: _ } => {
+						info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
+						if warning.len() > 0 {
+							info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
+						}
+					},
+					drivedb::Match::Default { presets: _ } => ()
 				}
-				if dbentry.warning.len() > 0 {
-					info.as_object_mut().unwrap().insert("warning".to_string(), dbentry.warning.to_json().unwrap());
-				}
+
 				json_map.insert("info".to_string(), info);
 			} else {
-				print_id(&id, &dbentry, in_db);
+				print_id(&id, &dbentry);
 			}
 		}
 
