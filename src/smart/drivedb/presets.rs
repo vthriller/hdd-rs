@@ -27,7 +27,8 @@ pub fn parse(line: &String) -> Option<HashMap<u8, String>> {
 								Some(x) => x,
 								None => return None, // too few
 							}; // TODO
-							let name = desc.next();
+							let name = desc.next(); // optional
+							let _type = desc.next(); // optional, either "HDD" or "SSD"; TODO
 							if desc.next() != None { return None } // too many
 
 							match name {
