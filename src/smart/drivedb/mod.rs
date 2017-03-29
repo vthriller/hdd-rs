@@ -14,8 +14,6 @@ use super::data::id;
 
 use regex::bytes::Regex;
 
-use std::collections::HashMap;
-
 #[derive(Debug)]
 pub enum Error {
 	IO(io::Error),
@@ -61,8 +59,8 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	}
 }
 
-fn merge_presets(default: &Option<HashMap<u8, String>>, drive: &Option<HashMap<u8, String>>) -> HashMap<u8, String> {
-	let mut output = HashMap::<u8, String>::new();
+fn merge_presets(default: &Option<presets::Preset>, drive: &Option<presets::Preset>) -> presets::Preset {
+	let mut output = presets::Preset::new();
 	if let Some(ref dpresets) = *default {
 		for (id, name) in dpresets {
 			output.insert(*id, name.clone());
@@ -78,11 +76,11 @@ fn merge_presets(default: &Option<HashMap<u8, String>>, drive: &Option<HashMap<u
 
 #[derive(Debug)]
 pub enum Match<'a> {
-	Default { presets: HashMap<u8, String> },
+	Default { presets: presets::Preset },
 	Found {
 		family: &'a String,
 		warning: &'a String, // TODO Option<>
-		presets: HashMap<u8, String>,
+		presets: presets::Preset,
 	}
 }
 

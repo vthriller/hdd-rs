@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-pub fn parse(line: &String) -> Option<HashMap<u8, String>> {
+pub type Preset = HashMap<u8, String>;
+
+pub fn parse(line: &String) -> Option<Preset> {
 	// using clap here would be an overkill
 	let mut args = line.split_whitespace().into_iter();
 	let mut output = HashMap::<u8, String>::new();
