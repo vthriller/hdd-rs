@@ -1,8 +1,11 @@
 use std::collections::HashMap;
+use super::super::drivedb;
 
 #[derive(Serialize, Debug)]
 pub struct SmartAttribute<'a> {
 	pub id: u8,
+
+	pub name: Option<&'a String>, // comes from the drivedb
 
 	pub pre_fail: bool, // if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
 	pub online: bool,
@@ -22,7 +25,7 @@ pub struct SmartAttribute<'a> {
 	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 }
 
-pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: &'a [u8; 512]) -> Vec<SmartAttribute<'a>> {
+pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: &'a [u8; 512], dbentry: &'a drivedb::Entry) -> Vec<SmartAttribute<'a>> {
 	// TODO cover bytes 0..1 362..511 of data
 	// XXX what if some drive reports the same attribute multiple times?
 
@@ -41,9 +44,16 @@ pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: &'a [u8; 512]) ->
 
 		let flags = (data[offset + 1] as u16) + ((data[offset + 2] as u16) << 8); // XXX endianness?
 
-		attrs.push(SmartAttribute {
+		let id = data[offset];
 
-			id: data[offset],
+		attrs.push(SmartAttribute {
+			id: id,
+
+			name: match dbentry.presets {
+				Some(ref presets) => presets.get(&id),
+				None => None,
+			},
+
 			pre_fail:        flags & (1<<0) != 0,
 			online:          flags & (1<<1) != 0,
 			performance:     flags & (1<<2) != 0,
