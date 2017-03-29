@@ -81,12 +81,14 @@ pub struct Entry {
 	presets: String,
 }
 
+named!(comma, do_parse!(whitespace >> char!(',') >> whitespace >> (&[])));
+
 named!(entry <Entry>, do_parse!(
 	char!('{') >> whitespace >>
-	family: string >> whitespace >> char!(',') >> whitespace >>
-	model: string >> whitespace >> char!(',') >> whitespace >>
-	firmware: string >> whitespace >> char!(',') >> whitespace >>
-	warning: string >> whitespace >> char!(',') >> whitespace >>
+	family: string >> comma >>
+	model: string >> comma >>
+	firmware: string >> comma >>
+	warning: string >> comma >>
 	presets: string >> whitespace >>
 	char!('}') >>
 	(Entry {
@@ -101,11 +103,7 @@ named!(entry <Entry>, do_parse!(
 named!(database <Vec<Entry>>, do_parse!(
 	whitespace >>
 	entries: many1!(do_parse!(
-		e: entry >>
-		whitespace >>
-		char!(',') >>
-		whitespace >>
-		(e)
+		e: entry >> comma >> (e)
 	)) >>
 	whitespace >>
 	eof!() >>
