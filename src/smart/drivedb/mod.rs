@@ -67,6 +67,9 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> (&'a Entry, bool) {
 		// TODO? put compiled `regex::Regex`es right in the `struct Entry`. This would be beneficial for lib users that test drives in bulk, less so for one-time users with popular drives
 		// TODO invalid regex should result in parsing error (or maybe not, maybe just stick to Option<Regex>)
 
+		// USB ID entries are parsed differently; also, we don't support USB devices yet
+		if entry.model.starts_with("USB:") { continue }
+
 		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
 
 		// > [modelregexp] should never be "".
