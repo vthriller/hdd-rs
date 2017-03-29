@@ -56,9 +56,29 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	}
 }
 
+fn merge_entries(default: &Entry, drive: &Entry) -> Entry {
+	let mut presets = match default.presets {
+		Some(ref x) => x.clone(),
+		None => return drive.clone(),
+	};
+	match drive.presets {
+		None => (),
+		Some(ref dpresets) => for (id, name) in dpresets {
+			presets.insert(*id, name.clone());
+		},
+	}
+	Entry {
+		family: drive.family.clone(),
+		model: drive.model.clone(),
+		firmware: drive.firmware.clone(),
+		warning: drive.warning.clone(),
+		presets: Some(presets)
+	}
+}
+
 // returns entry for given drive id, and whether this drive is in the database or not
 // note: we don't return Option because we expect the default entry to be there
-pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> (&'a Entry, bool) {
+pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> (Entry, bool) {
 	let mut db = db.iter();
 	let _ = db.next(); // skip dummy svn-id entry
 	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry
@@ -82,8 +102,8 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> (&'a Entry, bool) {
 		}
 
 		// > The table will be searched from the start to end or until the first match
-		return (entry, true);
+		return (merge_entries(&default, &entry), true);
 	}
 
-	(default, false)
+	(default.clone(), false)
 }

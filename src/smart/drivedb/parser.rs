@@ -69,7 +69,7 @@ named!(string <String>, do_parse!(
 	})
 ));
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Entry {
 	pub family: String,
 	pub model: String, // TODO compiled regex?
