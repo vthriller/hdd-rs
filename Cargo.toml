@@ -8,6 +8,7 @@ authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 libc = "0.2"
 serde = "0.9"
 serde_derive = "0.9"
+nom = "^2.2"
 # main binary dependencies
 clap = ">=0.6.6"
 serde_json = "0.9"
