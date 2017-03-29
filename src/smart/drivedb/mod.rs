@@ -47,6 +47,9 @@ impl convert::From<io::Error> for Error {
 	fn from(err: io::Error) -> Error { Error::IO(err) }
 }
 
+// TODO load_compiled, with pre-compiled headers and pre-parsed presets,
+// for those who work with drives in bulk
+// TODO invalid regex should result in parsing error (or maybe not, maybe just stick to Option<Regex>)
 pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	let mut db = Vec::new();
 	File::open(&file)?.read_to_end(&mut db)?;
@@ -89,8 +92,6 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry (XXX)
 
 	for entry in db {
-		// TODO? put compiled `regex::Regex`es right in the `struct Entry`. This would be beneficial for lib users that test drives in bulk, less so for one-time users with popular drives
-		// TODO invalid regex should result in parsing error (or maybe not, maybe just stick to Option<Regex>)
 
 		// USB ID entries are parsed differently; also, we don't support USB devices yet
 		if entry.model.starts_with("USB:") { continue }

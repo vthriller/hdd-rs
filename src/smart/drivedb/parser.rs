@@ -68,8 +68,8 @@ named!(string <String>, do_parse!(
 #[derive(Debug)]
 pub struct Entry {
 	pub family: String,
-	pub model: String, // TODO compiled regex?
-	pub firmware: String, // TODO compiled regex?
+	pub model: String,
+	pub firmware: String,
 	pub warning: String,
 	pub presets: String,
 }
