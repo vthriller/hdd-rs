@@ -71,11 +71,11 @@ named!(string <String>, do_parse!(
 
 #[derive(Debug)]
 pub struct Entry {
-	family: String,
-	model: String,
-	firmware: String,
-	warning: String,
-	presets: Option<HashMap<u8, String>>,
+	pub family: String,
+	pub model: String, // TODO compiled regex?
+	pub firmware: String, // TODO compiled regex?
+	pub warning: String,
+	pub presets: Option<HashMap<u8, String>>,
 }
 
 named!(comma, do_parse!(whitespace >> char!(',') >> whitespace >> (&[])));

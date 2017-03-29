@@ -5,6 +5,7 @@ use smart::ata;
 use smart::data::id;
 use smart::data::attr;
 use smart::data::health;
+use smart::drivedb;
 
 #[macro_use]
 extern crate clap;
@@ -31,7 +32,7 @@ fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
 }
 
-fn print_id(id: &id::Id) {
+fn print_id(id: &id::Id, dbentry: &drivedb::Entry, in_db: bool) {
 	if id.incomplete { print!("WARNING: device reports information it provides is incomplete\n\n"); }
 
 	// XXX id.is_ata is deemed redundant and is skipped
@@ -46,6 +47,16 @@ fn print_id(id: &id::Id) {
 	print!("Firmware: {}\n", id.firmware);
 	print!("Serial:   {}\n", id.serial);
 	// TODO: id.wwn_supported is cool, but actual WWN ID is better
+
+	if in_db {
+		print!("Model family according to drive database:\n  {}\n", dbentry.family);
+	} else {
+		print!("This drive is not in the drive database\n");
+	}
+
+	if dbentry.warning.len() > 0 {
+		print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", dbentry.warning);
+	}
 
 	print!("\n");
 
@@ -182,6 +193,10 @@ fn main() {
 
 	let file = File::open(args.value_of("device").unwrap()).unwrap();
 
+	// TODO path option; FIXME smartmontools dependency (lol)
+	// TODO make database optional
+	let drivedb = drivedb::load("/usr/share/smartmontools/drivedb.h").unwrap();
+
 	let print_info  = args.is_present("info") || args.is_present("all");
 	let print_attrs = args.is_present("attrs") || args.is_present("all");
 	let print_health = args.is_present("health") || args.is_present("all");
@@ -192,12 +207,20 @@ fn main() {
 	if print_info || print_attrs || print_health {
 		let data = ata::ata_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
+		let (dbentry, in_db) = drivedb::match_entry(&id, &drivedb);
 
 		if print_info {
 			if use_json {
-				json_map.insert("info".to_string(), id.to_json().unwrap());
+				let mut info = id.to_json().unwrap();
+				if in_db {
+					info.as_object_mut().unwrap().insert("family".to_string(), dbentry.family.to_json().unwrap());
+				}
+				if dbentry.warning.len() > 0 {
+					info.as_object_mut().unwrap().insert("warning".to_string(), dbentry.warning.to_json().unwrap());
+				}
+				json_map.insert("info".to_string(), info);
 			} else {
-				print_id(&id);
+				print_id(&id, &dbentry, in_db);
 			}
 		}
 

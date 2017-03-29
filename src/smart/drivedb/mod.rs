@@ -10,6 +10,10 @@ use nom;
 
 use std::{error, fmt, convert};
 
+use super::data::id;
+
+use regex::Regex;
+
 #[derive(Debug)]
 pub enum Error {
 	IO(io::Error),
@@ -50,4 +54,31 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 		nom::IResult::Error(_) => Err(Error::Parse),
 		nom::IResult::Incomplete(_) => unreachable!(), // XXX is it true?
 	}
+}
+
+// returns entry for given drive id, and whether this drive is in the database or not
+// note: we don't return Option because we expect the default entry to be there
+pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> (&'a Entry, bool) {
+	let mut db = db.iter();
+	let _ = db.next(); // skip dummy svn-id entry
+	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry
+
+	for entry in db {
+		// TODO? put compiled `regex::Regex`es right in the `struct Entry`. This would be beneficial for lib users that test drives in bulk, less so for one-time users with popular drives
+		// TODO invalid regex should result in parsing error (or maybe not, maybe just stick to Option<Regex>)
+
+		// > [modelregexp] should never be "".
+		let re = Regex::new(format!("^{}$", entry.model).as_str()).unwrap();
+		if !re.is_match(id.model.as_str()) { continue }
+
+		if entry.firmware.len() > 0 {
+			let re = Regex::new(format!("^{}$", entry.firmware).as_str()).unwrap();
+			if !re.is_match(id.firmware.as_str()) { continue }
+		}
+
+		// > The table will be searched from the start to end or until the first match
+		return (entry, true);
+	}
+
+	(default, false)
 }
