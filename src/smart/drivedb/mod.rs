@@ -79,7 +79,7 @@ pub enum Match<'a> {
 	Default { presets: presets::Preset },
 	Found {
 		family: &'a String,
-		warning: &'a String, // TODO Option<>
+		warning: Option<&'a String>,
 		presets: presets::Preset,
 	}
 }
@@ -108,7 +108,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 		// > The table will be searched from the start to end or until the first match
 		return Match::Found {
 			family: &entry.family,
-			warning: &entry.warning,
+			warning: if entry.warning.len() > 0 { Some(&entry.warning) } else { None },
 			presets: merge_presets(
 				&presets::parse(&default.presets),
 				&presets::parse(&entry.presets),

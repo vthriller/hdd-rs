@@ -51,7 +51,7 @@ fn print_id(id: &id::Id, dbentry: &drivedb::Match) {
 	match dbentry {
 		&drivedb::Match::Found { family, warning, presets: _ } => {
 			print!("Model family according to drive database:\n  {}\n", family);
-			if warning.len() > 0 {
+			if let Some(warning) = warning {
 				print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", warning);
 			}
 		},
@@ -220,9 +220,7 @@ fn main() {
 				match dbentry {
 					drivedb::Match::Found { family, warning, presets: _ } => {
 						info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
-						if warning.len() > 0 {
-							info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
-						}
+						info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
 					},
 					drivedb::Match::Default { presets: _ } => ()
 				}
