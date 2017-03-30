@@ -290,6 +290,7 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 		// TODO word 80: major revision number compatibility bits (if not 0x0000 nor 0xffff)
 		ata_version: match data[81] {
 			0x0001 ... 0x000c => Some("(obsolete)"),
+
 			0x000d => Some("ATA/ATAPI-4 X3T13 1153D revision 6"),
 			0x000e => Some("ATA/ATAPI-4 T13 1153D revision 13"),
 			0x000f => Some("ATA/ATAPI-4 X3T13 1153D revision 7"),
@@ -308,13 +309,38 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 			0x001c => Some("ATA/ATAPI-6 T13 1410D revision 1"),
 			0x001d => Some("ATA/ATAPI-7 published ANSI INCITS 397-2005"),
 			0x001e => Some("ATA/ATAPI-7 T13 1532D revision 0"),
+			0x001f => Some("ACS-3 Revision 3b"),
+
 			0x0021 => Some("ATA/ATAPI-7 T13 1532D revision 4a"),
 			0x0022 => Some("ATA/ATAPI-6 published, ANSI INCITS 361-2002"),
+
 			0x0027 => Some("ATA8-ACS revision 3c"),
+			0x0028 => Some("ATA8-ACS revision 6"),
+			0x0029 => Some("ATA8-ACS revision 4"),
+
+			0x0031 => Some("ACS-2 revision 2"),
+
 			0x0033 => Some("ATA8-ACS revision 3e"),
+
+			0x0039 => Some("ATA8-ACS revision 4c"),
+
 			0x0042 => Some("ATA8-ACS revision 3f"),
+
 			0x0052 => Some("ATA8-ACS revision 3b"),
+
+			0x005e => Some("ACS-4 revision 5"),
+
+			0x006d => Some("ACS-3 revision 5"),
+
+			0x0082 => Some("ACS-2 published, ANSI INCITS 482-2012"),
+
 			0x0107 => Some("ATA8-ACS revision 2d"),
+
+			0x010a => Some("ACS-3 published, ANSI INCITS 522-2014"),
+
+			0x0110 => Some("ACS-2 revision 3"),
+
+			0x011b => Some("ACS-3 revision 4"),
 			0x0000 | 0xffff => None, // revision is not reported
 			_ => None, // reserved values
 		},
