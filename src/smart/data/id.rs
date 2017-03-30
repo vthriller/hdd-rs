@@ -320,33 +320,20 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 		},
 
 		commands_supported: IdCommands {
-			/* XXX
-			> If bit 9 of word 85 is set to one, the DEVICE RESET command is supported.
-			Should we set w82:9 || w85:9 here? Or w82:9 && w85:9? Or is it `Ternary`?
-			Lousy stupid drafts…
-			*/
+			// XXX these, according to ATA8-ACS rev 62, should be mirrored in 'feature status' words
+			// e.g. w82:12 == w85:12, w119:2 == w120:2
+			// 82 ↔ 85, 83 ↔ 86, 84 ↔ 87, 119 ↔ 120
 			device_reset: is_set(data[82], 9),
-			// XXX same, w82:12 vs w85:12
 			write_buffer: is_set(data[82], 12),
-			// XXX same, w82:13 vs w85:13
 			read_buffer: is_set(data[82], 13),
-			// XXX same, w82:14 vs w85:14
 			nop: is_set(data[82], 14),
-			// XXX same, w83:0 vs w86:0
 			download_microcode: is_set(data[83], 0),
-			// XXX same, w83:1 vs w86:1
 			read_write_dma_queued: is_set(data[83], 1),
-			// XXX same, w83:12 vs w86:12
 			flush_cache: is_set(data[83], 12),
-			// XXX same, w83:13 vs w86:13
 			flush_cache_ext: is_set(data[83], 13),
-			// XXX same, w84:6 vs w87:6
 			write_dma_fua_ext: is_set(data[84], 6),
-			// XXX same, w84:7 vs w87:7
 			write_dma_queued_fua_ext: is_set(data[84], 7),
-			// XXX same, w119:2 vs w120:2
 			write_uncorrectable: is_set(data[119], 2),
-			// XXX same, w119:3 vs w120:3
 			read_write_dma_ext_gpl: is_set(data[119], 3),
 		},
 
@@ -362,18 +349,12 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 		apm: make_ternary(data, 83, 3, 86, 3),
 		aam: make_ternary(data, 83, 9, 86, 9),
 		gp_logging_supported: is_set(data[84], 5),
-		// XXX see commands_supported; w84:8 vs w87:8
-		wwn_supported: is_set(data[84], 8),
+		wwn_supported: is_set(data[84], 8), // XXX mirrored; see commands_supported
 		security: make_ternary(data, 82, 1, 85, 1),
 
 		smart: make_ternary(data, 82, 0, 85, 0),
-		/* XXX
-		> If bit 0 of word 87 is set to one, the device supports SMART error logging.
-		> If bit 1 of word 87 is set to one, the device supports SMART self-test.
 
-		Oh, come on!
-		*/
-		smart_error_logging_supported: is_set(data[84], 0),
-		smart_self_test_supported: is_set(data[84], 1),
+		smart_error_logging_supported: is_set(data[84], 0), // XXX mirrored; see commands_supported
+		smart_self_test_supported: is_set(data[84], 1), // XXX mirrored; see commands_supported
 	}
 }
