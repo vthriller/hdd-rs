@@ -1,11 +1,19 @@
 use std::collections::HashMap;
 
-pub type Preset = HashMap<u8, String>;
+#[derive(Debug, Clone)]
+pub enum Type { HDD, SSD }
+#[derive(Debug, Clone)]
+pub struct Attribute {
+	pub name: Option<String>,
+	pub format: String,
+	pub drivetype: Option<Type>,
+}
+pub type Preset = HashMap<u8, Attribute>;
 
 pub fn parse(line: &String) -> Option<Preset> {
 	// using clap here would be an overkill
 	let mut args = line.split_whitespace().into_iter();
-	let mut output = HashMap::<u8, String>::new();
+	let mut output = Preset::new();
 	loop {
 		match args.next() {
 			None => return Some(output),
@@ -25,18 +33,23 @@ pub fn parse(line: &String) -> Option<Preset> {
 								},
 								None => return None, // too few
 							};
-							let _format = match desc.next() {
+							let format = match desc.next() {
 								Some(x) => x,
 								None => return None, // too few
-							}; // TODO
+							}; // TODO byte order
 							let name = desc.next(); // optional
-							let _type = desc.next(); // optional, either "HDD" or "SSD"; TODO
+							let drivetype = desc.next().map(|t| match t {
+								"HDD" => Some(Type::HDD),
+								"SSD" => Some(Type::SSD),
+								_ => None,
+							}).unwrap_or(None); // optional
 							if desc.next() != None { return None } // too many
 
-							match name {
-								None => continue,
-								Some(name) => { output.insert(id, name.to_string()); }
-							}
+							output.insert(id, Attribute {
+								name: name.map(|s|s.to_string()),
+								format: format.to_string(),
+								drivetype: drivetype,
+							});
 						},
 						_ => continue, // TODO other options
 					}

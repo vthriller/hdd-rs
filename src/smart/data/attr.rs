@@ -5,7 +5,7 @@ use super::super::drivedb;
 pub struct SmartAttribute<'a> {
 	pub id: u8,
 
-	pub name: Option<&'a String>, // comes from the drivedb
+	pub name: Option<String>, // comes from the drivedb
 
 	pub pre_fail: bool, // if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
 	pub online: bool,
@@ -46,12 +46,17 @@ pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: &'a [u8; 512], db
 
 		let id = data[offset];
 
+		let attr = match dbentry {
+			&drivedb::Match::Default { presets: ref p } => p.get(&id),
+			&drivedb::Match::Found { presets: ref p, .. } => p.get(&id),
+		};
+
 		attrs.push(SmartAttribute {
 			id: id,
 
-			name: match dbentry {
-				&drivedb::Match::Default { presets: ref p } => p.get(&id),
-				&drivedb::Match::Found { presets: ref p, .. } => p.get(&id),
+			name: match attr {
+				Some(a) => a.name.clone(),
+				None => None
 			},
 
 			pre_fail:        flags & (1<<0) != 0,

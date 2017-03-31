@@ -62,13 +62,13 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 fn merge_presets(default: &Option<presets::Preset>, drive: &Option<presets::Preset>) -> presets::Preset {
 	let mut output = presets::Preset::new();
 	if let Some(ref dpresets) = *default {
-		for (id, name) in dpresets {
-			output.insert(*id, name.clone());
+		for (id, attr) in dpresets {
+			output.insert(*id, attr.clone());
 		}
 	}
 	if let Some(ref dpresets) = *drive {
-		for (id, name) in dpresets {
-			output.insert(*id, name.clone());
+		for (id, attr) in dpresets {
+			output.insert(*id, attr.clone());
 		}
 	}
 	output

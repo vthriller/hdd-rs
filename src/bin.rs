@@ -110,7 +110,7 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 		// > The NAME … should not exceed 23 characters
 		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {:3}   {:3}    {} {} {:?}\n",
 			val.id,
-			val.name.unwrap_or(&"?".to_string()),
+			val.name.as_ref().unwrap_or(&"?".to_string()),
 			bool_to_flag(val.pre_fail, 'P'),
 			bool_to_flag(!val.online, 'O'),
 			bool_to_flag(val.performance, 'S'),
