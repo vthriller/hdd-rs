@@ -74,6 +74,25 @@ fn merge_presets(default: &Option<presets::Preset>, drive: &Option<presets::Pres
 	output
 }
 
+fn filter_presets(id: &id::Id, preset: presets::Preset) -> presets::Preset {
+	let drivetype = match id.rpm {
+		id::RPM::RPM(_) => Some(presets::Type::HDD),
+		id::RPM::NonRotating => Some(presets::Type::SSD),
+		id::RPM::Unknown => None,
+	};
+
+	preset.into_iter().filter(|&(_id, ref attr)| match (&attr.drivetype, &drivetype) {
+		// this attribute is not type-specific
+		(&None, _) => true,
+		// drive type match
+		(&Some(ref a), &Some(ref b)) if a == b => true,
+		// drive type does not match
+		(&Some(_), &Some(_)) => false,
+		// applying drive-type-specific attributes to drives of unknown type makes no sense
+		(&Some(_), &None) => false,
+	}).collect()
+}
+
 #[derive(Debug)]
 pub enum Match<'a> {
 	Default { presets: presets::Preset },
@@ -110,13 +129,16 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 			family: &entry.family,
 			warning: if entry.warning.len() > 0 { Some(&entry.warning) } else { None },
 			presets: merge_presets(
-				&presets::parse(&default.presets),
-				&presets::parse(&entry.presets),
+				// do not apply `filter_presets` to the merged preset: we might want to skip preset based on the drive type even if smartmontools currently expects HDD/SSD flag to be used in the default entry only
+				&presets::parse(&default.presets).map(|p| filter_presets(&id, p)),
+				&presets::parse(&entry.presets).map(|p| filter_presets(&id, p)),
 			),
 		};
 	}
 
 	Match::Default {
-		presets: presets::parse(&default.presets).unwrap(), // again, panic is kinda ok here, we're expecting default entry to have all that (XXX)
+		presets: filter_presets(&id,
+			presets::parse(&default.presets).unwrap() // again, panic is kinda ok here, we're expecting default entry to have all that (XXX)
+		),
 	}
 }

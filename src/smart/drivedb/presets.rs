@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Type { HDD, SSD }
 #[derive(Debug, Clone)]
 pub struct Attribute {
