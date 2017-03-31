@@ -6,6 +6,7 @@ pub enum Type { HDD, SSD }
 pub struct Attribute {
 	pub name: Option<String>,
 	pub format: String,
+	pub byte_order: String,
 	pub drivetype: Option<Type>,
 }
 pub type Preset = HashMap<u8, Attribute>;
@@ -33,21 +34,37 @@ pub fn parse(line: &String) -> Option<Preset> {
 								},
 								None => return None, // too few
 							};
-							let format = match desc.next() {
+
+							let mut format_byte_order = match desc.next() {
 								Some(x) => x,
 								None => return None, // too few
-							}; // TODO byte order
+							}.splitn(2, ':');
+
+							let format = format_byte_order.next().unwrap(); // there always will be a single element
+							let byte_order = match format_byte_order.next() {
+								Some(x) => x,
+								None => match format {
+									// default byte orders, from ata_get_attr_raw_value, atacmds.cpp
+									"raw64" | "hex64" => "543210wv",
+									"raw56" | "hex56" | "raw24/raw32" | "msec24hour32" => "r543210",
+									_ => "543210",
+								},
+							};
+
 							let name = desc.next(); // optional
+
 							let drivetype = desc.next().map(|t| match t {
 								"HDD" => Some(Type::HDD),
 								"SSD" => Some(Type::SSD),
 								_ => None,
 							}).unwrap_or(None); // optional
+
 							if desc.next() != None { return None } // too many
 
 							output.insert(id, Attribute {
 								name: name.map(|s|s.to_string()),
 								format: format.to_string(),
+								byte_order: byte_order.to_string(),
 								drivetype: drivetype,
 							});
 						},
