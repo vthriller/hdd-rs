@@ -32,7 +32,7 @@ fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
 }
 
-fn print_id(id: &id::Id, dbentry: &drivedb::Match) {
+fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 	if id.incomplete { print!("WARNING: device reports information it provides is incomplete\n\n"); }
 
 	// XXX id.is_ata is deemed redundant and is skipped
@@ -49,14 +49,17 @@ fn print_id(id: &id::Id, dbentry: &drivedb::Match) {
 	// TODO: id.wwn_supported is cool, but actual WWN ID is better
 
 	match dbentry {
-		&drivedb::Match::Found { family, warning, presets: _ } => {
-			print!("Model family according to drive database:\n  {}\n", family);
-			if let Some(warning) = warning {
-				print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", warning);
+		&None => (),
+		&Some(ref dbentry) => match dbentry {
+			&drivedb::Match::Found { family, warning, presets: _ } => {
+				print!("Model family according to drive database:\n  {}\n", family);
+				if let Some(warning) = warning {
+					print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", warning);
+				}
+			},
+			&drivedb::Match::Default { presets: _ } => {
+				print!("This drive is not in the drive database\n");
 			}
-		},
-		&drivedb::Match::Default { presets: _ } => {
-			print!("This drive is not in the drive database\n");
 		}
 	}
 
@@ -184,6 +187,13 @@ fn main() {
 			.long("all") // smartctl-like
 			.help("equivalent to -iHA")
 		)
+		.arg(Arg::with_name("drivedb")
+			.short("B") // smartctl-like
+			.long("drivedb") // smartctl-like
+			.takes_value(true)
+			.value_name("FILE")
+			.help("path to drivedb file") // unlike smartctl, does not support '+FILE'
+		)
 		.arg(Arg::with_name("json")
 			.long("json")
 			.help("Export data in JSON")
@@ -197,9 +207,15 @@ fn main() {
 
 	let file = File::open(args.value_of("device").unwrap()).unwrap();
 
-	// TODO path option; FIXME smartmontools dependency (lol)
-	// TODO make database optional
-	let drivedb = drivedb::load("/usr/share/smartmontools/drivedb.h").unwrap();
+	let drivedb = match drivedb::load(
+		args.value_of("drivedb").unwrap_or("/usr/share/smartmontools/drivedb.h")
+	) {
+		Ok(x) => Some(x),
+		Err(e) => {
+			warn(format!("Cannot open drivedb file: {}\n", e));
+			None
+		},
+	};
 
 	let print_info  = args.is_present("info") || args.is_present("all");
 	let print_attrs = args.is_present("attrs") || args.is_present("all");
@@ -211,18 +227,20 @@ fn main() {
 	if print_info || print_attrs || print_health {
 		let data = ata::ata_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
-		let dbentry = drivedb::match_entry(&id, &drivedb);
+
+		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(&id, &drivedb));
 
 		if print_info {
 			if use_json {
 				let mut info = id.to_json().unwrap();
 
 				match dbentry {
-					drivedb::Match::Found { family, warning, presets: _ } => {
+					Some(drivedb::Match::Found { family, warning, presets: _ }) => {
 						info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
 						info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
 					},
-					drivedb::Match::Default { presets: _ } => ()
+					Some(drivedb::Match::Default { presets: _ }) => (),
+					None => (),
 				}
 
 				json_map.insert("info".to_string(), info);

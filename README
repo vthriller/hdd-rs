@@ -23,6 +23,5 @@ Caveats:
 * only tested on little-endian systems,
 * only tested with modern hard drives (although I doubt anyone would be interested in using this with some really old piece of equipment),
 * only shows basic information and attributes; no feature toggles, no drive logs, virtually nothing is supported yet,
-* `/usr/share/smartmontools/drivedb.h` is expected to be in your system,
 * debugging options (think `smartctl -r ataioctl,2` or `skdump`) are yet to be implemented,
 * something else.
