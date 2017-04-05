@@ -134,7 +134,6 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 					else if val.worst <= thresh { "past" }
 					else { "-   " }
 			},
-			// TODO interpreted raw values
 			val.raw,
 		);
 	}
@@ -182,6 +181,7 @@ fn main() {
 			.long("attrs")
 			.help("Prints a list of S.M.A.R.T. attributes")
 		)
+		// TODO -v --vendorattribute
 		.arg(Arg::with_name("all")
 			.short("a") // smartctl-like
 			.long("all") // smartctl-like

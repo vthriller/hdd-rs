@@ -1,3 +1,5 @@
+pub mod raw;
+
 use std::collections::HashMap;
 use super::super::drivedb;
 
@@ -20,7 +22,9 @@ pub struct SmartAttribute<'a> {
 	pub value: u8, // TODO? 0x00 | 0xfe | 0xff are invalid
 	// vendor-specific:
 	pub worst: u8,
-	pub raw: &'a [u8], // including the last byte, which is reserved
+	pub true_raw: &'a [u8], // including the last byte, which is reserved
+
+	pub raw: raw::Raw,
 
 	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 }
@@ -68,9 +72,12 @@ pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: &'a [u8; 512], db
 			self_preserving: flags & (1<<5) != 0,
 			flags:           flags & (!0b111111),
 
+			// TODO? Option<> for value, worst; None if formatted with raw64/hex64, or 'v'/'w' are used in the custom `byte_order`
 			value: data[offset + 3],
 			worst: data[offset + 4],
-			raw: &data[offset + 5 .. offset + 12],
+			true_raw: &data[offset + 5 .. offset + 12],
+
+			raw: raw::Raw::from_raw_entry(&data[offset .. offset + 12], &attr),
 
 			// .get() returns Option<&T>, but threshs would not live long enough, and it's just easier to copy u8 using this map
 			thresh: threshs.get(&data[offset]).map(|t| *t),

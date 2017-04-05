@@ -42,7 +42,7 @@ pub fn parse(line: &String) -> Option<Preset> {
 
 							let format = format_byte_order.next().unwrap(); // there always will be a single element
 							let byte_order = match format_byte_order.next() {
-								Some(x) => x,
+								Some(x) => x, // TODO len()<6 should be invalid
 								None => match format {
 									// default byte orders, from ata_get_attr_raw_value, atacmds.cpp
 									"raw64" | "hex64" => "543210wv",
