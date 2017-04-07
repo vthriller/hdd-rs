@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::str;
 
 use nom;
@@ -8,12 +7,12 @@ use nom::digit;
 pub enum Type { HDD, SSD }
 #[derive(Debug, Clone)]
 pub struct Attribute {
+	pub id: u8,
 	pub name: Option<String>,
 	pub format: String,
 	pub byte_order: String,
 	pub drivetype: Option<Type>,
 }
-pub type Preset = HashMap<u8, Attribute>;
 
 fn not_comma(c: u8) -> bool { c == ',' as u8 }
 fn not_comma_nor_colon(c: u8) -> bool { c == ',' as u8 || c == ':' as u8 }
@@ -22,7 +21,7 @@ fn not_comma_nor_colon(c: u8) -> bool { c == ',' as u8 || c == ':' as u8 }
 // `opt!()` is used with `complete!()` here because the former returns `Incomplete` untouched, thus making attributes not ending with otherwise optional ',(HDD|SSD)' `Incomplete` as well.
 // TODO:
 // > If 'N' is specified as ID, the settings for all Attributes are changed.
-named!(pub parse_vendor_attribute <(u8, Attribute)>, do_parse!(
+named!(pub parse_vendor_attribute <Attribute>, do_parse!(
 	id: map!(digit, |x: &[u8]| str::from_utf8(x).unwrap().parse::<u8>().unwrap()) >> // XXX map_res!()?
 	char!(',') >>
 	format: map_res!(
@@ -66,19 +65,20 @@ named!(pub parse_vendor_attribute <(u8, Attribute)>, do_parse!(
 			"raw56" | "hex56" | "raw24/raw32" | "msec24hour32" => "r543210",
 			_ => "543210",
 		};
-		(id, Attribute {
+		Attribute {
+			id: id,
 			name: name.map(|x| x.to_string()),
 			format: format.to_string(),
 			byte_order: byte_order.unwrap_or(default_byte_order).to_string(),
 			drivetype: drive_type,
-		})
+		}
 	})
 ));
 
-pub fn parse(line: &String) -> Option<Preset> {
+pub fn parse(line: &String) -> Option<Vec<Attribute>> {
 	// using clap here would be an overkill
 	let mut args = line.split_whitespace().into_iter();
-	let mut output = Preset::new();
+	let mut output = Vec::<Attribute>::new();
 	loop {
 		match args.next() {
 			None => return Some(output),
@@ -88,7 +88,7 @@ pub fn parse(line: &String) -> Option<Preset> {
 					match key {
 						// FIXME strings to bytes to strings again… sounds really stupid
 						"-v" => match parse_vendor_attribute(value.as_bytes()) {
-							nom::IResult::Done(_, (id, attr)) => { output.insert(id, attr); },
+							nom::IResult::Done(_, attr) => { output.push(attr); },
 							nom::IResult::Error(_) => (), // TODO?
 							nom::IResult::Incomplete(_) => (), // TODO?
 						},

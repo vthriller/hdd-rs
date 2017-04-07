@@ -1,7 +1,7 @@
 mod parser;
 mod presets;
 pub use self::parser::Entry;
-pub use self::presets::{Preset, Attribute};
+pub use self::presets::Attribute;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -60,29 +60,29 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	}
 }
 
-fn merge_presets(default: &Option<presets::Preset>, drive: &Option<presets::Preset>) -> presets::Preset {
-	let mut output = presets::Preset::new();
+fn merge_presets(default: &Option<Vec<Attribute>>, drive: &Option<Vec<Attribute>>) -> Vec<Attribute> {
+	let mut output = Vec::<Attribute>::new();
 	if let Some(ref dpresets) = *default {
-		for (id, attr) in dpresets {
-			output.insert(*id, attr.clone());
+		for attr in dpresets {
+			output.push(attr.clone());
 		}
 	}
 	if let Some(ref dpresets) = *drive {
-		for (id, attr) in dpresets {
-			output.insert(*id, attr.clone());
+		for attr in dpresets {
+			output.push(attr.clone());
 		}
 	}
 	output
 }
 
-fn filter_presets(id: &id::Id, preset: presets::Preset) -> presets::Preset {
+fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
 	let drivetype = match id.rpm {
 		id::RPM::RPM(_) => Some(presets::Type::HDD),
 		id::RPM::NonRotating => Some(presets::Type::SSD),
 		id::RPM::Unknown => None,
 	};
 
-	preset.into_iter().filter(|&(_id, ref attr)| match (&attr.drivetype, &drivetype) {
+	preset.into_iter().filter(|ref attr| match (&attr.drivetype, &drivetype) {
 		// this attribute is not type-specific
 		(&None, _) => true,
 		// drive type match
@@ -96,11 +96,11 @@ fn filter_presets(id: &id::Id, preset: presets::Preset) -> presets::Preset {
 
 #[derive(Debug)]
 pub enum Match<'a> {
-	Default { presets: presets::Preset },
+	Default { presets: Vec<Attribute> },
 	Found {
 		family: &'a String,
 		warning: Option<&'a String>,
-		presets: presets::Preset,
+		presets: Vec<Attribute>,
 	}
 }
 
