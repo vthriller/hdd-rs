@@ -62,16 +62,8 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 
 fn merge_presets(default: &Option<Vec<Attribute>>, drive: &Option<Vec<Attribute>>) -> Vec<Attribute> {
 	let mut output = Vec::<Attribute>::new();
-	if let Some(ref dpresets) = *default {
-		for attr in dpresets {
-			output.push(attr.clone());
-		}
-	}
-	if let Some(ref dpresets) = *drive {
-		for attr in dpresets {
-			output.push(attr.clone());
-		}
-	}
+	if let Some(ref dpresets) = *default { output.extend(dpresets.iter().cloned()); }
+	if let Some(ref dpresets) = *drive   { output.extend(dpresets.iter().cloned()); }
 	output
 }
 
