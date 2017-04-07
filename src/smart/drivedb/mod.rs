@@ -1,6 +1,7 @@
 mod parser;
 mod presets;
 pub use self::parser::Entry;
+pub use self::presets::{Preset, Attribute};
 
 use std::fs::File;
 use std::io::prelude::*;
