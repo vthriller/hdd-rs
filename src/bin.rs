@@ -185,7 +185,7 @@ fn main() {
 		.arg(Arg::with_name("all")
 			.short("a") // smartctl-like
 			.long("all") // smartctl-like
-			.help("equivalent to -iHA")
+			.help("equivalent to --info --health --attrs")
 		)
 		.arg(Arg::with_name("drivedb")
 			.short("B") // smartctl-like
