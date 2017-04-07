@@ -19,6 +19,7 @@ fn not_comma(c: u8) -> bool { c == ',' as u8 }
 fn not_comma_nor_colon(c: u8) -> bool { c == ',' as u8 || c == ':' as u8 }
 
 // parse argument of format 'ID,FORMAT[:BYTEORDER][,NAME[,(HDD|SSD)]]'
+// `opt!()` is used with `complete!()` here because the former returns `Incomplete` untouched, thus making attributes not ending with otherwise optional ',(HDD|SSD)' `Incomplete` as well.
 // TODO:
 // > If 'N' is specified as ID, the settings for all Attributes are changed.
 named!(pub parse_vendor_attribute <(u8, Attribute)>, do_parse!(
@@ -28,21 +29,21 @@ named!(pub parse_vendor_attribute <(u8, Attribute)>, do_parse!(
 		take_till1_s!(not_comma_nor_colon),
 		str::from_utf8
 	) >>
-	byte_order: opt!(do_parse!( // TODO len()<6 should be invalid
+	byte_order: opt!(complete!(do_parse!( // TODO len()<6 should be invalid
 		char!(':') >>
 		byteorder: map_res!(
 			take_till1_s!(not_comma),
 			str::from_utf8
 		) >>
 		(byteorder)
-	)) >>
-	name_drive_type: opt!(do_parse!(
+	))) >>
+	name_drive_type: opt!(complete!(do_parse!(
 		char!(',') >>
 		name: map_res!(
 			take_till1_s!(not_comma),
 			str::from_utf8
 		) >>
-		drive_type: opt!(do_parse!(
+		drive_type: opt!(complete!(do_parse!(
 			char!(',') >>
 			drive_type: alt!(tag!("HDD") | tag!("SSD")) >>
 			(match str::from_utf8(drive_type) {
@@ -50,9 +51,9 @@ named!(pub parse_vendor_attribute <(u8, Attribute)>, do_parse!(
 				Ok("SSD") => Type::SSD,
 				_ => unreachable!(),
 			})
-		)) >>
+		))) >>
 		(name, drive_type)
-	)) >>
+	))) >>
 	eof!() >>
 	({
 		let (name, drive_type) = match name_drive_type {
