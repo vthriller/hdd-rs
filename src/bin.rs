@@ -111,7 +111,7 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 	print!(" ID name                     flags        value worst thresh fail raw\n");
 	for val in values {
 		// > The NAME … should not exceed 23 characters
-		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {:3}   {:3}    {} {} {:?}\n",
+		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {:3}   {:3}    {} {} {}\n",
 			val.id,
 			val.name.as_ref().unwrap_or(&"?".to_string()),
 			bool_to_flag(val.pre_fail, 'P'),

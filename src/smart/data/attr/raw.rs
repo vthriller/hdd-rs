@@ -1,5 +1,6 @@
 use std::cmp::{min, max};
 use super::super::super::drivedb;
+use std::fmt;
 
 // Initially I used `BigEndian` from the `byteorder` crate; however, it quickly resulted in an iterator mess (`.chunks()`, `.take()`, `.skip()`, `.map()`, `.unwrap()` et al.), and it also did not help with 24-bit and 48-bit packed values at all.
 fn read(data: &[u8], bits: usize) -> u64 {
@@ -26,7 +27,68 @@ pub enum Raw {
 	Celsius(f32),
 	CelsiusMinMax { current: u8, min: u8, max: u8 },
 }
-// TODO: impl Display
+
+fn write_vec<T>(f: &mut fmt::Formatter, vec: &Vec<T>) -> fmt::Result
+where T: fmt::Display {
+	let mut values = vec.iter();
+	if let Some(i) = values.next() { write!(f, "{}", i)?; }
+	for i in values { write!(f, " {}", i)?; }
+	Ok(())
+}
+
+impl fmt::Display for Raw {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match *self {
+			Raw::Raw8(ref vals) => write_vec(f, &vals),
+			Raw::Raw16(ref vals) => write_vec(f, &vals),
+			Raw::Raw64(val) => write!(f, "{}", val),
+			Raw::Raw16opt16(ref x, ref y) => {
+				write!(f, "{}", x)?;
+				if let &Some(ref vec) = y {
+					write!(f, " (")?;
+					write_vec(f, &vec)?;
+					write!(f, ")")?;
+				}
+				Ok(())
+			}
+			Raw::Raw24opt8(ref x, ref y) => {
+				write!(f, "{}", x)?;
+				if let &Some(ref vec) = y {
+					write!(f, " (")?;
+					write_vec(f, &vec)?;
+					write!(f, ")")?;
+				}
+				Ok(())
+			}
+			Raw::Raw16avg16 { value, average } =>
+				write!(f, "{} (avg: {})", value, average),
+			Raw::Raw24div(x, y) => write!(f, "{}/{}", x, y),
+			Raw::Minutes(m) => {
+				let h = m / 60; let m = m - h * 60;
+				let d = h / 24; let h = h - d * 24;
+
+				write!(f, "{}d {:02}:{:02}", d, h, m)
+			},
+			Raw::Seconds(s) => {
+				let m = s / 60; let s = s - m * 60;
+				let h = m / 60; let m = m - h * 60;
+				let d = h / 24; let h = h - d * 24;
+
+				write!(f, "{}d {:02}:{:02}:{:02}", d, h, m, s)
+			},
+			Raw::HoursMilliseconds(h, ms) => {
+				let s = ms as f32 / 1000.;
+				let m = s as u32 / 60; let s = s - (m as f32) * 60.;
+				let d = h / 24; let h = h - d * 24;
+
+				write!(f, "{}d {:02}:{:02}:{:02}", d, h, m, s)
+			},
+			Raw::Celsius(cur) => write!(f, "{:.1}°C", cur), // .1 because f32
+			Raw::CelsiusMinMax { current, min, max } =>
+				write!(f, "{}°C (min: {}°C, max: {}°C)", current, min, max),
+		}
+	}
+}
 
 // In smartmontools, they first apply byte order attribute to get the u64, which in turn is used to get separate u8/u16s for RAWFMT_RAW8/RAWFMT_RAW16; there's also different byte order defaults for different formats. Oh for crying out loud…
 
