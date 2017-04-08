@@ -50,19 +50,13 @@ pub fn parse_smart_values<'a>(data: &'a [u8; 512], raw_thresh: &'a [u8; 512], db
 
 		let id = data[offset];
 
-		let attr = match dbentry {
-			&Some(drivedb::Match::Default { presets: ref p }) => Some(p),
-			&Some(drivedb::Match::Found { presets: ref p, .. }) => Some(p),
-			&None => None,
-		}
-		.map(|attrs| attrs.iter().filter(|attr| attr.id == id).last())
-		.unwrap_or(None);
+		let attr = dbentry.as_ref().map(|dbentry| dbentry.render_attribute(id)).unwrap_or(None);
 
 		attrs.push(SmartAttribute {
 			id: id,
 
 			name: match attr {
-				Some(a) => a.name.clone(),
+				Some(ref a) => a.name.clone(),
 				None => None
 			},
 

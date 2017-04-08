@@ -135,3 +135,32 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 		),
 	}
 }
+
+impl<'a> Match<'a> {
+	pub fn render_attribute(&'a self, id: u8) -> Option<Attribute> {
+		let mut out = None;
+
+		let presets = match self {
+			&Match::Default { ref presets } => presets,
+			&Match::Found { ref presets, .. } => presets,
+		}.iter();
+		for new in presets {
+			if new.id != id { continue }
+			match out {
+				None => { out = Some((*new).clone()); },
+				Some(ref mut old) => {
+					old.format = new.format.clone();
+					old.byte_order = new.byte_order.clone();
+					if let Some(_) = new.name {
+						old.name = new.name.clone();
+					}
+					if let Some(_) = new.drivetype {
+						old.drivetype = new.drivetype.clone();
+					}
+				},
+			}
+		}
+
+		out
+	}
+}

@@ -112,8 +112,8 @@ fn reorder(data: &[u8], byte_order: &str) -> Vec<u8> {
 
 impl Raw {
 	// `data`: see above
-	pub fn from_raw_entry(data: &[u8], attr: &Option<&drivedb::Attribute>) -> Raw {
-		let (fmt, byte_order) = attr.map(|a|
+	pub fn from_raw_entry(data: &[u8], attr: &Option<drivedb::Attribute>) -> Raw {
+		let (fmt, byte_order) = attr.as_ref().map(|a|
 			(a.format.clone(), a.byte_order.clone())
 		).unwrap_or(
 			("raw48".to_string(), "543210".to_string())
