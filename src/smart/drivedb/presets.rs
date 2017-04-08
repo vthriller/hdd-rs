@@ -7,7 +7,7 @@ use nom::digit;
 pub enum Type { HDD, SSD }
 #[derive(Debug, Clone)]
 pub struct Attribute {
-	pub id: u8,
+	pub id: Option<u8>,
 	pub name: Option<String>,
 	pub format: String,
 	pub byte_order: String,
@@ -19,10 +19,13 @@ fn not_comma_nor_colon(c: u8) -> bool { c == ',' as u8 || c == ':' as u8 }
 
 // parse argument of format 'ID,FORMAT[:BYTEORDER][,NAME[,(HDD|SSD)]]'
 // `opt!()` is used with `complete!()` here because the former returns `Incomplete` untouched, thus making attributes not ending with otherwise optional ',(HDD|SSD)' `Incomplete` as well.
-// TODO:
-// > If 'N' is specified as ID, the settings for all Attributes are changed.
 named!(pub parse_vendor_attribute <Attribute>, do_parse!(
-	id: map!(digit, |x: &[u8]| str::from_utf8(x).unwrap().parse::<u8>().unwrap()) >> // XXX map_res!()?
+	id: alt!(
+		// XXX map_res!()?
+		map!(digit, |x: &[u8]| str::from_utf8(x).unwrap().parse::<u8>().ok())
+		// > If 'N' is specified as ID, the settings for all Attributes are changed
+		| do_parse!(char!('N') >> (None))
+	) >>
 	char!(',') >>
 	format: map_res!(
 		take_till1_s!(not_comma_nor_colon),

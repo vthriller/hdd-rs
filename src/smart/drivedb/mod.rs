@@ -145,7 +145,13 @@ impl<'a> Match<'a> {
 			&Match::Found { ref presets, .. } => presets,
 		}.iter();
 		for new in presets {
-			if new.id != id { continue }
+			// apply updates only if it matches the attribute id we're interested in,
+			// or if it matches all the ids ('-v N,…' aka `id: None`)
+			match new.id {
+				Some(x) if x != id => continue,
+				_ => ()
+			}
+
 			match out {
 				None => { out = Some((*new).clone()); },
 				Some(ref mut old) => {
