@@ -106,9 +106,12 @@ pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 	out
 }
 
-pub fn merge(default: &Option<Vec<Attribute>>, drive: &Option<Vec<Attribute>>) -> Vec<Attribute> {
+pub fn merge(presets: Vec<Option<Vec<Attribute>>>) -> Vec<Attribute> {
 	let mut output = Vec::<Attribute>::new();
-	if let Some(ref dpresets) = *default { output.extend(dpresets.iter().cloned()); }
-	if let Some(ref dpresets) = *drive   { output.extend(dpresets.iter().cloned()); }
+	for preset in presets {
+		if let Some(ref dpresets) = preset {
+			output.extend(dpresets.iter().cloned());
+		}
+	}
 	output
 }

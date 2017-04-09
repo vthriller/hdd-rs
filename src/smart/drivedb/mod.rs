@@ -115,11 +115,11 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 		return Match::Found {
 			family: &entry.family,
 			warning: if entry.warning.len() > 0 { Some(&entry.warning) } else { None },
-			presets: vendor_attribute::merge(
+			presets: vendor_attribute::merge(vec![
 				// do not apply `filter_presets` to the merged preset: we might want to skip preset based on the drive type even if smartmontools currently expects HDD/SSD flag to be used in the default entry only
-				&presets::parse(&default.presets).map(|p| filter_presets(&id, p)),
-				&presets::parse(&entry.presets).map(|p| filter_presets(&id, p)),
-			),
+				presets::parse(&default.presets).map(|p| filter_presets(&id, p)),
+				presets::parse(&entry.presets).map(|p| filter_presets(&id, p)),
+			]),
 		};
 	}
 
