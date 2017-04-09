@@ -1,7 +1,8 @@
 mod parser;
 mod presets;
+mod vendor_attribute;
 pub use self::parser::Entry;
-pub use self::presets::Attribute;
+pub use self::vendor_attribute::Attribute;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -60,17 +61,10 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	}
 }
 
-fn merge_presets(default: &Option<Vec<Attribute>>, drive: &Option<Vec<Attribute>>) -> Vec<Attribute> {
-	let mut output = Vec::<Attribute>::new();
-	if let Some(ref dpresets) = *default { output.extend(dpresets.iter().cloned()); }
-	if let Some(ref dpresets) = *drive   { output.extend(dpresets.iter().cloned()); }
-	output
-}
-
 fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
 	let drivetype = match id.rpm {
-		id::RPM::RPM(_) => Some(presets::Type::HDD),
-		id::RPM::NonRotating => Some(presets::Type::SSD),
+		id::RPM::RPM(_) => Some(vendor_attribute::Type::HDD),
+		id::RPM::NonRotating => Some(vendor_attribute::Type::SSD),
 		id::RPM::Unknown => None,
 	};
 
@@ -121,7 +115,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 		return Match::Found {
 			family: &entry.family,
 			warning: if entry.warning.len() > 0 { Some(&entry.warning) } else { None },
-			presets: merge_presets(
+			presets: vendor_attribute::merge(
 				// do not apply `filter_presets` to the merged preset: we might want to skip preset based on the drive type even if smartmontools currently expects HDD/SSD flag to be used in the default entry only
 				&presets::parse(&default.presets).map(|p| filter_presets(&id, p)),
 				&presets::parse(&entry.presets).map(|p| filter_presets(&id, p)),
@@ -138,35 +132,10 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 
 impl<'a> Match<'a> {
 	pub fn render_attribute(&'a self, id: u8) -> Option<Attribute> {
-		let mut out = None;
-
 		let presets = match self {
 			&Match::Default { ref presets } => presets,
 			&Match::Found { ref presets, .. } => presets,
-		}.iter();
-		for new in presets {
-			// apply updates only if it matches the attribute id we're interested in,
-			// or if it matches all the ids ('-v N,…' aka `id: None`)
-			match new.id {
-				Some(x) if x != id => continue,
-				_ => ()
-			}
-
-			match out {
-				None => { out = Some((*new).clone()); },
-				Some(ref mut old) => {
-					old.format = new.format.clone();
-					old.byte_order = new.byte_order.clone();
-					if let Some(_) = new.name {
-						old.name = new.name.clone();
-					}
-					if let Some(_) = new.drivetype {
-						old.drivetype = new.drivetype.clone();
-					}
-				},
-			}
-		}
-
-		out
+		}.to_vec();
+		vendor_attribute::render(presets, id)
 	}
 }
