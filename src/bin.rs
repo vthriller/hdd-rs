@@ -7,7 +7,6 @@ use smart::data::attr;
 use smart::data::health;
 use smart::drivedb;
 use smart::drivedb::vendor_attribute;
-extern crate nom; // FIXME
 
 #[macro_use]
 extern crate clap;
@@ -226,12 +225,7 @@ fn main() {
 		.map(|attrs| attrs.collect())
 		.unwrap_or(vec![])
 		.into_iter()
-		// FIXME: again, `.as_bytes()` here just looks stupid
-		.map(|attr| match vendor_attribute::parse(attr.as_bytes()) {
-			nom::IResult::Done(_, attr) => Some(attr),
-			nom::IResult::Error(_) => None, // TODO
-			nom::IResult::Incomplete(_) => None, // TODO
-		})
+		.map(|attr| vendor_attribute::parse(attr).ok()) // TODO Err(_)
 		.filter(|x| x.is_some())
 		.map(|x| x.unwrap())
 		.collect();

@@ -1,6 +1,25 @@
 use std::str;
 
+use nom;
 use nom::digit;
+
+use std::{error, fmt};
+
+#[derive(Debug)]
+pub struct Error {}
+impl fmt::Display for Error {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "Parse error")
+	}
+}
+impl error::Error for Error {
+	fn description(&self) -> &str {
+		"parse error"
+	}
+	fn cause(&self) -> Option<&error::Error> {
+		None
+	}
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type { HDD, SSD }
@@ -18,7 +37,7 @@ fn not_comma_nor_colon(c: u8) -> bool { c == ',' as u8 || c == ':' as u8 }
 
 // parse argument of format 'ID,FORMAT[:BYTEORDER][,NAME[,(HDD|SSD)]]'
 // `opt!()` is used with `complete!()` here because the former returns `Incomplete` untouched, thus making attributes not ending with otherwise optional ',(HDD|SSD)' `Incomplete` as well.
-named!(pub parse <Attribute>, do_parse!(
+named!(parse_standard <Attribute>, do_parse!(
 	id: alt!(
 		// XXX map_res!()?
 		map!(digit, |x: &[u8]| str::from_utf8(x).unwrap().parse::<u8>().ok())
@@ -76,6 +95,15 @@ named!(pub parse <Attribute>, do_parse!(
 		}
 	})
 ));
+
+pub fn parse(s: &str) -> Result<Attribute, Error> {
+	// FIXME strings to bytes to strings again… sounds really stupid
+	match parse_standard(s.as_bytes()) {
+		nom::IResult::Done(_, attr) => Ok(attr),
+		nom::IResult::Error(_) => Err(Error {}), // TODO?
+		nom::IResult::Incomplete(_) => Err(Error {}), // TODO?
+	}
+}
 
 pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 	let mut out = None;
