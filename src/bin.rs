@@ -48,18 +48,14 @@ fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 	print!("Serial:   {}\n", id.serial);
 	// TODO: id.wwn_supported is cool, but actual WWN ID is better
 
-	match dbentry {
-		&None => (),
-		&Some(ref dbentry) => match dbentry {
-			&drivedb::Match::Found { family, warning, presets: _ } => {
-				print!("Model family according to drive database:\n  {}\n", family);
-				if let Some(warning) = warning {
-					print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", warning);
-				}
-			},
-			&drivedb::Match::Default { presets: _ } => {
-				print!("This drive is not in the drive database\n");
-			}
+	if let &Some(ref dbentry) = dbentry {
+		if let Some(family) = dbentry.family {
+			print!("Model family according to drive database:\n  {}\n", family);
+		} else {
+			print!("This drive is not in the drive database\n");
+		}
+		if let Some(warning) = dbentry.warning {
+			print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", warning);
 		}
 	}
 
@@ -234,13 +230,13 @@ fn main() {
 			if use_json {
 				let mut info = id.to_json().unwrap();
 
-				match dbentry {
-					Some(drivedb::Match::Found { family, warning, presets: _ }) => {
+				if let Some(ref dbentry) = dbentry {
+					if let Some(family) = dbentry.family {
 						info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
+					}
+					if let Some(warning) = dbentry.warning {
 						info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
-					},
-					Some(drivedb::Match::Default { presets: _ }) => (),
-					None => (),
+					}
 				}
 
 				json_map.insert("info".to_string(), info);

@@ -81,13 +81,10 @@ fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
 }
 
 #[derive(Debug)]
-pub enum Match<'a> {
-	Default { presets: Vec<Attribute> },
-	Found {
-		family: &'a String,
-		warning: Option<&'a String>,
-		presets: Vec<Attribute>,
-	}
+pub struct Match<'a> {
+	pub family: Option<&'a String>,
+	pub warning: Option<&'a String>,
+	pub presets: Vec<Attribute>,
 }
 
 pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
@@ -112,10 +109,10 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 		}
 
 		// > The table will be searched from the start to end or until the first match
-		return Match::Found {
-			family: &entry.family,
+		return Match {
+			family: Some(&entry.family),
 			warning: if entry.warning.len() > 0 { Some(&entry.warning) } else { None },
-			presets: vendor_attribute::merge(vec![
+			presets: vendor_attribute::merge(&vec![
 				// do not apply `filter_presets` to the merged preset: we might want to skip preset based on the drive type even if smartmontools currently expects HDD/SSD flag to be used in the default entry only
 				presets::parse(&default.presets).map(|p| filter_presets(&id, p)),
 				presets::parse(&entry.presets).map(|p| filter_presets(&id, p)),
@@ -123,7 +120,9 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 		};
 	}
 
-	Match::Default {
+	Match {
+		family: None,
+		warning: None,
 		presets: filter_presets(&id,
 			presets::parse(&default.presets).unwrap() // again, panic is kinda ok here, we're expecting default entry to have all that (XXX)
 		),
@@ -132,10 +131,6 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 
 impl<'a> Match<'a> {
 	pub fn render_attribute(&'a self, id: u8) -> Option<Attribute> {
-		let presets = match self {
-			&Match::Default { ref presets } => presets,
-			&Match::Found { ref presets, .. } => presets,
-		}.to_vec();
-		vendor_attribute::render(presets, id)
+		vendor_attribute::render(self.presets.to_vec(), id)
 	}
 }
