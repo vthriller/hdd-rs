@@ -1,6 +1,6 @@
 mod parser;
 mod presets;
-mod vendor_attribute;
+pub mod vendor_attribute;
 pub use self::parser::Entry;
 pub use self::vendor_attribute::Attribute;
 
@@ -87,7 +87,8 @@ pub struct Match<'a> {
 	pub presets: Vec<Attribute>,
 }
 
-pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
+// FIXME extra_attributes should probably be the reference
+pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> Match<'a> {
 	let mut db = db.iter();
 	let _ = db.next(); // skip dummy svn-id entry
 	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry (XXX)
@@ -116,6 +117,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 				// do not apply `filter_presets` to the merged preset: we might want to skip preset based on the drive type even if smartmontools currently expects HDD/SSD flag to be used in the default entry only
 				presets::parse(&default.presets).map(|p| filter_presets(&id, p)),
 				presets::parse(&entry.presets).map(|p| filter_presets(&id, p)),
+				Some(filter_presets(&id, extra_attributes)),
 			]),
 		};
 	}
@@ -123,9 +125,10 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Match<'a> {
 	Match {
 		family: None,
 		warning: None,
-		presets: filter_presets(&id,
-			presets::parse(&default.presets).unwrap() // again, panic is kinda ok here, we're expecting default entry to have all that (XXX)
-		),
+		presets: vendor_attribute::merge(&vec![
+			presets::parse(&default.presets).map(|p| filter_presets(&id, p)),
+			Some(filter_presets(&id, extra_attributes)),
+		]),
 	}
 }
 

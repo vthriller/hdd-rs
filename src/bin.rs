@@ -6,6 +6,8 @@ use smart::data::id;
 use smart::data::attr;
 use smart::data::health;
 use smart::drivedb;
+use smart::drivedb::vendor_attribute;
+extern crate nom; // FIXME
 
 #[macro_use]
 extern crate clap;
@@ -177,7 +179,6 @@ fn main() {
 			.long("attrs")
 			.help("Prints a list of S.M.A.R.T. attributes")
 		)
-		// TODO -v --vendorattribute
 		.arg(Arg::with_name("all")
 			.short("a") // smartctl-like
 			.long("all") // smartctl-like
@@ -189,6 +190,14 @@ fn main() {
 			.takes_value(true)
 			.value_name("FILE")
 			.help("path to drivedb file") // unlike smartctl, does not support '+FILE'
+		)
+		.arg(Arg::with_name("vendorattribute")
+			.multiple(true)
+			.short("v") // smartctl-like
+			.long("vendorattribute") // smartctl-like
+			.takes_value(true)
+			.value_name("id,format[:byteorder][,name]")
+			.help("set display option for vendor attribute 'id'")
 		)
 		.arg(Arg::with_name("json")
 			.long("json")
@@ -213,6 +222,20 @@ fn main() {
 		},
 	};
 
+	let user_attributes = args.values_of("vendorattribute")
+		.map(|attrs| attrs.collect())
+		.unwrap_or(vec![])
+		.into_iter()
+		// FIXME: again, `.as_bytes()` here just looks stupid
+		.map(|attr| match vendor_attribute::parse(attr.as_bytes()) {
+			nom::IResult::Done(_, attr) => Some(attr),
+			nom::IResult::Error(_) => None, // TODO
+			nom::IResult::Incomplete(_) => None, // TODO
+		})
+		.filter(|x| x.is_some())
+		.map(|x| x.unwrap())
+		.collect();
+
 	let print_info  = args.is_present("info") || args.is_present("all");
 	let print_attrs = args.is_present("attrs") || args.is_present("all");
 	let print_health = args.is_present("health") || args.is_present("all");
@@ -224,7 +247,11 @@ fn main() {
 		let data = ata::ata_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
 
-		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(&id, &drivedb));
+		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
+			&id,
+			&drivedb,
+			user_attributes,
+		));
 
 		if print_info {
 			if use_json {
