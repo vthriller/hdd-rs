@@ -19,9 +19,11 @@ pub struct SmartAttribute {
 	pub self_preserving: bool,
 	pub flags: u16,
 
-	pub value: u8, // TODO? 0x00 | 0xfe | 0xff are invalid
-	// vendor-specific:
-	pub worst: u8,
+	// contains None if `raw` is rendered using byte that usually covers this value
+	// TODO? 0x00 | 0xfe | 0xff are invalid
+	pub value: Option<u8>,
+	// contains None if `raw` is rendered using byte that usually covers this value
+	pub worst: Option<u8>,
 
 	pub raw: raw::Raw,
 
@@ -50,6 +52,7 @@ pub fn parse_smart_values(data: &[u8; 512], raw_thresh: &[u8; 512], dbentry: &Op
 		let id = data[offset];
 
 		let attr = dbentry.as_ref().map(|dbentry| dbentry.render_attribute(id)).unwrap_or(None);
+		let is_in_raw = |c| attr.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false);
 
 		attrs.push(SmartAttribute {
 			id: id,
@@ -67,9 +70,12 @@ pub fn parse_smart_values(data: &[u8; 512], raw_thresh: &[u8; 512], dbentry: &Op
 			self_preserving: flags & (1<<5) != 0,
 			flags:           flags & (!0b111111),
 
-			// TODO? Option<> for value, worst; None if formatted with raw64/hex64, or 'v'/'w' are used in the custom `byte_order`
-			value: data[offset + 3],
-			worst: data[offset + 4],
+			value: if !is_in_raw('v') {
+				Some(data[offset + 3])
+			} else { None },
+			worst: if !is_in_raw('w') {
+				Some(data[offset + 4])
+			} else { None },
 
 			raw: raw::Raw::from_raw_entry(&data[offset .. offset + 12], &attr),
 

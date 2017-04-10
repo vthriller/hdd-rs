@@ -103,12 +103,13 @@ fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 	print!("\n");
 }
 
+// XXX only `pretty_attributes` clearly shows failing/failed attributes
 fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 	print!("S.M.A.R.T. attribute values:\n");
 	print!(" ID name                     flags        value worst thresh fail raw\n");
 	for val in values {
 		// > The NAME … should not exceed 23 characters
-		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {:3}   {:3}    {} {} {}\n",
+		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {}   {}    {} {} {}\n",
 			val.id,
 			val.name.as_ref().unwrap_or(&"?".to_string()),
 			bool_to_flag(val.pre_fail, 'P'),
@@ -119,17 +120,16 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 			bool_to_flag(val.self_preserving, 'K'),
 			if val.flags == 0 { "     ".to_string() }
 				else { format!("+{:04x}", val.flags) },
-			val.value, val.worst,
-			match val.thresh {
-				Some(t) => format!("{:3}", t),
-				None => "(?)".to_string(),
-			},
-			match val.thresh { // XXX pretty output only
-				None => "-   ",
-				Some(thresh) =>
-					if val.value <= thresh { "NOW " }
-					else if val.worst <= thresh { "past" }
-					else { "-   " }
+			val.value.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
+			val.worst.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
+			val.thresh.map(|v| format!("{:3}", v)).unwrap_or("(?)".to_string()),
+			match (val.value, val.worst, val.thresh) {
+				(Some(v), _, Some(t)) if v <= t => "NOW ",
+				(_, Some(w), Some(t)) if w <= t => "past",
+				// either value/worst are part of the `val.row`,
+				// or threshold is not available,
+				// or value never was below the threshold
+				_ => "-   ",
 			},
 			val.raw,
 		);
