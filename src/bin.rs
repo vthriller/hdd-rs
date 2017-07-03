@@ -211,9 +211,14 @@ fn main() {
 
 	let file = File::open(args.value_of("device").unwrap()).unwrap();
 
-	let drivedb = match drivedb::load(
-		args.value_of("drivedb").unwrap_or("/usr/share/smartmontools/drivedb.h")
-	) {
+	let drivedb = match args.value_of("drivedb") {
+		Some(file) => drivedb::load(file),
+		None =>
+			drivedb::load("/var/lib/smartmontools/drivedb/drivedb.h").or(
+				drivedb::load("/usr/share/smartmontools/drivedb.h")
+			)
+	};
+	let drivedb = match drivedb {
 		Ok(x) => Some(x),
 		Err(e) => {
 			warn(format!("Cannot open drivedb file: {}\n", e));
