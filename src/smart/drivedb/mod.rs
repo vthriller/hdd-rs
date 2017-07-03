@@ -90,8 +90,14 @@ pub struct Match<'a> {
 // FIXME extra_attributes should probably be the reference
 pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> Match<'a> {
 	let mut db = db.iter();
-	let _ = db.next(); // skip dummy svn-id entry
-	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry (XXX)
+
+	let default = db.next().unwrap(); // svn-id entry should always be present …I guess. TODO, but only when we decide to support '-B +FILE' switch
+	let default = if default.presets == "" {
+		db.next().unwrap() // I'm fine with panicking in the absence of default entry (XXX)
+	} else {
+		// older drivedb versions included default settings not as a separate entry, but in a comment as part of svn-id entry
+		default
+	};
 
 	for entry in db {
 
