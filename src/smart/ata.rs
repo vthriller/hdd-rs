@@ -3,12 +3,23 @@ use std::os::unix::io::AsRawFd;
 
 extern crate libc;
 use self::libc::ioctl;
+#[cfg(not(any(target_env = "musl")))]
 use self::libc::c_ulong;
+#[cfg(any(target_env = "musl"))]
+use self::libc::c_int;
 
 use std::io::Error;
 
+
+#[cfg(not(any(target_env = "musl")))]
 const HDIO_DRIVE_TASK: c_ulong = 0x031e; // linux/hdreg.h:343
+#[cfg(not(any(target_env = "musl")))]
 const HDIO_DRIVE_CMD: c_ulong = 0x031f; // linux/hdreg.h:344
+
+#[cfg(any(target_env = "musl"))]
+const HDIO_DRIVE_TASK: c_int = 0x031e;
+#[cfg(any(target_env = "musl"))]
+const HDIO_DRIVE_CMD: c_int = 0x031f;
 
 // see linux/hdreg.h
 pub const WIN_IDENTIFY: u8 = 0xec;
