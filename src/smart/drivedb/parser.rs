@@ -82,10 +82,7 @@ named!(entry <Entry>, do_parse!(
 	model: string >> comma >>
 	firmware: string >> comma >>
 	warning: string >> comma >>
-	presets: alt!(
-		// older drivedb versions included default settings not as a separate entry, but in a comment as part of svn-id entry
-		do_parse!(tag!("\"\"\n  /* Default settings:\n    ") >> s: string >> whitespace >> tag!("*/") >> (s)) | string
-	) >> whitespace >>
+	presets: string >> whitespace >>
 	char!('}') >>
 	(Entry {
 		family: family,
