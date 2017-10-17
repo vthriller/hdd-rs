@@ -2,6 +2,7 @@ use std::fs::File;
 
 extern crate smart;
 use smart::ata;
+use smart::scsi;
 use smart::data::id;
 use smart::data::attr;
 use smart::data::health;
@@ -243,7 +244,14 @@ fn main() {
 	let mut json_map = serde_json::Map::new();
 
 	if print_info || print_attrs || print_health {
-		let data = ata::ata_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
+		let data = scsi::ata_pass_through_16(
+			&file,
+			ata::WIN_IDENTIFY,
+			0, // feature
+			1, // nsector
+			1, // sector
+			0, 0, // lcyl/hcyl
+		).unwrap();
 		let id = id::parse_id(&data);
 
 		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
@@ -271,6 +279,7 @@ fn main() {
 			}
 		}
 
+		/*
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
 				let data = ata::ata_task(&file,
@@ -305,6 +314,7 @@ fn main() {
 				}
 			});
 		}
+		*/
 
 		if use_json {
 			print!("{}\n", serde_json::to_string(&json_map).unwrap());
