@@ -202,12 +202,23 @@ fn main() {
 			.long("json")
 			.help("Export data in JSON")
 		)
+		.arg(Arg::with_name("type")
+			.short("d") // smartctl-like
+			.long("device") // smartctl-like
+			.takes_value(true)
+			.possible_values(&["ata"])
+			.help("device type")
+		)
 		.arg(Arg::with_name("device")
 			.help("Device to query")
 			.required(true)
 			.index(1)
 		)
 		.get_matches();
+
+	let (exec, task) = match args.value_of("device") {
+		_ => (ata::ata_exec, ata::ata_task),
+	};
 
 	let file = File::open(args.value_of("device").unwrap()).unwrap();
 
@@ -243,7 +254,7 @@ fn main() {
 	let mut json_map = serde_json::Map::new();
 
 	if print_info || print_attrs || print_health {
-		let data = ata::ata_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
+		let data = exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
 
 		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
@@ -273,7 +284,7 @@ fn main() {
 
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
-				let data = ata::ata_task(&file,
+				let data = task(&file,
 					ata::SMART_CMD, ata::SMART_STATUS,
 					0, 0, 0x4f, 0xc2, 0,
 				).unwrap();
@@ -293,8 +304,8 @@ fn main() {
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
-				let data = ata::ata_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_VALUES, 1).unwrap();
-				let thresh = ata::ata_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_THRESHOLDS, 1).unwrap();
+				let data = exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_VALUES, 1).unwrap();
+				let thresh = exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_THRESHOLDS, 1).unwrap();
 
 				let values = attr::parse_smart_values(&data, &thresh, &dbentry);
 
