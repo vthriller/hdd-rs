@@ -12,4 +12,3 @@ regex = "0.2"
 
 [lib]
 name = "smart"
-path = "src/smart/mod.rs"
