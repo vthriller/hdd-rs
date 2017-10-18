@@ -4,23 +4,12 @@ version = "0.4.0"
 authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 
 [dependencies]
-# library dependencies
 libc = "0.2"
 serde = "0.9"
 serde_derive = "0.9"
 nom = "^2.2"
 regex = "0.2"
-# main binary dependencies
-clap = ">=0.6.6"
-serde_json = "0.9"
-separator = "0.3.1"
-number_prefix = "0.2.7"
-# (see also https://github.com/rust-lang/cargo/issues/1982)
 
 [lib]
 name = "smart"
 path = "src/smart/mod.rs"
-
-[[bin]]
-name = "smart-rs"
-path = "src/bin.rs"
