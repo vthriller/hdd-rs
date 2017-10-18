@@ -120,7 +120,12 @@ fn ata_pass_through_16(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u
 }
 
 pub fn ata_pass_through_16_exec(file: &File, cmd: u8, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
-	let (_, buf) = ata_pass_through_16(file, cmd, feature, nsector, sector, 0, 0)?;
+	let (lcyl, hcyl) = match cmd {
+		// FIXME: yep, those are pre-filled for users of HDIO_DRIVE_CMD ioctl
+		0xb0 => (0x4f, 0xc2),
+		_ => (0, 0),
+	};
+	let (_, buf) = ata_pass_through_16(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
 	Ok(buf)
 }
 
