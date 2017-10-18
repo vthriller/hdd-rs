@@ -2,6 +2,7 @@ use std::fs::File;
 
 extern crate smart;
 use smart::ata;
+use smart::scsi;
 use smart::data::id;
 use smart::data::attr;
 use smart::data::health;
@@ -206,8 +207,8 @@ fn main() {
 			.short("d") // smartctl-like
 			.long("device") // smartctl-like
 			.takes_value(true)
-			.possible_values(&["ata"])
-			.help("device type")
+			.possible_values(&["ata", "sat"])
+			.help("device type (default is ata)")
 		)
 		.arg(Arg::with_name("device")
 			.help("Device to query")
@@ -216,7 +217,14 @@ fn main() {
 		)
 		.get_matches();
 
-	let (exec, task) = match args.value_of("device") {
+	let (exec, task): (
+		fn(&File, u8, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
+		fn(&File, u8, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
+	) = match args.value_of("device") {
+		Some("sat") => (
+			scsi::ata_pass_through_16_exec,
+			scsi::ata_pass_through_16_task,
+		),
 		_ => (ata::ata_exec, ata::ata_task),
 	};
 
