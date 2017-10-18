@@ -208,7 +208,7 @@ fn main() {
 			.long("device") // smartctl-like
 			.takes_value(true)
 			.possible_values(&["ata", "sat"])
-			.help("device type (default is ata)")
+			.help("device type (default is sat)")
 		)
 		.arg(Arg::with_name("device")
 			.help("Device to query")
@@ -221,11 +221,11 @@ fn main() {
 		fn(&File, u8, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
 		fn(&File, u8, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
 	) = match args.value_of("device") {
-		Some("sat") => (
+		Some("ata") => (ata::ata_exec, ata::ata_task),
+		_ => (
 			scsi::ata_pass_through_16_exec,
 			scsi::ata_pass_through_16_task,
 		),
-		_ => (ata::ata_exec, ata::ata_task),
 	};
 
 	let file = File::open(args.value_of("device").unwrap()).unwrap();
