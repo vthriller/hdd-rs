@@ -244,14 +244,7 @@ fn main() {
 	let mut json_map = serde_json::Map::new();
 
 	if print_info || print_attrs || print_health {
-		let data = scsi::ata_pass_through_16(
-			&file,
-			ata::WIN_IDENTIFY,
-			0, // feature
-			1, // nsector
-			1, // sector
-			0, 0, // lcyl/hcyl
-		).unwrap();
+		let data = scsi::ata_pass_through_16_exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
 
 		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
@@ -279,10 +272,9 @@ fn main() {
 			}
 		}
 
-		/*
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
-				let data = ata::ata_task(&file,
+				let data = scsi::ata_pass_through_16_task(&file,
 					ata::SMART_CMD, ata::SMART_STATUS,
 					0, 0, 0x4f, 0xc2, 0,
 				).unwrap();
@@ -302,8 +294,8 @@ fn main() {
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
-				let data = ata::ata_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_VALUES, 1).unwrap();
-				let thresh = ata::ata_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_THRESHOLDS, 1).unwrap();
+				let data = scsi::ata_pass_through_16_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_VALUES, 1).unwrap();
+				let thresh = scsi::ata_pass_through_16_exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_THRESHOLDS, 1).unwrap();
 
 				let values = attr::parse_smart_values(&data, &thresh, &dbentry);
 
@@ -314,7 +306,6 @@ fn main() {
 				}
 			});
 		}
-		*/
 
 		if use_json {
 			print!("{}\n", serde_json::to_string(&json_map).unwrap());

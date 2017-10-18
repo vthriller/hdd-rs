@@ -9,7 +9,7 @@ use self::libc::c_ulong;
 
 use std::fs::File;
 use std::os::unix::io::AsRawFd;
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 
 // see scsi/sg.h
 
@@ -51,7 +51,7 @@ struct sg_io_hdr {
 	info:	c_uint,	// [o] auxiliary information
 }
 
-pub fn ata_pass_through_16(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<[u8; 512], Error> {
+fn ata_pass_through_16(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 64], [u8; 512]), Error> {
 	// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 	let extend = 0; // TODO
 	let protocol = 4; // PIO Data-In; TODO
@@ -116,5 +116,46 @@ pub fn ata_pass_through_16(file: &File, cmd: u8, feature: u8, nsector: u8, secto
 		}
 	}
 
+	Ok((sense, buf))
+}
+
+pub fn ata_pass_through_16_exec(file: &File, cmd: u8, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
+	let (_, buf) = ata_pass_through_16(file, cmd, feature, nsector, sector, 0, 0)?;
 	Ok(buf)
+}
+
+pub fn ata_pass_through_16_task(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], Error> {
+	let (sense, _) = ata_pass_through_16(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
+
+	if sense[0] & 0x7f != 0x72 {
+		// we expected current sense in the descriptor format
+		// TODO proper error
+		return Err(Error::new(ErrorKind::Other, "unexpected sense format/whatever"));
+	}
+
+	// sense[7] is the additional sense length; in other words, it's what amount of data descriptors occupy
+	let sense_length = 8 + sense[7] as usize;
+	let mut current_desc: usize = 8;
+	// iterate over descriptors
+	while current_desc < sense_length {
+		let (code, length) = (sense[current_desc], sense[current_desc + 1]);
+		if !(code == 0x09 && length == 12) {
+			// descriptor is not about ATA Status or is malformed (invalid length)
+			current_desc += length as usize;
+			continue;
+		}
+		// TODO? EXTEND bit, ATA PASS-THROUGH 12 vs 16
+		return Ok([
+			0, // XXX status
+			sense[current_desc + 3], // error
+			sense[current_desc + 5], // sector_count
+			sense[current_desc + 7], // lba_low
+			sense[current_desc + 9], // lba_mid
+			sense[current_desc + 11], // lba_high
+			0, // XXX select
+		]);
+	}
+
+	// TODO proper error
+	return Err(Error::new(ErrorKind::Other, "no (valid) sense descriptors found"));
 }
