@@ -218,8 +218,8 @@ fn main() {
 		.get_matches();
 
 	let (exec, task): (
-		fn(&File, u8, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
-		fn(&File, u8, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
+		fn(&File, smart::ata::Command, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
+		fn(&File, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
 	) = match args.value_of("device") {
 		Some("ata") => (ata::ata_exec, ata::ata_task),
 		_ => (
@@ -262,7 +262,7 @@ fn main() {
 	let mut json_map = serde_json::Map::new();
 
 	if print_info || print_attrs || print_health {
-		let data = exec(&file, ata::WIN_IDENTIFY, 1, 0, 1).unwrap();
+		let data = exec(&file, ata::Command::Identify, 1, 0, 1).unwrap();
 		let id = id::parse_id(&data);
 
 		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
@@ -293,7 +293,7 @@ fn main() {
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
 				let data = task(&file,
-					ata::SMART_CMD, ata::SMART_STATUS,
+					ata::Command::SMART, ata::SMARTFeature::ReturnStatus as u8,
 					0, 0, 0x4f, 0xc2, 0,
 				).unwrap();
 				let status = health::parse_smart_status(&data);
@@ -312,8 +312,8 @@ fn main() {
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
-				let data = exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_VALUES, 1).unwrap();
-				let thresh = exec(&file, ata::WIN_SMART, 0, ata::SMART_READ_THRESHOLDS, 1).unwrap();
+				let data = exec(&file, ata::Command::SMART, 0, ata::SMARTFeature::ReadValues as u8, 1).unwrap();
+				let thresh = exec(&file, ata::Command::SMART, 0, ata::SMARTFeature::ReadThresholds as u8, 1).unwrap();
 
 				let values = attr::parse_smart_values(&data, &thresh, &dbentry);
 

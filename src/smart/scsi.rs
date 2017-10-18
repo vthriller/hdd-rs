@@ -11,6 +11,8 @@ use std::fs::File;
 use std::os::unix::io::AsRawFd;
 use std::io::{Error, ErrorKind};
 
+use ata;
+
 // see scsi/sg.h
 
 #[cfg(not(any(target_env = "musl")))]
@@ -51,7 +53,7 @@ struct sg_io_hdr {
 	info:	c_uint,	// [o] auxiliary information
 }
 
-fn ata_pass_through_16(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 64], [u8; 512]), Error> {
+fn ata_pass_through_16(file: &File, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 64], [u8; 512]), Error> {
 	// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 	let extend = 0; // TODO
 	let protocol = 4; // PIO Data-In; TODO
@@ -72,7 +74,7 @@ fn ata_pass_through_16(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u
 		0, lcyl, // lba_mid
 		0, hcyl, // lba_high
 		0, // device (XXX what's that?!)
-		cmd,
+		cmd as u8,
 		0, // control (XXX what's that?!)
 	];
 
@@ -119,17 +121,17 @@ fn ata_pass_through_16(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u
 	Ok((sense, buf))
 }
 
-pub fn ata_pass_through_16_exec(file: &File, cmd: u8, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
+pub fn ata_pass_through_16_exec(file: &File, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
 	let (lcyl, hcyl) = match cmd {
 		// FIXME: yep, those are pre-filled for users of HDIO_DRIVE_CMD ioctl
-		0xb0 => (0x4f, 0xc2),
+		ata::Command::SMART => (0x4f, 0xc2),
 		_ => (0, 0),
 	};
 	let (_, buf) = ata_pass_through_16(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
 	Ok(buf)
 }
 
-pub fn ata_pass_through_16_task(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], Error> {
+pub fn ata_pass_through_16_task(file: &File, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], Error> {
 	let (sense, _) = ata_pass_through_16(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
 
 	if sense[0] & 0x7f != 0x72 {

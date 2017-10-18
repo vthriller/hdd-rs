@@ -21,18 +21,21 @@ const HDIO_DRIVE_TASK: c_int = 0x031e;
 #[cfg(any(target_env = "musl"))]
 const HDIO_DRIVE_CMD: c_int = 0x031f;
 
-// see linux/hdreg.h
-pub const WIN_IDENTIFY: u8 = 0xec;
-pub const WIN_SMART: u8 = 0xb0;
-pub const SMART_CMD: u8 = 0xb0;
-pub const SMART_READ_VALUES: u8 = 0xd0;
-pub const SMART_READ_THRESHOLDS: u8 = 0xd1;
-pub const SMART_STATUS: u8 = 0xda;
+pub enum Command {
+	Identify = 0xec,
+	SMART = 0xb0,
+}
+pub enum SMARTFeature {
+	ReadValues = 0xd0, // in ATA8-ACS it's called 'SMART READ DATA', which is a bit unclear to people not familiar with ATA… or sometimes even to some who knows ATA well
+	ReadThresholds = 0xd1,
+	ReturnStatus = 0xda,
+}
 
-pub fn ata_exec(file: &File, cmd: u8, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
+// FIXME should feature be SMARTFeature instead of u8?
+pub fn ata_exec(file: &File, cmd: Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
 	let mut data: [u8; 512+4] = [0; 516]; // XXX mut
 
-	data[0] = cmd;
+	data[0] = cmd as u8;
 	data[1] = sector;
 	data[2] = feature;
 	data[3] = nsector;
@@ -63,10 +66,11 @@ pub fn ata_exec(file: &File, cmd: u8, sector: u8, feature: u8, nsector: u8) -> R
 	Ok(output)
 }
 
-pub fn ata_task(file: &File, cmd: u8, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, select: u8) -> Result<[u8; 7], Error> {
+// FIXME should feature be SMARTFeature instead of u8?
+pub fn ata_task(file: &File, cmd: Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, select: u8) -> Result<[u8; 7], Error> {
 	let mut data: [u8; 7] = [0; 7];
 
-	data[0] = cmd;
+	data[0] = cmd as u8;
 	data[1] = feature;
 	data[2] = nsector;
 	data[3] = sector;
