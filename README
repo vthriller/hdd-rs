@@ -18,7 +18,7 @@ sudo ./target/release/smart-rs -i --json /dev/sda
 Caveats:
 --------
 
-* ATA only (other transports are planned),
+* ATA/SAT only (other transports are planned),
 * Linux only (more to come),
 * only tested on little-endian systems,
 * only tested with modern hard drives (although I doubt anyone would be interested in using this with some really old piece of equipment),
