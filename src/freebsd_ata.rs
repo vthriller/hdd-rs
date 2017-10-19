@@ -63,6 +63,12 @@ pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector:
 
 	let mut ccb: cam::ccb = unsafe { mem::zeroed() };
 
+	let (lcyl, hcyl) = match cmd {
+		// FIXME: yep, those are pre-filled for users of linux's HDIO_DRIVE_CMD ioctl
+		ata::Command::SMART => (0x4f, 0xc2),
+		_ => (0, 0),
+	};
+
 	unsafe {
 		let h = ccb.ccb_h.as_mut();
 		h.func_code = cam::xpt_opcode::XPT_ATA_IO;
@@ -78,8 +84,8 @@ pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector:
 		ataio.cmd.command = cmd as u8;
 		ataio.cmd.features = feature;
 		ataio.cmd.lba_low = sector;
-		ataio.cmd.lba_mid = 0;
-		ataio.cmd.lba_high = 0;
+		ataio.cmd.lba_mid = lcyl;
+		ataio.cmd.lba_high = hcyl;
 		ataio.cmd.lba_low_exp = 0;
 		ataio.cmd.lba_mid_exp = 0;
 		ataio.cmd.lba_high_exp = 0;
