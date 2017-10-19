@@ -6,7 +6,7 @@ use smart::freebsd_ata;
 //use smart::scsi;
 use smart::data::id;
 use smart::data::attr;
-//use smart::data::health;
+use smart::data::health;
 use smart::drivedb;
 use smart::drivedb::vendor_attribute;
 
@@ -233,6 +233,7 @@ fn main() {
 	};
 	*/
 	let exec = freebsd_ata::ata_exec;
+	let task = freebsd_ata::ata_task;
 
 	let file = args.value_of("device").unwrap();
 
@@ -296,7 +297,6 @@ fn main() {
 			}
 		}
 
-		/*
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
 				let data = task(&file,
@@ -316,7 +316,6 @@ fn main() {
 				}
 			});
 		}
-		*/
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {

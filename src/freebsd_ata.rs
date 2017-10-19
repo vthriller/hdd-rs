@@ -53,8 +53,7 @@ impl error::Error for CAMError {
 	fn cause(&self) -> Option<&error::Error> { None }
 }
 
-
-pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], CAMError> {
+pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 7], [u8; 512]), CAMError> {
 	let dev = CAMDevice::open(file)?;
 
 	let timeout = 10; // in seconds; TODO configurable
@@ -62,12 +61,6 @@ pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector:
 	let mut data: [u8; 512] = [0; 512];
 
 	let mut ccb: cam::ccb = unsafe { mem::zeroed() };
-
-	let (lcyl, hcyl) = match cmd {
-		// FIXME: yep, those are pre-filled for users of linux's HDIO_DRIVE_CMD ioctl
-		ata::Command::SMART => (0x4f, 0xc2),
-		_ => (0, 0),
-	};
 
 	unsafe {
 		let h = ccb.ccb_h.as_mut();
@@ -106,5 +99,36 @@ pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector:
 		return Err(CAMError::current())
 	}
 
-	Ok(data)
+	let ataio = unsafe { ccb.ataio.as_ref() };
+
+	Ok((
+		[
+			ataio.res.status,
+			ataio.res.error,
+			ataio.res.sector_count,
+			ataio.res.lba_low,
+			ataio.res.lba_mid,
+			ataio.res.lba_high,
+			0, // XXX select
+		],
+		data,
+	))
+}
+
+pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], CAMError> {
+	let (lcyl, hcyl) = match cmd {
+		// FIXME: yep, those are pre-filled for users of linux's HDIO_DRIVE_CMD ioctl
+		ata::Command::SMART => (0x4f, 0xc2),
+		_ => (0, 0),
+	};
+
+	let (_, data) = ata_do(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
+
+	return Ok(data);
+}
+
+pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], CAMError> {
+	let (regs, _) = ata_do(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
+
+	return Ok(regs);
 }
