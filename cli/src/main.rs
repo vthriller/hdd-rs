@@ -1,5 +1,3 @@
-//use std::fs::File;
-
 extern crate smart;
 use smart::ata;
 use smart::freebsd_ata;
@@ -222,8 +220,8 @@ fn main() {
 
 	/*
 	let (exec, task): (
-		fn(&File, smart::ata::Command, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
-		fn(&File, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
+		fn(&str, smart::ata::Command, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
+		fn(&str, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
 	) = match args.value_of("device") {
 		Some("ata") => (ata::ata_exec, ata::ata_task),
 		_ => (
