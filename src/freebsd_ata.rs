@@ -9,6 +9,8 @@ extern crate cam;
 
 use ata;
 
+use std::io::{Error, ErrorKind};
+
 struct CAMDevice(*mut cam::cam_device);
 
 impl CAMDevice {
@@ -52,8 +54,14 @@ impl error::Error for CAMError {
 	fn description(&self) -> &str { &self.0 }
 	fn cause(&self) -> Option<&error::Error> { None }
 }
+// FIXME proper error types
+impl From<CAMError> for Error {
+	fn from(err: CAMError) -> Self {
+		Error::new(ErrorKind::Other, err)
+	}
+}
 
-pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 7], [u8; 512]), CAMError> {
+pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 7], [u8; 512]), Error> {
 	let dev = CAMDevice::open(file)?;
 
 	let timeout = 10; // in seconds; TODO configurable
@@ -91,12 +99,12 @@ pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u
 	}
 
 	if unsafe { cam::cam_send_ccb(dev.0, &mut ccb) } < 0 {
-		return Err(CAMError::current())
+		Err(CAMError::current())?
 	}
 
 	// XXX what.
 	if (unsafe { ccb.ccb_h.as_ref() }.status & (cam::cam_status_CAM_STATUS_MASK as u32)) != (cam::cam_status::CAM_REQ_CMP as u32) {
-		return Err(CAMError::current())
+		Err(CAMError::current())?
 	}
 
 	let ataio = unsafe { ccb.ataio.as_ref() };
@@ -115,7 +123,7 @@ pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u
 	))
 }
 
-pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], CAMError> {
+pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
 	let (lcyl, hcyl) = match cmd {
 		// FIXME: yep, those are pre-filled for users of linux's HDIO_DRIVE_CMD ioctl
 		ata::Command::SMART => (0x4f, 0xc2),
@@ -127,7 +135,7 @@ pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector:
 	return Ok(data);
 }
 
-pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], CAMError> {
+pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], Error> {
 	let (regs, _) = ata_do(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
 
 	return Ok(regs);
