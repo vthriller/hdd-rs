@@ -7,5 +7,6 @@ extern crate regex;
 
 pub mod scsi;
 pub mod ata;
+pub mod freebsd_ata;
 pub mod data;
 pub mod drivedb;

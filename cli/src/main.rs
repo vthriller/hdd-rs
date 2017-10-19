@@ -1,11 +1,12 @@
-use std::fs::File;
+//use std::fs::File;
 
 extern crate smart;
 use smart::ata;
-use smart::scsi;
+use smart::freebsd_ata;
+//use smart::scsi;
 use smart::data::id;
 use smart::data::attr;
-use smart::data::health;
+//use smart::data::health;
 use smart::drivedb;
 use smart::drivedb::vendor_attribute;
 
@@ -203,6 +204,7 @@ fn main() {
 			.long("json")
 			.help("Export data in JSON")
 		)
+		/*
 		.arg(Arg::with_name("type")
 			.short("d") // smartctl-like
 			.long("device") // smartctl-like
@@ -210,6 +212,7 @@ fn main() {
 			.possible_values(&["ata", "sat"])
 			.help("device type (default is sat)")
 		)
+		*/
 		.arg(Arg::with_name("device")
 			.help("Device to query")
 			.required(true)
@@ -217,6 +220,7 @@ fn main() {
 		)
 		.get_matches();
 
+	/*
 	let (exec, task): (
 		fn(&File, smart::ata::Command, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
 		fn(&File, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
@@ -227,8 +231,10 @@ fn main() {
 			scsi::ata_pass_through_16_task,
 		),
 	};
+	*/
+	let exec = freebsd_ata::ata_exec;
 
-	let file = File::open(args.value_of("device").unwrap()).unwrap();
+	let file = args.value_of("device").unwrap();
 
 	let drivedb = match args.value_of("drivedb") {
 		Some(file) => drivedb::load(file),
@@ -290,6 +296,7 @@ fn main() {
 			}
 		}
 
+		/*
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
 				let data = task(&file,
@@ -309,6 +316,7 @@ fn main() {
 				}
 			});
 		}
+		*/
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
