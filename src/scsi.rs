@@ -53,7 +53,9 @@ struct sg_io_hdr {
 	info:	c_uint,	// [o] auxiliary information
 }
 
-fn ata_pass_through_16(file: &File, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 64], [u8; 512]), Error> {
+fn ata_pass_through_16(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 64], [u8; 512]), Error> {
+	let file = File::open(file).unwrap(); // XXX unwrap
+
 	// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 	let extend = 0; // TODO
 	let protocol = 4; // PIO Data-In; TODO
@@ -121,7 +123,7 @@ fn ata_pass_through_16(file: &File, cmd: ata::Command, feature: u8, nsector: u8,
 	Ok((sense, buf))
 }
 
-pub fn ata_pass_through_16_exec(file: &File, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
+pub fn ata_pass_through_16_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
 	let (lcyl, hcyl) = match cmd {
 		// FIXME: yep, those are pre-filled for users of HDIO_DRIVE_CMD ioctl
 		ata::Command::SMART => (0x4f, 0xc2),
@@ -131,7 +133,7 @@ pub fn ata_pass_through_16_exec(file: &File, cmd: ata::Command, sector: u8, feat
 	Ok(buf)
 }
 
-pub fn ata_pass_through_16_task(file: &File, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], Error> {
+pub fn ata_pass_through_16_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], Error> {
 	let (sense, _) = ata_pass_through_16(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
 
 	if sense[0] & 0x7f != 0x72 {

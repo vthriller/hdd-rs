@@ -1,0 +1,9 @@
+[package]
+name = "cam"
+version = "0.1.0"
+authors = ["vthriller <unixway.drive+rs@gmail.com>"]
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.26.3"

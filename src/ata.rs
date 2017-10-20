@@ -32,7 +32,9 @@ pub enum SMARTFeature {
 }
 
 // FIXME should feature be SMARTFeature instead of u8?
-pub fn ata_exec(file: &File, cmd: Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
+pub fn ata_exec(file: &str, cmd: Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
+	let file = File::open(file).unwrap(); // XXX unwrap
+
 	let mut data: [u8; 512+4] = [0; 516]; // XXX mut
 
 	data[0] = cmd as u8;
@@ -67,7 +69,9 @@ pub fn ata_exec(file: &File, cmd: Command, sector: u8, feature: u8, nsector: u8)
 }
 
 // FIXME should feature be SMARTFeature instead of u8?
-pub fn ata_task(file: &File, cmd: Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, select: u8) -> Result<[u8; 7], Error> {
+pub fn ata_task(file: &str, cmd: Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, select: u8) -> Result<[u8; 7], Error> {
+	let file = File::open(file).unwrap(); // XXX unwrap
+
 	let mut data: [u8; 7] = [0; 7];
 
 	data[0] = cmd as u8;

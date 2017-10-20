@@ -1,7 +1,6 @@
-use std::fs::File;
-
 extern crate smart;
 use smart::ata;
+use smart::freebsd_ata;
 use smart::scsi;
 use smart::data::id;
 use smart::data::attr;
@@ -164,6 +163,13 @@ fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F)
 	}
 }
 
+#[inline]
+#[cfg(target_os = "linux")]
+fn types() -> [&'static str; 2] { ["ata", "sat"] }
+#[inline]
+#[cfg(target_os = "freebsd")]
+fn types() -> [&'static str; 1] { ["ata"] }
+
 fn main() {
 	let args = App::new("smart-rs")
 		.about("yet another S.M.A.R.T. querying tool")
@@ -212,8 +218,8 @@ fn main() {
 			.short("d") // smartctl-like
 			.long("device") // smartctl-like
 			.takes_value(true)
-			.possible_values(&["ata", "sat"])
-			.help("device type (default is sat)")
+			.possible_values(&types())
+			.help("device type")
 		)
 		.arg(Arg::with_name("device")
 			.help("Device to query")
@@ -223,17 +229,25 @@ fn main() {
 		.get_matches();
 
 	let (exec, task): (
-		fn(&File, smart::ata::Command, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
-		fn(&File, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
+		fn(&str, smart::ata::Command, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
+		fn(&str, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
 	) = match args.value_of("device") {
-		Some("ata") => (ata::ata_exec, ata::ata_task),
-		_ => (
+		Some("ata") if cfg!(target_os = "linux") => (
+			ata::ata_exec,
+			ata::ata_task,
+		),
+		_ if cfg!(target_os = "linux") => (
 			scsi::ata_pass_through_16_exec,
 			scsi::ata_pass_through_16_task,
 		),
+		Some("ata") if cfg!(target_os = "freebsd") => (
+			freebsd_ata::ata_exec,
+			freebsd_ata::ata_task,
+		),
+		_ => unreachable!(),
 	};
 
-	let file = File::open(args.value_of("device").unwrap()).unwrap();
+	let file = args.value_of("device").unwrap();
 
 	let drivedb = match args.value_of("drivedb") {
 		Some(file) => drivedb::load(file),
