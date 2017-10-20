@@ -6,12 +6,14 @@ extern crate nom;
 extern crate regex;
 
 pub mod ata;
+pub mod scsi;
+
 #[cfg(target_os = "linux")]
-pub mod linux_scsi;
+mod linux_scsi;
 #[cfg(target_os = "linux")]
-pub mod linux_ata;
+mod linux_ata;
 #[cfg(target_os = "freebsd")]
-pub mod freebsd_ata;
+mod freebsd_ata;
 
 pub mod data;
 pub mod drivedb;

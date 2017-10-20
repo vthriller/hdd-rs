@@ -7,3 +7,13 @@ pub enum SMARTFeature {
 	ReadThresholds = 0xd1,
 	ReturnStatus = 0xda,
 }
+
+#[cfg(target_os = "linux")]
+use linux_ata;
+#[cfg(target_os = "linux")]
+pub use self::linux_ata::*;
+
+#[cfg(target_os = "freebsd")]
+use freebsd_ata;
+#[cfg(target_os = "freebsd")]
+pub use self::freebsd_ata::*;
