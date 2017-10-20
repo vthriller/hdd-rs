@@ -1,9 +1,11 @@
 extern crate smart;
 
 use smart::ata;
+use smart::linux_ata;
+use smart::linux_scsi;
 #[cfg(target_os = "freebsd")]
 use smart::freebsd_ata;
-use smart::scsi;
+
 use smart::data::id;
 use smart::data::attr;
 use smart::data::health;
@@ -235,12 +237,12 @@ fn main() {
 		fn(&str, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
 	) = match args.value_of("device") {
 		Some("ata") if cfg!(target_os = "linux") => (
-			ata::ata_exec,
-			ata::ata_task,
+			linux_ata::ata_exec,
+			linux_ata::ata_task,
 		),
 		_ if cfg!(target_os = "linux") => (
-			scsi::ata_pass_through_16_exec,
-			scsi::ata_pass_through_16_task,
+			linux_scsi::ata_pass_through_16_exec,
+			linux_scsi::ata_pass_through_16_task,
 		),
 		/* FIXME freebsd_ata is import conditionally
 		Some("ata") if cfg!(target_os = "freebsd") => (
