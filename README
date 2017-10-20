@@ -15,11 +15,21 @@ cargo build --release
 sudo ./target/release/smart-rs -i --json /dev/sda
 ```
 
+What's supported?
+-----------------
+
+Platforms and transports:
+
+* Linux: ATA (including SATL)
+* FreeBSD: ATA
+
+Features:
+
+* TODO
+
 Caveats:
 --------
 
-* ATA/SAT only (other transports are planned),
-* Linux only (more to come),
 * only tested on little-endian systems,
 * only tested with modern hard drives (although I doubt anyone would be interested in using this with some really old piece of equipment),
 * only shows basic information and attributes; no feature toggles, no drive logs, virtually nothing is supported yet,
