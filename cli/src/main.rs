@@ -106,6 +106,11 @@ fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 
 // XXX only `pretty_attributes` clearly shows failing/failed attributes
 fn print_attributes(values: &Vec<attr::SmartAttribute>) {
+	if values.len() == 0 {
+		print!("No S.M.A.R.T. attributes found.\n");
+		return;
+	}
+
 	print!("S.M.A.R.T. attribute values:\n");
 	print!(" ID name                     flags        value worst thresh fail raw\n");
 	for val in values {
