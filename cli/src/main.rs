@@ -1,5 +1,7 @@
 extern crate smart;
+
 use smart::ata;
+#[cfg(target_os = "freebsd")]
 use smart::freebsd_ata;
 use smart::scsi;
 use smart::data::id;
@@ -240,10 +242,12 @@ fn main() {
 			scsi::ata_pass_through_16_exec,
 			scsi::ata_pass_through_16_task,
 		),
+		/* FIXME freebsd_ata is import conditionally
 		Some("ata") if cfg!(target_os = "freebsd") => (
 			freebsd_ata::ata_exec,
 			freebsd_ata::ata_task,
 		),
+		*/
 		_ => unreachable!(),
 	};
 
