@@ -350,8 +350,8 @@ fn main() {
 					sector: 0,
 					features: ata::SMARTFeature::ReadValues as u8,
 					sector_count: 1,
-					cyl_high: 0,
-					cyl_low: 0,
+					cyl_low: 0x4f,
+					cyl_high: 0xc2,
 					device: 0,
 				}).unwrap();
 				let thresh = exec(&file, &ata::RegistersWrite {
@@ -359,8 +359,8 @@ fn main() {
 					sector: 0,
 					features: ata::SMARTFeature::ReadThresholds as u8,
 					sector_count: 1,
-					cyl_high: 0,
-					cyl_low: 0,
+					cyl_low: 0x4f,
+					cyl_high: 0xc2,
 					device: 0,
 				}).unwrap();
 

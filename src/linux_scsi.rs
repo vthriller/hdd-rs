@@ -124,14 +124,7 @@ fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<([u8; 6
 }
 
 pub fn ata_pass_through_16_exec(file: &str, regs: &ata::RegistersWrite) -> Result<[u8; 512], Error> {
-	// FIXME: yep, those are pre-filled for users of HDIO_DRIVE_CMD ioctl
-	let regs = if regs.command == ata::Command::SMART as u8 {
-		ata::RegistersWrite { cyl_low: 0x4f, cyl_high: 0xc2, ..*regs }
-	} else {
-		ata::RegistersWrite { ..*regs }
-	};
-
-	let (_, buf) = ata_pass_through_16(file, &regs)?;
+	let (_, buf) = ata_pass_through_16(file, regs)?;
 	Ok(buf)
 }
 

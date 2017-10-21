@@ -123,14 +123,7 @@ pub fn ata_do(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersR
 }
 
 pub fn ata_exec(file: &str, regs: &ata::RegistersWrite) -> Result<[u8; 512], Error> {
-	// FIXME: yep, those are pre-filled for users of linux's HDIO_DRIVE_CMD ioctl
-	let regs = if regs.command == ata::Command::SMART as u8 {
-		ata::RegistersWrite { cyl_low: 0x4f, cyl_high: 0xc2, ..*regs }
-	} else {
-		ata::RegistersWrite { ..*regs }
-	};
-
-	let (_, data) = ata_do(file, &regs)?;
+	let (_, data) = ata_do(file, regs)?;
 
 	return Ok(data);
 }

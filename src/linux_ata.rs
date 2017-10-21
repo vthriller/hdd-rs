@@ -31,7 +31,9 @@ pub fn ata_exec(file: &str, regs: &ata::RegistersWrite) -> Result<[u8; 512], Err
 	data[1] = regs.sector;
 	data[2] = regs.features;
 	data[3] = regs.sector_count;
-	// XXX cyl_low cyl_high device
+	// XXX cyl_low cyl_high device are filled for us
+	// for ata::Command::SMART, cyl_[lh] are 0x4f 0xc2, for the rest they're undefined
+	// and device is 0xa0|DEV_bit|LBA_bit except in rare cases
 
 	unsafe {
 		if ioctl(file.as_raw_fd(), HDIO_DRIVE_CMD, &data) == -1 {
