@@ -241,6 +241,10 @@ fn main() {
 			scsi::ata_pass_through_16_exec,
 			scsi::ata_pass_through_16_task,
 		),
+		_ if cfg!(target_os = "freebsd") => (
+			ata::ata_exec,
+			ata::ata_task,
+		),
 		_ => unreachable!(),
 	};
 
