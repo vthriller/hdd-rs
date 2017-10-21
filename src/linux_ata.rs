@@ -22,16 +22,16 @@ const HDIO_DRIVE_TASK: c_int = 0x031e;
 #[cfg(any(target_env = "musl"))]
 const HDIO_DRIVE_CMD: c_int = 0x031f;
 
-// FIXME should feature be SMARTFeature instead of u8?
-pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
+pub fn ata_exec(file: &str, regs: &ata::RegistersWrite) -> Result<[u8; 512], Error> {
 	let file = File::open(file).unwrap(); // XXX unwrap
 
 	let mut data: [u8; 512+4] = [0; 516]; // XXX mut
 
-	data[0] = cmd as u8;
-	data[1] = sector;
-	data[2] = feature;
-	data[3] = nsector;
+	data[0] = regs.command;
+	data[1] = regs.sector;
+	data[2] = regs.features;
+	data[3] = regs.sector_count;
+	// XXX cyl_low cyl_high device
 
 	unsafe {
 		if ioctl(file.as_raw_fd(), HDIO_DRIVE_CMD, &data) == -1 {
@@ -59,20 +59,19 @@ pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector:
 	Ok(output)
 }
 
-// FIXME should feature be SMARTFeature instead of u8?
-pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, select: u8) -> Result<ata::RegistersRead, Error> {
+pub fn ata_task(file: &str, regs: &ata::RegistersWrite) -> Result<ata::RegistersRead, Error> {
 	let file = File::open(file).unwrap(); // XXX unwrap
 
 	let mut data: [u8; 7] = [0; 7];
 
-	data[0] = cmd as u8;
-	data[1] = feature;
-	data[2] = nsector;
-	data[3] = sector;
-	data[4] = lcyl;
-	data[5] = hcyl;
-	// > DEV bit (0x10) of SELECT register is ignored and the appropriate value for the drive is used.  All other bits are used unaltered.
-	data[6] = select;
+	data[0] = regs.command;
+	data[1] = regs.features;
+	data[2] = regs.sector_count;
+	data[3] = regs.sector;
+	data[4] = regs.cyl_low;
+	data[5] = regs.cyl_high;
+	// XXX > DEV bit (0x10) of SELECT register is ignored and the appropriate value for the drive is used.  All other bits are used unaltered.
+	data[6] = regs.device;
 
 	unsafe {
 		if ioctl(file.as_raw_fd(), HDIO_DRIVE_TASK, &data) == -1 {

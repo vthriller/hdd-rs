@@ -53,7 +53,7 @@ struct sg_io_hdr {
 	info:	c_uint,	// [o] auxiliary information
 }
 
-fn ata_pass_through_16(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 64], [u8; 512]), Error> {
+fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<([u8; 64], [u8; 512]), Error> {
 	let file = File::open(file).unwrap(); // XXX unwrap
 
 	// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
@@ -70,13 +70,13 @@ fn ata_pass_through_16(file: &str, cmd: ata::Command, feature: u8, nsector: u8, 
 		// 0b1: BYT_BLOK; T_LENGTH is in blocks, not in bytes
 		// 0b01: T_LENGTH itself
 		0b00101101,
-		0, feature,
-		0, nsector, // sector_count
-		0, sector, // lba_low
-		0, lcyl, // lba_mid
-		0, hcyl, // lba_high
-		0, // device (XXX what's that?!)
-		cmd as u8,
+		0, regs.features,
+		0, regs.sector_count,
+		0, regs.sector,
+		0, regs.cyl_low,
+		0, regs.cyl_high,
+		regs.device,
+		regs.command,
 		0, // control (XXX what's that?!)
 	];
 
@@ -123,18 +123,20 @@ fn ata_pass_through_16(file: &str, cmd: ata::Command, feature: u8, nsector: u8, 
 	Ok((sense, buf))
 }
 
-pub fn ata_pass_through_16_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
-	let (lcyl, hcyl) = match cmd {
-		// FIXME: yep, those are pre-filled for users of HDIO_DRIVE_CMD ioctl
-		ata::Command::SMART => (0x4f, 0xc2),
-		_ => (0, 0),
+pub fn ata_pass_through_16_exec(file: &str, regs: &ata::RegistersWrite) -> Result<[u8; 512], Error> {
+	// FIXME: yep, those are pre-filled for users of HDIO_DRIVE_CMD ioctl
+	let regs = if regs.command == ata::Command::SMART as u8 {
+		ata::RegistersWrite { cyl_low: 0x4f, cyl_high: 0xc2, ..*regs }
+	} else {
+		ata::RegistersWrite { ..*regs }
 	};
-	let (_, buf) = ata_pass_through_16(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
+
+	let (_, buf) = ata_pass_through_16(file, &regs)?;
 	Ok(buf)
 }
 
-pub fn ata_pass_through_16_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<ata::RegistersRead, Error> {
-	let (sense, _) = ata_pass_through_16(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
+pub fn ata_pass_through_16_task(file: &str, regs: &ata::RegistersWrite) -> Result<ata::RegistersRead, Error> {
+	let (sense, _) = ata_pass_through_16(file, regs)?;
 
 	if sense[0] & 0x7f != 0x72 {
 		// we expected current sense in the descriptor format

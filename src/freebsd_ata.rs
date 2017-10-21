@@ -61,7 +61,7 @@ impl From<CAMError> for Error {
 	}
 }
 
-pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
+pub fn ata_do(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
 	let dev = CAMDevice::open(file)?;
 
 	let timeout = 10; // in seconds; TODO configurable
@@ -82,16 +82,16 @@ pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u
 		ataio.dxfer_len = 512;
 		ataio.ata_flags = 0;
 
-		ataio.cmd.command = cmd as u8;
-		ataio.cmd.features = feature;
-		ataio.cmd.lba_low = sector;
-		ataio.cmd.lba_mid = lcyl;
-		ataio.cmd.lba_high = hcyl;
-		ataio.cmd.lba_low_exp = 0;
-		ataio.cmd.lba_mid_exp = 0;
-		ataio.cmd.lba_high_exp = 0;
-		ataio.cmd.device = 0x40;
-		ataio.cmd.sector_count = 1;
+		ataio.cmd.command	= regs.command;
+		ataio.cmd.features	= regs.features;
+		ataio.cmd.lba_low_exp	= 0;
+		ataio.cmd.lba_low	= regs.sector;
+		ataio.cmd.lba_mid_exp	= 0;
+		ataio.cmd.lba_mid	= regs.cyl_low;
+		ataio.cmd.lba_high_exp	= 0;
+		ataio.cmd.lba_high	= regs.cyl_high;
+		ataio.cmd.device	= regs.device;
+		ataio.cmd.sector_count	= regs.sector_count;
 
 		ataio.cmd.flags = (cam::CAM_ATAIO_NEEDRESULT | cam::CAM_ATAIO_48BIT) as u8;
 
@@ -122,20 +122,21 @@ pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u
 	}, data))
 }
 
-pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
-	let (lcyl, hcyl) = match cmd {
-		// FIXME: yep, those are pre-filled for users of linux's HDIO_DRIVE_CMD ioctl
-		ata::Command::SMART => (0x4f, 0xc2),
-		_ => (0, 0),
+pub fn ata_exec(file: &str, regs: &ata::RegistersWrite) -> Result<[u8; 512], Error> {
+	// FIXME: yep, those are pre-filled for users of linux's HDIO_DRIVE_CMD ioctl
+	let regs = if regs.command == ata::Command::SMART as u8 {
+		ata::RegistersWrite { cyl_low: 0x4f, cyl_high: 0xc2, ..*regs }
+	} else {
+		ata::RegistersWrite { ..*regs }
 	};
 
-	let (_, data) = ata_do(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
+	let (_, data) = ata_do(file, &regs)?;
 
 	return Ok(data);
 }
 
-pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<ata::RegistersRead, Error> {
-	let (regs, _) = ata_do(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
+pub fn ata_task(file: &str, regs: &ata::RegistersWrite) -> Result<ata::RegistersRead, Error> {
+	let (regs, _) = ata_do(file, regs)?;
 
 	return Ok(regs);
 }

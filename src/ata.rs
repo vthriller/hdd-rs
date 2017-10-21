@@ -21,6 +21,18 @@ pub struct RegistersRead {
 
 	pub status: u8,
 }
+pub struct RegistersWrite {
+	pub features: u8,
+
+	pub sector_count: u8,
+
+	pub sector: u8,
+	pub cyl_low: u8,
+	pub cyl_high: u8,
+	pub device: u8,
+
+	pub command: u8,
+}
 
 #[cfg(target_os = "linux")]
 use linux_ata;

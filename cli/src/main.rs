@@ -230,8 +230,8 @@ fn main() {
 		.get_matches();
 
 	let (exec, task): (
-		fn(&str, smart::ata::Command, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
-		fn(&str, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<ata::RegistersRead, std::io::Error>
+		fn(&str, &ata::RegistersWrite) -> Result<[u8; 512], std::io::Error>,
+		fn(&str, &ata::RegistersWrite) -> Result<ata::RegistersRead, std::io::Error>
 	) = match args.value_of("device") {
 		Some("ata") => ( // cfg(linux|freebsd)
 			ata::ata_exec,
@@ -278,7 +278,15 @@ fn main() {
 	let mut json_map = serde_json::Map::new();
 
 	if print_info || print_attrs || print_health {
-		let data = exec(&file, ata::Command::Identify, 1, 0, 1).unwrap();
+		let data = exec(&file, &ata::RegistersWrite {
+			command: ata::Command::Identify as u8,
+			sector: 1,
+			features: 0,
+			sector_count: 1,
+			cyl_high: 0,
+			cyl_low: 0,
+			device: 0,
+		}).unwrap();
 		let id = id::parse_id(&data);
 
 		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
@@ -308,10 +316,15 @@ fn main() {
 
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
-				let data = task(&file,
-					ata::Command::SMART, ata::SMARTFeature::ReturnStatus as u8,
-					0, 0, 0x4f, 0xc2, 0,
-				).unwrap();
+				let data = task(&file, &ata::RegistersWrite {
+					command: ata::Command::SMART as u8,
+					features: ata::SMARTFeature::ReturnStatus as u8,
+					sector_count: 0,
+					sector: 0,
+					cyl_low: 0x4f,
+					cyl_high: 0xc2,
+					device: 0,
+				}).unwrap();
 				let status = health::parse_smart_status(&data);
 
 				if use_json {
@@ -328,8 +341,24 @@ fn main() {
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
-				let data = exec(&file, ata::Command::SMART, 0, ata::SMARTFeature::ReadValues as u8, 1).unwrap();
-				let thresh = exec(&file, ata::Command::SMART, 0, ata::SMARTFeature::ReadThresholds as u8, 1).unwrap();
+				let data = exec(&file, &ata::RegistersWrite {
+					command: ata::Command::SMART as u8,
+					sector: 0,
+					features: ata::SMARTFeature::ReadValues as u8,
+					sector_count: 1,
+					cyl_high: 0,
+					cyl_low: 0,
+					device: 0,
+				}).unwrap();
+				let thresh = exec(&file, &ata::RegistersWrite {
+					command: ata::Command::SMART as u8,
+					sector: 0,
+					features: ata::SMARTFeature::ReadThresholds as u8,
+					sector_count: 1,
+					cyl_high: 0,
+					cyl_low: 0,
+					device: 0,
+				}).unwrap();
 
 				let values = attr::parse_smart_values(&data, &thresh, &dbentry);
 
