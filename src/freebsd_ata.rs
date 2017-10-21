@@ -61,7 +61,7 @@ impl From<CAMError> for Error {
 	}
 }
 
-pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<([u8; 7], [u8; 512]), Error> {
+pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
 	let dev = CAMDevice::open(file)?;
 
 	let timeout = 10; // in seconds; TODO configurable
@@ -108,18 +108,18 @@ pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u
 
 	let ataio = unsafe { ccb.ataio.as_ref() };
 
-	Ok((
-		[
-			ataio.res.status,
-			ataio.res.error,
-			ataio.res.sector_count,
-			ataio.res.lba_low,
-			ataio.res.lba_mid,
-			ataio.res.lba_high,
-			0, // XXX select
-		],
-		data,
-	))
+	Ok((ata::RegistersRead {
+		error: ataio.res.error,
+
+		sector_count: ataio.res.sector_count,
+
+		sector: ataio.res.lba_low,
+		cyl_low: ataio.res.lba_mid,
+		cyl_high: ataio.res.lba_high,
+		device: ataio.res.device,
+
+		status: ataio.res.status,
+	}, data))
 }
 
 pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector: u8) -> Result<[u8; 512], Error> {
@@ -134,7 +134,7 @@ pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector:
 	return Ok(data);
 }
 
-pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], Error> {
+pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<ata::RegistersRead, Error> {
 	let (regs, _) = ata_do(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
 
 	return Ok(regs);

@@ -133,7 +133,7 @@ pub fn ata_pass_through_16_exec(file: &str, cmd: ata::Command, sector: u8, featu
 	Ok(buf)
 }
 
-pub fn ata_pass_through_16_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<[u8; 7], Error> {
+pub fn ata_pass_through_16_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, _: u8) -> Result<ata::RegistersRead, Error> {
 	let (sense, _) = ata_pass_through_16(file, cmd, feature, nsector, sector, lcyl, hcyl)?;
 
 	if sense[0] & 0x7f != 0x72 {
@@ -154,15 +154,18 @@ pub fn ata_pass_through_16_task(file: &str, cmd: ata::Command, feature: u8, nsec
 			continue;
 		}
 		// TODO? EXTEND bit, ATA PASS-THROUGH 12 vs 16
-		return Ok([
-			0, // XXX status
-			sense[current_desc + 3], // error
-			sense[current_desc + 5], // sector_count
-			sense[current_desc + 7], // lba_low
-			sense[current_desc + 9], // lba_mid
-			sense[current_desc + 11], // lba_high
-			0, // XXX select
-		]);
+		return Ok(ata::RegistersRead {
+			error: sense[current_desc + 3],
+
+			sector_count: sense[current_desc + 5],
+
+			sector: sense[current_desc + 7],
+			cyl_low: sense[current_desc + 9],
+			cyl_high: sense[current_desc + 11],
+			device: sense[current_desc + 12],
+
+			status: sense[current_desc + 13],
+		})
 	}
 
 	// TODO proper error

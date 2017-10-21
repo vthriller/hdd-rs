@@ -60,7 +60,7 @@ pub fn ata_exec(file: &str, cmd: ata::Command, sector: u8, feature: u8, nsector:
 }
 
 // FIXME should feature be SMARTFeature instead of u8?
-pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, select: u8) -> Result<[u8; 7], Error> {
+pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u8, lcyl: u8, hcyl: u8, select: u8) -> Result<ata::RegistersRead, Error> {
 	let file = File::open(file).unwrap(); // XXX unwrap
 
 	let mut data: [u8; 7] = [0; 7];
@@ -80,7 +80,13 @@ pub fn ata_task(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector:
 		}
 	}
 
-	// returns [status, err, nsector, sector, lcyl, hcyl, select]
-	// TODO struct?
-	Ok(data)
+	Ok(ata::RegistersRead {
+		status: data[0],
+		error: data[1],
+		sector_count: data[2],
+		sector: data[3],
+		cyl_low: data[4],
+		cyl_high: data[5],
+		device: data[6],
+	})
 }

@@ -231,7 +231,7 @@ fn main() {
 
 	let (exec, task): (
 		fn(&str, smart::ata::Command, u8, u8, u8) -> Result<[u8; 512], std::io::Error>,
-		fn(&str, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<[u8; 7], std::io::Error>
+		fn(&str, smart::ata::Command, u8, u8, u8, u8, u8, u8) -> Result<ata::RegistersRead, std::io::Error>
 	) = match args.value_of("device") {
 		Some("ata") => ( // cfg(linux|freebsd)
 			ata::ata_exec,
