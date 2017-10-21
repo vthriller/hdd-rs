@@ -102,7 +102,6 @@ pub fn ata_do(file: &str, cmd: ata::Command, feature: u8, nsector: u8, sector: u
 		Err(CAMError::current())?
 	}
 
-	// XXX what.
 	if (unsafe { ccb.ccb_h.as_ref() }.status & (cam::cam_status_CAM_STATUS_MASK as u32)) != (cam::cam_status::CAM_REQ_CMP as u32) {
 		Err(CAMError::current())?
 	}
