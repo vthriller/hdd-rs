@@ -2,7 +2,7 @@ extern crate libc;
 use self::libc::{c_int, c_uint, c_uchar, c_ushort, c_void};
 
 use self::libc::ioctl;
-use std::{mem, ptr};
+use std::ptr;
 
 #[cfg(not(any(target_env = "musl")))]
 use self::libc::c_ulong;
@@ -64,15 +64,15 @@ fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> {
 
 		dxfer_direction:	SG_DXFER_FROM_DEV, // TODO
 		dxferp:	buf.as_mut_ptr() as *mut c_void,
-		dxfer_len:	mem::size_of_val(buf) as c_uint,
+		dxfer_len:	buf.len() as c_uint,
 		resid:	0,
 
 		sbp:	sense.as_mut_ptr(),
-		mx_sb_len:	mem::size_of_val(&sense) as c_uchar,
+		mx_sb_len:	sense.len() as c_uchar,
 		sb_len_wr:	0,
 
 		cmdp:	cmd.as_ptr(),
-		cmd_len:	mem::size_of_val(cmd) as c_uchar,
+		cmd_len:	cmd.len() as c_uchar,
 
 		status:	0,
 		host_status:	0,
