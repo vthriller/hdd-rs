@@ -53,6 +53,64 @@ struct sg_io_hdr {
 	info:	c_uint,	// [o] auxiliary information
 }
 
+pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8; 96]), Error> {
+	let file = File::open(file).unwrap(); // XXX unwrap
+
+	// TODO as u16 argument, not const
+	const alloc: usize = 96;
+
+	let cmd: [u8; 6] = [
+		0x12, // opcode: INQUIRY
+		if vital {1} else {0}, // reserved << 2 + cmddt (obsolete) << 1 + enable vital product data << 0
+		code,
+		(alloc >> 8) as u8,
+		(alloc & 0xff) as u8,
+		0, // control (XXX what's that?!)
+	];
+
+	let mut sense: [u8; 64] = [0; 64];
+	let mut buf: [u8; alloc] = [0; alloc];
+
+	let hdr = sg_io_hdr {
+		interface_id:	'S' as c_int,
+
+		dxfer_direction:	SG_DXFER_FROM_DEV, // TODO
+		dxferp:	buf.as_mut_ptr() as *mut c_void,
+		dxfer_len:	mem::size_of_val(&buf) as c_uint,
+		resid:	0,
+
+		sbp:	sense.as_mut_ptr(),
+		mx_sb_len:	mem::size_of_val(&sense) as c_uchar,
+		sb_len_wr:	0,
+
+		cmdp:	cmd.as_ptr(),
+		cmd_len:	mem::size_of_val(&cmd) as c_uchar,
+
+		status:	0,
+		host_status:	0,
+		driver_status:	0,
+
+		timeout:	10000,	// TODO configurable
+		duration:	0,
+
+		iovec_count:	0,
+		flags:	0,
+		pack_id:	0,
+		usr_ptr:	ptr::null_mut(),
+		masked_status:	0,
+		msg_status:	0,
+		info:	0,
+	};
+
+	unsafe {
+		if ioctl(file.as_raw_fd(), SG_IO, &hdr) == -1 {
+			return Err(Error::last_os_error());
+		}
+	}
+
+	Ok((sense, buf))
+}
+
 fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<([u8; 64], [u8; 512]), Error> {
 	let file = File::open(file).unwrap(); // XXX unwrap
 
