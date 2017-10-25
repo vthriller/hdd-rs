@@ -42,10 +42,10 @@ pub enum Identifier<'a> {
 
 #[derive(Debug)]
 pub struct Descriptor<'a> {
-	proto: Protocol,
-	codeset: CodeSet,
-	assoc: Association,
-	id: Identifier<'a>,
+	pub proto: Protocol,
+	pub codeset: CodeSet,
+	pub assoc: Association,
+	pub id: Identifier<'a>,
 }
 
 pub fn parse(data: &[u8]) -> Vec<Descriptor> {

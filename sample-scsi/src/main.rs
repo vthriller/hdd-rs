@@ -54,5 +54,23 @@ fn main() {
 	let data = query("[83] Device Information", &file, true, 0x83);
 	let len = ((data[2] as usize) << 8) + (data[3] as usize);
 
-	print!("descriptors: {:#?}\n", device_id::parse(&data[4 .. 4+len]));
+	print!("descriptors:\n");
+	for d in device_id::parse(&data[4 .. 4+len]) {
+		print!("{:?}\n", d);
+
+		// TODO? from_utf8 it right in smart::data::vpd::device_id
+		if d.codeset == device_id::CodeSet::ASCII {
+			match d.id {
+				device_id::Identifier::VendorSpecific(i) |
+				device_id::Identifier::FCNameIdentifier(i) => {
+					print!(">>> {:?}\n", std::str::from_utf8(i));
+				},
+				device_id::Identifier::Generic { vendor_id: v, id: i } => {
+					print!(">>> {:?}\n", std::str::from_utf8(v));
+					print!(">>> {:?}\n", std::str::from_utf8(i));
+				},
+				_ => (),
+			}
+		}
+	}
 }
