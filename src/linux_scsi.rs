@@ -99,9 +99,9 @@ fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> {
 	Ok(sense)
 }
 
-pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8; 96]), Error> {
+pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8; 4096]), Error> {
 	// TODO as u16 argument, not const
-	const alloc: usize = 96;
+	const alloc: usize = 4096;
 
 	let cmd: [u8; 6] = [
 		0x12, // opcode: INQUIRY

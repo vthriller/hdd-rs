@@ -1,4 +1,4 @@
-fn read_string(arr: &[u8; 96], start: usize, fin: usize) -> String {
+fn read_string(arr: &[u8; 4096], start: usize, fin: usize) -> String {
 	let mut output = String::with_capacity((fin - start) * 2);
 
 	for i in start..(fin+1) {
@@ -38,7 +38,7 @@ fn is_set(x: u8, bit: usize) -> bool {
 	x & (1<<bit) != 0
 }
 
-pub fn parse_inquiry(data: &[u8; 96]) -> Inquiry {
+pub fn parse_inquiry(data: &[u8; 4096]) -> Inquiry {
 	Inquiry {
 		connected: match (data[0] & 0b11100000) >> 5 { // Peripheral Qualifier
 			0b000 => Some(true),
