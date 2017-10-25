@@ -7,6 +7,11 @@ use smart::data::vpd::device_id;
 extern crate clap;
 use clap::{App, Arg};
 
+extern crate separator;
+use separator::Separatable;
+extern crate number_prefix;
+use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
+
 fn print_hex(data: &[u8]) {
 	for i in 0..data.len() {
 		if i % 16 == 0 { print!("\n"); }
@@ -39,6 +44,21 @@ fn main() {
 		.get_matches();
 
 	let file = args.value_of("device").unwrap();
+
+	let (_, lba, block_size) = scsi::read_capacity_10(file, None).unwrap();
+	let cap = lba as u64 * block_size as u64;
+	print!("Capacity: {} × {}\n", lba, block_size);
+	print!("          {} bytes\n", cap.separated_string());
+	print!("          ({}, {})\n",
+		match decimal_prefix(cap as f32) {
+			Prefixed(p, x) => format!("{:.1} {}B", x, p),
+			Standalone(x)  => format!("{} bytes", x),
+		},
+		match binary_prefix(cap as f32) {
+			Prefixed(p, x) => format!("{:.1} {}B", x, p),
+			Standalone(x)  => format!("{} bytes", x),
+		},
+	);
 
 	let data = query("Inquiry", &file, false, 0);
 	print!("{:#?}\n", inquiry::parse_inquiry(&data));

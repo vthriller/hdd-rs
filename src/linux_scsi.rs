@@ -13,6 +13,8 @@ use std::io::{Error, ErrorKind};
 
 use ata;
 
+use byteorder::{ReadBytesExt, BigEndian};
+
 // see scsi/sg.h
 
 #[cfg(not(any(target_env = "musl")))]
@@ -116,6 +118,37 @@ pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8;
 	let sense = do_cmd(file, &cmd, &mut buf)?;
 
 	Ok((sense, buf))
+}
+
+/// returns tuple of (sense, logical block address, block length in bytes)
+pub fn read_capacity_10(file: &str, lba: Option<u32>) -> Result<([u8; 64], u32, u32), Error> {
+	// pmi is partial medium indicator
+	let (pmi, lba) = match lba {
+		Some(lba) => (true, lba),
+		None => (false, 0),
+	};
+
+	let cmd: [u8; 10] = [
+		0x25, // opcode
+		0, // reserved, obsolete
+		((lba >> 24) & 0xff) as u8,
+		((lba >> 16) & 0xff) as u8,
+		((lba >> 8)  & 0xff) as u8,
+		((lba)       & 0xff) as u8,
+		0, // reserved
+		0, // reserved
+		if pmi { 1 } else { 0 }, // reserved, pmi
+		0, // control (XXX what's that?!)
+	];
+	let mut buf = [0u8; 8];
+
+	let sense = do_cmd(file, &cmd, &mut buf)?;
+
+	Ok((
+		sense,
+		(&buf[0..4]).read_u32::<BigEndian>().unwrap(),
+		(&buf[4..8]).read_u32::<BigEndian>().unwrap(),
+	))
 }
 
 fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<([u8; 64], [u8; 512]), Error> {

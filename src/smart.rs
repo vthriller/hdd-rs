@@ -4,6 +4,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate nom;
 extern crate regex;
+extern crate byteorder;
 
 pub mod ata;
 pub mod scsi;

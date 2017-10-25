@@ -9,6 +9,7 @@ serde = "0.9"
 serde_derive = "0.9"
 nom = "^2.2"
 regex = "0.2"
+byteorder = "1"
 
 [target.'cfg(target_os = "freebsd")'.dependencies]
 cam = { path = "cam" }
