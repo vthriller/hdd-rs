@@ -15,6 +15,8 @@ mod linux_scsi;
 mod linux_ata;
 #[cfg(target_os = "freebsd")]
 mod freebsd_ata;
+#[cfg(target_os = "freebsd")]
+mod freebsd_scsi;
 
 pub mod data;
 pub mod drivedb;

@@ -1,12 +1,8 @@
 #[cfg(target_os = "linux")]
 use linux_scsi::do_cmd;
 
-/// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
 #[cfg(target_os = "freebsd")]
-#[allow(unused_variables)]
-fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> {
-	unimplemented!()
-}
+use freebsd_scsi::do_cmd;
 
 use std::io::{Error, ErrorKind};
 use ata;
