@@ -1,5 +1,3 @@
-// bindgen boilerplate, untouched
-
 extern crate bindgen;
 
 use std::env;

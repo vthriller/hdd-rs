@@ -1,4 +1,19 @@
-// FIXME pub
+//! Thin wrapper against FreeBSD's libcam.
+//!
+//! This module is not intended to be a full-featured wrapper even for a subset of all the things that libcam provides.
+//! Instead, this module offers a number of helpers and shortcuts, like `impl Drop`, that should aid with writing a bit more concise and idiomatic code against libcam.
+//! Users of this module are expected to do most of the things on their own, manually, using things like `unsafe {}` and `.0`.
+//!
+//! This module is not for a general use. Besides the fact that it is utterly incomplete and unfriendly, this binding also lacks a lot of things that libcam provides, as they are irrelevant to the purposes of the crate.
+//! For the list of exported FFI interfaces, consult `cam/build.rs`.
+//!
+//! For more on CAM, see [cam(4)][man-cam], [FreeBSD Architecture Handbook][arch-handbook-scsi], [The Design and Implementation of the FreeBSD SCSI Subsystem][difss], or just lurk around [source files in e.g. /usr/src/sbin/camcontrol/][camcontrol-svn].
+//!
+//! [man-cam]: https://www.freebsd.org/cgi/man.cgi?query=cam&apropos=0&sektion=4&manpath=FreeBSD+11.1-RELEASE+and+Ports&arch=default&format=html
+//! [arch-handbook-scsi]: https://www.freebsd.org/doc/en_US.ISO8859-1/books/arch-handbook/scsi.html
+//! [difss]: https://people.freebsd.org/~gibbs/ARTICLE-0001.html
+//! [camcontrol-svn]: https://svnweb.freebsd.org/base/stable/11/sbin/camcontrol/
+
 pub mod bindings;
 
 pub use bindings::{
@@ -18,7 +33,9 @@ use std::fmt;
 
 extern crate libc;
 
-// FIXME pub cam_device
+/// Thin wrapper for `struct cam_device *`. Note that the underlying raw pointer is *mutable*.
+///
+/// This struct implements `Drop`, i.e. you don't need to call `cam_close_device` yourself.
 pub struct CAMDevice(pub *mut bindings::cam_device);
 
 impl CAMDevice {
@@ -48,8 +65,14 @@ impl Drop for CAMDevice {
 	}
 }
 
+/// Regular error type for CAM-related actions. In case of emergency, just do
+///
+/// ```
+/// Err(CAMError::current())?
+/// ```
 #[derive(Debug)]
 pub struct CAMError(String);
+
 impl CAMError {
 	pub fn current() -> CAMError { CAMError(
 		unsafe {
@@ -78,19 +101,24 @@ impl From<CAMError> for Error {
 	}
 }
 
-// FIXME pub ccb
+/// Thin wrapper for `union ccb *`, the CAM Control Block. Note that the underlying raw pointer is *mutable*.
+///
+/// This struct implements `Drop`, i.e. you don't need to call `cam_freeccb` yourself.
 pub struct CCB(pub *mut bindings::ccb);
 
 impl CCB {
+	/// Calls `cam_getccb` with provided device, and zeroes all the values except for those that compose its header (`ccb_h`), which is a common pratice (see smartmontools, camcontrol).
+	///
+	/// # Panics
+	///
+	/// This function panics if `cam_getccb` returns `NULL`, assuming there's not enough memory to allocate anything, not even `Err` to return.
 	pub fn new(dev: &CAMDevice) -> CCB {
 		let mut ccb: *mut bindings::ccb = unsafe { bindings::cam_getccb(dev.0) };
 
 		if ccb.is_null() {
-			// if we cannot allocate CCB, can we allocate something to Err()?
 			panic!("cannot allocate CCB");
 		}
 
-		// it is common practice to bzero(3) non-header (ccb_hdr) part of newly allocated union
 		unsafe {
 			let sizeof_item = mem::size_of_val(&(*ccb).bindgen_union_field[0]);
 			let start = mem::size_of::<bindings::ccb_hdr>() / sizeof_item;
