@@ -16,7 +16,7 @@ pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> 
 	let ccb: CCB = CCB::new(&dev);
 
 	unsafe {
-		let csio = (*ccb.0).csio.as_mut();
+		let csio = ccb.csio();
 
 		// cannot use cam_fill_csio() here: it is defined right in cam/cam_ccb.h
 		// besides, it is a pretty simple function of dubious benefit: sure it's less things to type, but with huge number of arguments it's less clear what's actually filled in a struct
@@ -38,11 +38,9 @@ pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> 
 		csio.cdb_len = cmd.len() as u8; // TODO check
 	}
 
-	if unsafe { cam::bindings::cam_send_ccb(dev.0, ccb.0) } < 0 {
-		Err(CAMError::current())?
-	}
+	dev.send_ccb(&ccb)?;
 
-	let status = unsafe { (*ccb.0).ccb_h.as_ref() }.status & cam::bindings::cam_status_CAM_STATUS_MASK as u32;
+	let status = ccb.get_status();
 	if !(status == cam::bindings::cam_status::CAM_REQ_CMP as u32 || status == cam::bindings::cam_status::CAM_SCSI_STATUS_ERROR as u32) {
 		Err(CAMError::current())?;
 	}
@@ -53,7 +51,7 @@ pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> 
 		// TODO actual sense len, ccb.csio.sense_len - ccb.csio.sense_resid
 		unsafe { libc::memcpy(
 			sense.as_mut_ptr() as *mut c_void,
-			&(*ccb.0).csio.as_mut().sense_data as *const _ as *const c_void,
+			&ccb.csio().sense_data as *const _ as *const c_void,
 			64,
 		) };
 	}

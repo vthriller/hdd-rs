@@ -2,7 +2,7 @@ extern crate libc;
 use std::mem;
 
 extern crate cam;
-use self::cam::{CAMError, CAMDevice};
+use self::cam::{CAMError, CAMDevice, CCB};
 
 use ata;
 
@@ -15,16 +15,16 @@ pub fn ata_do(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersR
 
 	let mut data: [u8; 512] = [0; 512];
 
-	let mut ccb: cam::bindings::ccb = unsafe { mem::zeroed() };
+	let ccb = CCB(&mut unsafe { mem::zeroed() } as *mut _);
 
 	unsafe {
-		let h = ccb.ccb_h.as_mut();
+		let h = ccb.ccb_h();
 		h.func_code = cam::bindings::xpt_opcode::XPT_ATA_IO;
 		h.flags = cam::bindings::ccb_flags::CAM_DIR_IN as u32;
 		h.retry_count = 0;
 		h.timeout = timeout * 1000;
 
-		let ataio = ccb.ataio.as_mut();
+		let ataio = ccb.ataio();
 		ataio.data_ptr = data.as_mut_ptr();
 		ataio.dxfer_len = 512;
 		ataio.ata_flags = 0;
@@ -45,15 +45,13 @@ pub fn ata_do(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersR
 		h.flags |= cam::bindings::ccb_flags::CAM_DEV_QFRZDIS as u32;
 	}
 
-	if unsafe { cam::bindings::cam_send_ccb(dev.0, &mut ccb) } < 0 {
+	dev.send_ccb(&ccb)?;
+
+	if ccb.get_status() != (cam::bindings::cam_status::CAM_REQ_CMP as u32) {
 		Err(CAMError::current())?
 	}
 
-	if (unsafe { ccb.ccb_h.as_ref() }.status & (cam::bindings::cam_status_CAM_STATUS_MASK as u32)) != (cam::bindings::cam_status::CAM_REQ_CMP as u32) {
-		Err(CAMError::current())?
-	}
-
-	let ataio = unsafe { ccb.ataio.as_ref() };
+	let ataio = unsafe { ccb.ataio() };
 
 	Ok((ata::RegistersRead {
 		error: ataio.res.error,

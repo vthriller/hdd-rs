@@ -23,6 +23,12 @@ impl CAMDevice {
 			Ok(CAMDevice(dev))
 		}
 	}
+
+	pub fn send_ccb(self, ccb: &CCB) -> Result<(), CAMError> {
+		if unsafe { bindings::cam_send_ccb(self.0, ccb.0) } < 0 {
+			Err(CAMError::current())
+		} else { Ok(()) }
+	}
 }
 
 impl Drop for CAMDevice {
@@ -87,6 +93,15 @@ impl CCB {
 
 		CCB(ccb)
 	}
+	pub fn get_status(&self) -> u32 {
+		unsafe {
+			(*self.0).ccb_h.as_ref()
+		}.status & bindings::cam_status_CAM_STATUS_MASK as u32
+	}
+	// those are deliberately kept unsafe
+	pub unsafe fn ccb_h(&self) -> &mut bindings::ccb_hdr { (*self.0).ccb_h.as_mut() }
+	pub unsafe fn csio(&self) -> &mut bindings::ccb_scsiio { (*self.0).csio.as_mut() }
+	pub unsafe fn ataio(&self) -> &mut bindings::ccb_ataio { (*self.0).ataio.as_mut() }
 }
 
 impl Drop for CCB {
