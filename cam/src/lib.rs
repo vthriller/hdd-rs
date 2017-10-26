@@ -1,6 +1,15 @@
 // FIXME pub
 pub mod bindings;
 
+pub use bindings::{
+	CAM_ATAIO_48BIT,
+	CAM_ATAIO_NEEDRESULT,
+	MSG_SIMPLE_Q_TAG,
+	cam_status,
+	ccb_flags,
+	xpt_opcode,
+};
+
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::error;

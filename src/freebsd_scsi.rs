@@ -2,7 +2,7 @@ extern crate libc;
 use self::libc::c_void;
 
 extern crate cam;
-use self::cam::{CAMError, CAMDevice, CCB};
+use self::cam::*;
 
 use std::io::Error;
 
@@ -20,15 +20,15 @@ pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> 
 
 		// cannot use cam_fill_csio() here: it is defined right in cam/cam_ccb.h
 		// besides, it is a pretty simple function of dubious benefit: sure it's less things to type, but with huge number of arguments it's less clear what's actually filled in a struct
-		csio.ccb_h.func_code = cam::bindings::xpt_opcode::XPT_SCSI_IO;
-		csio.ccb_h.flags = cam::bindings::ccb_flags::CAM_DIR_IN as u32;
+		csio.ccb_h.func_code = xpt_opcode::XPT_SCSI_IO;
+		csio.ccb_h.flags = ccb_flags::CAM_DIR_IN as u32;
 		csio.ccb_h.xflags = 0;
 		csio.ccb_h.retry_count = 1;
 		csio.ccb_h.timeout = timeout*1000;
 		csio.data_ptr = buf.as_mut_ptr();
 		csio.dxfer_len = buf.len() as u32;
 		csio.sense_len = 64;
-		csio.tag_action = cam::bindings::MSG_SIMPLE_Q_TAG as u8;
+		csio.tag_action = MSG_SIMPLE_Q_TAG as u8;
 
 		libc::memcpy(
 			&mut csio.cdb_io.cdb_bytes as *mut _ as *mut c_void,
@@ -41,13 +41,13 @@ pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> 
 	dev.send_ccb(&ccb)?;
 
 	let status = ccb.get_status();
-	if !(status == cam::bindings::cam_status::CAM_REQ_CMP as u32 || status == cam::bindings::cam_status::CAM_SCSI_STATUS_ERROR as u32) {
+	if !(status == cam_status::CAM_REQ_CMP as u32 || status == cam_status::CAM_SCSI_STATUS_ERROR as u32) {
 		Err(CAMError::current())?;
 	}
 
 	// TODO actual data len, data.len() - ccb.csio.resid
 	// TODO ccb.csio.scsi_status
-	if (status & cam::bindings::cam_status::CAM_AUTOSNS_VALID as u32) != 0 {
+	if (status & cam_status::CAM_AUTOSNS_VALID as u32) != 0 {
 		// TODO actual sense len, ccb.csio.sense_len - ccb.csio.sense_resid
 		unsafe { libc::memcpy(
 			sense.as_mut_ptr() as *mut c_void,
