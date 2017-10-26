@@ -20,8 +20,10 @@ What's supported?
 
 Platforms and transports:
 
-* Linux: ATA (including SATL)
-* FreeBSD: ATA
+* Linux: ATA, SCSI
+* FreeBSD: ATA, SCSI
+
+SCSI/ATA translation is also supported.
 
 Features:
 
