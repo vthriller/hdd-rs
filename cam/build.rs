@@ -10,6 +10,14 @@ fn main() {
 
 	let bindings = bindgen::Builder::default()
 		.header("wrapper.h")
+		.whitelisted_function("cam_(open|close)_device")
+		.whitelisted_function("cam_(get|free)ccb")
+		.whitelisted_function("cam_send_ccb")
+		.whitelisted_type("ccb_flags")
+		.whitelisted_type("cam_status")
+		.whitelisted_var("cam_errbuf")
+		.whitelisted_var("CAM_ATAIO_.*")
+		.whitelisted_var("MSG_SIMPLE_Q_TAG")
 		.generate()
 		.expect("Unable to generate bindings");
 
