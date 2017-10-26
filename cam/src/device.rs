@@ -32,8 +32,6 @@ impl CAMDevice {
 
 impl Drop for CAMDevice {
 	fn drop(&mut self) {
-		unsafe {
-			bindings::cam_close_device(self.0);
-		}
+		unsafe { bindings::cam_close_device(self.0); }
 	}
 }

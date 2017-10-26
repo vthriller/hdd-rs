@@ -32,11 +32,13 @@ impl CCB {
 
 		CCB(ccb)
 	}
+
 	pub fn get_status(&self) -> u32 {
 		unsafe {
 			(*self.0).ccb_h.as_ref()
 		}.status & bindings::cam_status_CAM_STATUS_MASK as u32
 	}
+
 	// those are deliberately kept unsafe
 	pub unsafe fn ccb_h(&self) -> &mut bindings::ccb_hdr { (*self.0).ccb_h.as_mut() }
 	pub unsafe fn csio(&self) -> &mut bindings::ccb_scsiio { (*self.0).csio.as_mut() }
@@ -45,8 +47,6 @@ impl CCB {
 
 impl Drop for CCB {
 	fn drop(&mut self) {
-		unsafe {
-			bindings::cam_freeccb(self.0);
-		}
+		unsafe { bindings::cam_freeccb(self.0); }
 	}
 }
