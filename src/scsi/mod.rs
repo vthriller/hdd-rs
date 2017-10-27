@@ -1,8 +1,12 @@
 #[cfg(target_os = "linux")]
-use linux_scsi::do_cmd;
+mod linux;
+#[cfg(target_os = "linux")]
+use self::linux::do_cmd;
 
 #[cfg(target_os = "freebsd")]
-use freebsd_scsi::do_cmd;
+mod freebsd;
+#[cfg(target_os = "freebsd")]
+use self::freebsd::do_cmd;
 
 use std::io::{Error, ErrorKind};
 use ata;

@@ -35,11 +35,11 @@ pub struct RegistersWrite {
 }
 
 #[cfg(target_os = "linux")]
-use linux_ata;
+mod linux;
 #[cfg(target_os = "linux")]
-pub use self::linux_ata::*;
+pub use self::linux::*;
 
 #[cfg(target_os = "freebsd")]
-use freebsd_ata;
+mod freebsd;
 #[cfg(target_os = "freebsd")]
-pub use self::freebsd_ata::*;
+pub use self::freebsd::*;

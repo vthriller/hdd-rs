@@ -9,14 +9,5 @@ extern crate byteorder;
 pub mod ata;
 pub mod scsi;
 
-#[cfg(target_os = "linux")]
-mod linux_scsi;
-#[cfg(target_os = "linux")]
-mod linux_ata;
-#[cfg(target_os = "freebsd")]
-mod freebsd_ata;
-#[cfg(target_os = "freebsd")]
-mod freebsd_scsi;
-
 pub mod data;
 pub mod drivedb;
