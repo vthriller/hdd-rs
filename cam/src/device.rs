@@ -12,7 +12,7 @@ extern crate libc;
 pub struct CAMDevice(pub *mut bindings::cam_device);
 
 impl CAMDevice {
-	pub fn open(path: &str) -> Result<CAMDevice, CAMError> {
+	pub fn open(path: &str) -> Result<Self, CAMError> {
 		// keep CString's buffer allocated by binding to the variable
 		let path = CString::new(path).unwrap();
 		let dev = unsafe { bindings::cam_open_device(path.as_ptr(), libc::O_RDWR) };

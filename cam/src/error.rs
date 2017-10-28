@@ -16,7 +16,7 @@ extern crate libc;
 pub struct CAMError(String);
 
 impl CAMError {
-	pub fn current() -> CAMError { CAMError(
+	pub fn current() -> Self { CAMError(
 		unsafe {
 			CStr::from_ptr(
 				// strdup() to avoid implicit deallocation of external static variable

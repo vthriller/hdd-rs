@@ -14,7 +14,7 @@ impl CCB {
 	/// # Panics
 	///
 	/// This function panics if `cam_getccb` returns `NULL`, assuming there's not enough memory to allocate anything, not even `Err` to return.
-	pub fn new(dev: &CAMDevice) -> CCB {
+	pub fn new(dev: &CAMDevice) -> Self {
 		let mut ccb: *mut bindings::ccb = unsafe { bindings::cam_getccb(dev.0) };
 
 		if ccb.is_null() {
