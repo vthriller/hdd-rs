@@ -53,8 +53,8 @@ index = Blob.from_string(b'''
 <meta charset="utf-8">
 Documentation for all platforms should generally be the same, and you can click on any of the following links unless you're dealing with bindings and other lower level things.
 <ul>
-<li> <a href="./linux/smart">Linux</a>
-<li> <a href="./freebsd/smart">FreeBSD</a>
+<li> <a href="./linux/hdd">Linux</a>
+<li> <a href="./freebsd/hdd">FreeBSD</a>
 </ul>
 ''')
 repo.object_store.add_object(index)
@@ -70,7 +70,7 @@ commit.author = commit.committer = b'gh-pages generator script <whatever@localho
 commit.commit_time = commit.author_time = int(time())
 commit.commit_timezone = commit.author_timezone = parse_timezone(b'+0000')[0]
 commit.encoding = b'UTF-8'
-commit.message = "'cargo doc --no-deps' for smart-rs on {system}, commit {commit}".format(
+commit.message = "'cargo doc --no-deps' for 'hdd' on {system}, commit {commit}".format(
 	system = platform.system().lower(),
 	commit = repo.head().decode(),
 ).encode()
