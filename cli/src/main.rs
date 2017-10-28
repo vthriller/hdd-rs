@@ -169,7 +169,7 @@ fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F)
 fn types() -> [&'static str; 2] { ["ata", "sat"] }
 #[inline]
 #[cfg(target_os = "freebsd")]
-fn types() -> [&'static str; 1] { ["ata"] }
+fn types() -> [&'static str; 2] { ["ata", "sat"] }
 
 fn main() {
 	let args = App::new("smart-rs")
@@ -237,11 +237,16 @@ fn main() {
 			ata::ata_exec,
 			ata::ata_task,
 		),
-		_ if cfg!(target_os = "linux") => (
+		Some("sat") => ( // cfg(linux|freebsd)
 			scsi::ata_pass_through_16_exec,
 			scsi::ata_pass_through_16_task,
 		),
-		_ if cfg!(target_os = "freebsd") => (
+		// defaults
+		None if cfg!(target_os = "linux") => (
+			scsi::ata_pass_through_16_exec,
+			scsi::ata_pass_through_16_task,
+		),
+		None if cfg!(target_os = "freebsd") => (
 			ata::ata_exec,
 			ata::ata_task,
 		),
