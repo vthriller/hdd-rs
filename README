@@ -20,10 +20,12 @@ What's supported?
 
 Platforms and transports:
 
-* Linux: ATA, SCSI
+* Linux: ATA¹, SCSI
 * FreeBSD: ATA, SCSI
 
 SCSI/ATA translation is also supported.
+
+¹ Note that in Linux, ATA is only supported through SAT, although SG_IO kindly emulates that for SATA (and, possibly, PATA?) disks for us.
 
 Features:
 

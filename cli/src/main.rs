@@ -166,7 +166,7 @@ fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F)
 
 #[inline]
 #[cfg(target_os = "linux")]
-fn types() -> [&'static str; 2] { ["ata", "sat"] }
+fn types() -> [&'static str; 1] { ["sat"] }
 #[inline]
 #[cfg(target_os = "freebsd")]
 fn types() -> [&'static str; 2] { ["ata", "sat"] }
@@ -233,7 +233,7 @@ fn main() {
 		fn(&str, &ata::RegistersWrite) -> Result<[u8; 512], std::io::Error>,
 		fn(&str, &ata::RegistersWrite) -> Result<ata::RegistersRead, std::io::Error>
 	) = match args.value_of("type") {
-		Some("ata") => ( // cfg(linux|freebsd)
+		Some("ata") if cfg!(target_os = "freebsd") => (
 			ata::ata_exec,
 			ata::ata_task,
 		),
