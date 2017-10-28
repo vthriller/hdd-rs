@@ -1,13 +1,13 @@
-extern crate smart;
+extern crate hdd;
 
-use smart::ata;
-use smart::scsi;
+use hdd::ata;
+use hdd::scsi;
 
-use smart::data::id;
-use smart::data::attr;
-use smart::data::health;
-use smart::drivedb;
-use smart::drivedb::vendor_attribute;
+use hdd::data::id;
+use hdd::data::attr;
+use hdd::data::health;
+use hdd::drivedb;
+use hdd::drivedb::vendor_attribute;
 
 #[macro_use]
 extern crate clap;
@@ -172,7 +172,7 @@ fn types() -> [&'static str; 1] { ["sat"] }
 fn types() -> [&'static str; 2] { ["ata", "sat"] }
 
 fn main() {
-	let args = App::new("smart-rs")
+	let args = App::new("hdd")
 		.about("yet another S.M.A.R.T. querying tool")
 		.version(crate_version!())
 		.arg(Arg::with_name("health")

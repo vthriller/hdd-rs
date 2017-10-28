@@ -1,7 +1,7 @@
-extern crate smart;
-use smart::scsi;
-use smart::data::inquiry;
-use smart::data::vpd::device_id;
+extern crate hdd;
+use hdd::scsi;
+use hdd::data::inquiry;
+use hdd::data::vpd::device_id;
 
 #[macro_use]
 extern crate clap;
@@ -78,7 +78,7 @@ fn main() {
 	for d in device_id::parse(&data[4 .. 4+len]) {
 		print!("{:?}\n", d);
 
-		// TODO? from_utf8 it right in smart::data::vpd::device_id
+		// TODO? from_utf8 it right in hdd::data::vpd::device_id
 		if d.codeset == device_id::CodeSet::ASCII {
 			match d.id {
 				device_id::Identifier::VendorSpecific(i) |

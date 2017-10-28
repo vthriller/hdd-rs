@@ -1,7 +1,5 @@
-# TODO? better name for the crate and its binary
-
 [package]
-name = "smart-rs-cli"
+name = "hdd-cli"
 version = "0.5.0"
 authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 
@@ -10,7 +8,7 @@ clap = ">=0.6.6"
 serde_json = "0.9"
 separator = "0.3.1"
 number_prefix = "0.2.7"
-smart-rs = { path = ".." }
+hdd = { path = ".." }
 
 [[bin]]
-name = "smart-rs"
+name = "hdd"

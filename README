@@ -9,7 +9,7 @@ How?
 ----
 
 ```
-git clone https://github.com/vthriller/smart-rs.git
+git clone https://github.com/vthriller/hdd-rs.git
 cd smart-rs/cli
 cargo build --release
 sudo ./target/release/smart-rs -i --json /dev/sda

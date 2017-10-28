@@ -7,4 +7,4 @@ authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 clap = ">=0.6.6"
 separator = "0.3.1"
 number_prefix = "0.2.7"
-smart-rs = { path = ".." }
+hdd = { path = ".." }
