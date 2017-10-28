@@ -59,3 +59,8 @@ commit.parents = [repo.refs[b'refs/heads/gh-pages']]
 
 repo.object_store.add_object(commit)
 repo.refs[b'refs/heads/gh-pages'] = commit.id
+
+print('''
+Now you can do:
+	git push github gh-pages
+''')
