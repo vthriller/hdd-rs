@@ -1,7 +1,7 @@
 Why?
 ----
 
-* In short: I'm sick of watching people implement terrible `smartctl -a` output parsers over and over again just to integrate it with one enterprise monitoring system or another.
+* In short: it's sad to see people re-implement terrible `smartctl -a` output parsers over and over again just to integrate it with one enterprise monitoring system or another.
 * In order to make smartctl return programmer-friendly data (e.g. JSON), you basically need to rewrite a lot of ad-hoc printing code scattered all over the `ataprint.cpp`, and it's not much easier if you decide to drop the idea of implementing some command-line switch in favour of simply changing the output format. Oh, and don't forget about the smartd!
 * libatasmart is ATA only, Linux only, and is supposed to have limited support for S.M.A.R.T. things.
 
