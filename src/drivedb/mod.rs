@@ -90,7 +90,6 @@ pub struct Match<'a> {
 // FIXME extra_attributes should probably be the reference
 pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> Match<'a> {
 	let mut db = db.iter();
-	let _ = db.next(); // skip dummy svn-id entry
 	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry (XXX)
 
 	for entry in db {

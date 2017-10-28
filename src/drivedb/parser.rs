@@ -100,5 +100,8 @@ named!(pub database <Vec<Entry>>, do_parse!(
 	)) >>
 	whitespace >>
 	eof!() >>
-	(entries)
+	(entries.into_iter().filter(|entry| {
+		// > The entry is ignored if [modelfamily] starts with a dollar sign.
+		!entry.family.starts_with('$')
+	}).collect())
 ));
