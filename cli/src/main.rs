@@ -232,7 +232,7 @@ fn main() {
 	let (exec, task): (
 		fn(&str, &ata::RegistersWrite) -> Result<[u8; 512], std::io::Error>,
 		fn(&str, &ata::RegistersWrite) -> Result<ata::RegistersRead, std::io::Error>
-	) = match args.value_of("device") {
+	) = match args.value_of("type") {
 		Some("ata") => ( // cfg(linux|freebsd)
 			ata::ata_exec,
 			ata::ata_task,
