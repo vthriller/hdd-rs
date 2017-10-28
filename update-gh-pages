@@ -33,8 +33,17 @@ def dir_to_tree(repo, d):
 		repo.object_store.add_object(child)
 	return tree
 
-tree = dir_to_tree(repo, 'target/doc')
+# update subtree for specific platform
+
+subtree = dir_to_tree(repo, 'target/doc')
+repo.object_store.add_object(subtree)
+
+commit = repo.get_object(repo.refs[b'refs/heads/gh-pages'])
+tree = repo.get_object(commit.tree)
+tree[platform.system().lower().encode()] = (0o040000, subtree.id)
 repo.object_store.add_object(tree)
+
+# commit updated tree
 
 commit = Commit()
 commit.tree = tree.id
