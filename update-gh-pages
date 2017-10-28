@@ -46,6 +46,22 @@ tree = repo.get_object(commit.tree)
 tree[platform.system().lower().encode()] = (0o040000, subtree.id)
 repo.object_store.add_object(tree)
 
+# update index page
+# TODO? non-hard-coded page
+
+index = Blob.from_string(b'''
+<meta charset="utf-8">
+Documentation for all platforms should generally be the same, and you can click on any of the following links unless you're dealing with bindings and other lower level things.
+<ul>
+<li> <a href="./linux/smart">Linux</a>
+<li> <a href="./freebsd/smart">FreeBSD</a>
+</ul>
+''')
+repo.object_store.add_object(index)
+
+tree.add(b'index.html', 0o100644, index.id)
+repo.object_store.add_object(tree)
+
 # commit updated tree
 
 commit = Commit()
