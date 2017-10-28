@@ -10,8 +10,10 @@ import platform
 from os import listdir
 from os.path import join, isdir
 from time import time
+import shutil
 
-check_call(('cargo', 'doc'))
+shutil.rmtree('target/doc')
+check_call(('cargo', 'doc', '--no-deps'))
 
 repo = Repo('.')
 
@@ -39,7 +41,7 @@ commit.author = commit.committer = b'gh-pages generator script <whatever@localho
 commit.commit_time = commit.author_time = int(time())
 commit.commit_timezone = commit.author_timezone = parse_timezone(b'+0000')[0]
 commit.encoding = b'UTF-8'
-commit.message = "'cargo doc' for smart-rs on {system}, commit {commit}".format(
+commit.message = "'cargo doc --no-deps' for smart-rs on {system}, commit {commit}".format(
 	system = platform.system().lower(),
 	commit = repo.head().decode(),
 ).encode()
