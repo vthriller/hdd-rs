@@ -66,15 +66,3 @@ pub fn ata_do(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersR
 		status: ataio.res.status,
 	}, data))
 }
-
-pub fn ata_exec(file: &str, regs: &ata::RegistersWrite) -> Result<[u8; 512], Error> {
-	let (_, data) = ata_do(file, regs)?;
-
-	return Ok(data);
-}
-
-pub fn ata_task(file: &str, regs: &ata::RegistersWrite) -> Result<ata::RegistersRead, Error> {
-	let (regs, _) = ata_do(file, regs)?;
-
-	return Ok(regs);
-}

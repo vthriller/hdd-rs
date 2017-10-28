@@ -46,16 +46,9 @@ use std::io::Error;
 
 #[cfg(target_os = "linux")]
 #[allow(unused_variables)]
-pub fn ata_exec(file: &str, regs: &RegistersWrite) -> Result<[u8; 512], Error> {
+pub fn ata_do(file: &str, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error> {
 	unimplemented!()
 }
-
-#[cfg(target_os = "linux")]
-#[allow(unused_variables)]
-pub fn ata_task(file: &str, regs: &RegistersWrite) -> Result<RegistersRead, Error> {
-	unimplemented!()
-}
-
 
 #[cfg(target_os = "freebsd")]
 mod freebsd;

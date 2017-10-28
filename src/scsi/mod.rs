@@ -62,7 +62,7 @@ pub fn read_capacity_10(file: &str, lba: Option<u32>) -> Result<([u8; 64], u32, 
 	))
 }
 
-fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<([u8; 64], [u8; 512]), Error> {
+pub fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
 	// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 	let extend = 0; // TODO
 	let protocol = 4; // PIO Data-In; TODO
@@ -91,17 +91,6 @@ fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<([u8; 6
 
 	let sense = do_cmd(file, &ata_cmd, &mut buf)?;
 
-	Ok((sense, buf))
-}
-
-pub fn ata_pass_through_16_exec(file: &str, regs: &ata::RegistersWrite) -> Result<[u8; 512], Error> {
-	let (_, buf) = ata_pass_through_16(file, regs)?;
-	Ok(buf)
-}
-
-pub fn ata_pass_through_16_task(file: &str, regs: &ata::RegistersWrite) -> Result<ata::RegistersRead, Error> {
-	let (sense, _) = ata_pass_through_16(file, regs)?;
-
 	if sense[0] & 0x7f != 0x72 {
 		// we expected current sense in the descriptor format
 		// TODO proper error
@@ -120,7 +109,7 @@ pub fn ata_pass_through_16_task(file: &str, regs: &ata::RegistersWrite) -> Resul
 			continue;
 		}
 		// TODO? EXTEND bit, ATA PASS-THROUGH 12 vs 16
-		return Ok(ata::RegistersRead {
+		return Ok((ata::RegistersRead {
 			error: sense[current_desc + 3],
 
 			sector_count: sense[current_desc + 5],
@@ -131,7 +120,7 @@ pub fn ata_pass_through_16_task(file: &str, regs: &ata::RegistersWrite) -> Resul
 			device: sense[current_desc + 12],
 
 			status: sense[current_desc + 13],
-		})
+		}, buf))
 	}
 
 	// TODO proper error

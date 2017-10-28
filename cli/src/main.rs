@@ -229,27 +229,19 @@ fn main() {
 		)
 		.get_matches();
 
-	let (exec, task): (
-		fn(&str, &ata::RegistersWrite) -> Result<[u8; 512], std::io::Error>,
-		fn(&str, &ata::RegistersWrite) -> Result<ata::RegistersRead, std::io::Error>
-	) = match args.value_of("type") {
-		Some("ata") if cfg!(target_os = "freebsd") => (
-			ata::ata_exec,
-			ata::ata_task,
-		),
-		Some("sat") => ( // cfg(linux|freebsd)
-			scsi::ata_pass_through_16_exec,
-			scsi::ata_pass_through_16_task,
-		),
+	let ata_do:
+		fn(&str, &ata::RegistersWrite)
+		-> Result<
+			(ata::RegistersRead, [u8; 512]),
+			std::io::Error
+		>
+	= match args.value_of("type") {
+		Some("ata") if cfg!(target_os = "linux") => unreachable!(),
+		Some("ata") if cfg!(target_os = "freebsd") => ata::ata_do,
+		Some("sat") => scsi::ata_pass_through_16,
 		// defaults
-		None if cfg!(target_os = "linux") => (
-			scsi::ata_pass_through_16_exec,
-			scsi::ata_pass_through_16_task,
-		),
-		None if cfg!(target_os = "freebsd") => (
-			ata::ata_exec,
-			ata::ata_task,
-		),
+		None if cfg!(target_os = "linux") => scsi::ata_pass_through_16,
+		None if cfg!(target_os = "freebsd") => ata::ata_do,
 		_ => unreachable!(),
 	};
 
@@ -287,7 +279,7 @@ fn main() {
 	let mut json_map = serde_json::Map::new();
 
 	if print_info || print_attrs || print_health {
-		let data = exec(&file, &ata::RegistersWrite {
+		let (_, data) = ata_do(&file, &ata::RegistersWrite {
 			command: ata::Command::Identify as u8,
 			sector: 1,
 			features: 0,
@@ -325,7 +317,7 @@ fn main() {
 
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
-				let data = task(&file, &ata::RegistersWrite {
+				let (regs, _) = ata_do(&file, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					features: ata::SMARTFeature::ReturnStatus as u8,
 					sector_count: 0,
@@ -334,7 +326,7 @@ fn main() {
 					cyl_high: 0xc2,
 					device: 0,
 				}).unwrap();
-				let status = health::parse_smart_status(&data);
+				let status = health::parse_smart_status(&regs);
 
 				if use_json {
 					json_map.insert("health".to_string(), status.to_json().unwrap());
@@ -350,7 +342,7 @@ fn main() {
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
-				let data = exec(&file, &ata::RegistersWrite {
+				let (_, data) = ata_do(&file, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					sector: 0,
 					features: ata::SMARTFeature::ReadValues as u8,
@@ -359,7 +351,7 @@ fn main() {
 					cyl_high: 0xc2,
 					device: 0,
 				}).unwrap();
-				let thresh = exec(&file, &ata::RegistersWrite {
+				let (_, thresh) = ata_do(&file, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					sector: 0,
 					features: ata::SMARTFeature::ReadThresholds as u8,
