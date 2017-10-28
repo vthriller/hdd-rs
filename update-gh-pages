@@ -25,6 +25,7 @@ def dir_to_tree(repo, d):
 			child = dir_to_tree(repo, file)
 			tree.add(i.encode(), 0o040000, child.id)
 		else:
+			if i.endswith('.woff'): continue
 			# FIXME might eat your RAM, your dog, and your children
 			# XXX Blob.from_file is not what you think it is
 			child = Blob.from_string(open(file, 'rb').read())
