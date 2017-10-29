@@ -65,12 +65,27 @@ named!(string <String>, do_parse!(
 	})
 ));
 
+/// drivedb.h entry
 #[derive(Debug)]
 pub struct Entry {
+	/// > Informal string about the model family/series of a device.
 	pub family: String,
+
+	/// > POSIX extended regular expression to match the model of a device.
+	/// > This should never be "".
 	pub model: String,
+
+	/// > POSIX extended regular expression to match a devices's firmware.
+	///
+	/// Optional if "".
 	pub firmware: String,
+
+	/// > A message that may be displayed for matching drives.
+	/// > For example, to inform the user that they may need to apply a firmware patch.
 	pub warning: String,
+
+	/// > String with vendor-specific attribute ('-v') and firmware bug fix ('-F') options.
+	/// > Same syntax as in smartctl command line.
 	pub presets: String,
 }
 

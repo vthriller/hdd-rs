@@ -1,3 +1,13 @@
+/*!
+Module to parse and manipulate attribute descriptions.
+
+Attribute descriptions usually come from two sources:
+
+* [drivedb.h](../index.html) entries,
+* command-line arguments (`smartctl -v …`).
+
+Format for attribute descriptions is described in [smartctl(8)](https://www.smartmontools.org/browser/trunk/smartmontools/smartctl.8.in) (option `-v`/`--vendorattribute`).
+*/
 use std::str;
 
 use nom;
@@ -21,21 +31,28 @@ impl error::Error for Error {
 	}
 }
 
+/// HDD or SSD
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type { HDD, SSD }
+
+/// SMART attribute description
 #[derive(Debug, Clone)]
 pub struct Attribute {
+	/// id of described attribute
 	pub id: Option<u8>,
+	/// attribute name
 	pub name: Option<String>,
+	/// value format, like `raw48` or `tempminmax`
 	pub format: String,
+	/// bytes of attribute data to make value of (usually something like `r543210`, where `r`, `v`, `w` represent reserved byte, current and worst values respectively)
 	pub byte_order: String,
+	/// what kind of device this description is applicable to: HDD, SSD, or both
 	pub drivetype: Option<Type>,
 }
 
 fn not_comma(c: u8) -> bool { c == ',' as u8 }
 fn not_comma_nor_colon(c: u8) -> bool { c == ',' as u8 || c == ':' as u8 }
 
-// parse argument of format 'ID,FORMAT[:BYTEORDER][,NAME[,(HDD|SSD)]]'
 // `opt!()` is used with `complete!()` here because the former returns `Incomplete` untouched, thus making attributes not ending with otherwise optional ',(HDD|SSD)' `Incomplete` as well.
 named!(parse_standard <Attribute>, do_parse!(
 	id: alt!(
@@ -97,6 +114,14 @@ named!(parse_standard <Attribute>, do_parse!(
 	})
 ));
 
+/**
+Parses single attribute description (`-v` option argument).
+
+The following formats are supported:
+
+* `ID,FORMAT[:BYTEORDER][,NAME[,(HDD|SSD)]]`
+* legacy `-v` arguments, like `9,halfminutes`
+*/
 pub fn parse(s: &str) -> Result<Attribute, Error> {
 	let s = match s {
 		"9,halfminutes" => "9,halfmin2hour,Power_On_Half_Minutes",
@@ -123,12 +148,18 @@ pub fn parse(s: &str) -> Result<Attribute, Error> {
 	}
 }
 
+/**
+Squashes attribute description for a particular attribute `id`.
+
+Why not simply find the latest attribute with a given `id`?
+
+* Description might match all attributes at once (`-v N,…`, represented with `attr.id` of `None`).
+* Description might only update data format, leaving previously defined name and drive type intact.
+*/
 pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 	let mut out = None;
 
 	for new in presets {
-		// apply updates only if it matches the attribute id we're interested in,
-		// or if it matches all the ids ('-v N,…' aka `id: None`)
 		match new.id {
 			Some(x) if x != id => continue,
 			_ => ()
@@ -152,6 +183,7 @@ pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 	out
 }
 
+/// Concatenates lists of attribute presets.
 pub fn merge(presets: &Vec<Option<Vec<Attribute>>>) -> Vec<Attribute> {
 	let mut output = Vec::<Attribute>::new();
 	for preset in presets {
