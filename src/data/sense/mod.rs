@@ -1,10 +1,13 @@
 mod fixed;
 pub use self::fixed::FixedData;
 
+mod descriptor;
+pub use self::descriptor::{Descriptor, DescriptorData};
+
 #[derive(Debug)]
 pub enum Sense<'a> {
 	Fixed(FixedData<'a>),
-	Descriptor, // TODO
+	Descriptor(DescriptorData<'a>),
 }
 
 /**
@@ -32,7 +35,7 @@ pub fn parse(data: &[u8]) -> Option<(bool, Sense)> {
 	let data = if fixed {
 		fixed::parse(data).map(|data| Sense::Fixed(data))
 	} else {
-		Some(Sense::Descriptor)
+		descriptor::parse(data).map(|data| Sense::Descriptor(data))
 	};
 
 	data.map(|data| (current, data))
