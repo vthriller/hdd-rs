@@ -11,6 +11,7 @@ use self::freebsd::do_cmd;
 use std::io::{Error, ErrorKind};
 use ata;
 use byteorder::{ReadBytesExt, BigEndian};
+use data::sense;
 
 pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8; 4096]), Error> {
 	// TODO as u16 argument, not const
@@ -91,35 +92,37 @@ pub fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<(at
 
 	let sense = do_cmd(file, &ata_cmd, &mut buf)?;
 
-	if sense[0] & 0x7f != 0x72 {
-		// we expected current sense in the descriptor format
-		// TODO proper error
-		return Err(Error::new(ErrorKind::Other, "unexpected sense format/whatever"));
-	}
+	let descriptors = match sense::parse(&sense) {
+		// current sense in the descriptor format
+		Some((true, sense::Sense::Descriptor(sense::DescriptorData {
+			descriptors, ..
+		}))) => {
+			descriptors
+		},
+		_ => {
+			// TODO proper error
+			return Err(Error::new(ErrorKind::Other, "no (valid) sense descriptors found"));
+		},
+	};
 
-	// sense[7] is the additional sense length; in other words, it's what amount of data descriptors occupy
-	let sense_length = 8 + sense[7] as usize;
-	let mut current_desc: usize = 8;
-	// iterate over descriptors
-	while current_desc < sense_length {
-		let (code, length) = (sense[current_desc], sense[current_desc + 1]);
-		if !(code == 0x09 && length == 12) {
-			// descriptor is not about ATA Status or is malformed (invalid length)
-			current_desc += length as usize;
-			continue;
-		}
+	for desc in descriptors {
+		if desc.code != 0x09 { continue; }
+		if desc.data.len() != 12 { continue; }
+
+		let data = desc.data;
+
 		// TODO? EXTEND bit, ATA PASS-THROUGH 12 vs 16
 		return Ok((ata::RegistersRead {
-			error: sense[current_desc + 3],
+			error: data[1],
 
-			sector_count: sense[current_desc + 5],
+			sector_count: data[3],
 
-			sector: sense[current_desc + 7],
-			cyl_low: sense[current_desc + 9],
-			cyl_high: sense[current_desc + 11],
-			device: sense[current_desc + 12],
+			sector: data[5],
+			cyl_low: data[7],
+			cyl_high: data[9],
+			device: data[10],
 
-			status: sense[current_desc + 13],
+			status: data[11],
 		}, buf))
 	}
 
