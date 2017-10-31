@@ -42,7 +42,9 @@ One might notice there's no linux support here. There's a couple of reasons for 
 - CONFIG_IDE is disabled for a really long time in modern distros, and support for most of HDIO_* ioctls is absent from libata in favour of issuing ATA commangs through SG_IO, which is already covered in scsi module of this crate
 */
 
+#[cfg(target_os = "linux")]
 use std::io::Error;
+#[cfg(target_os = "linux")]
 use Direction;
 
 #[cfg(target_os = "linux")]
