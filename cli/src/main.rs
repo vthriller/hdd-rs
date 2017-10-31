@@ -2,6 +2,7 @@ extern crate hdd;
 
 use hdd::ata;
 use hdd::scsi;
+use hdd::Direction;
 
 use hdd::data::id;
 use hdd::data::attr;
@@ -230,7 +231,7 @@ fn main() {
 		.get_matches();
 
 	let ata_do:
-		fn(&str, &ata::RegistersWrite)
+		fn(&str, Direction, &ata::RegistersWrite)
 		-> Result<
 			(ata::RegistersRead, [u8; 512]),
 			std::io::Error
@@ -279,7 +280,7 @@ fn main() {
 	let mut json_map = serde_json::Map::new();
 
 	if print_info || print_attrs || print_health {
-		let (_, data) = ata_do(&file, &ata::RegistersWrite {
+		let (_, data) = ata_do(&file, Direction::From, &ata::RegistersWrite {
 			command: ata::Command::Identify as u8,
 			sector: 1,
 			features: 0,
@@ -317,7 +318,7 @@ fn main() {
 
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
-				let (regs, _) = ata_do(&file, &ata::RegistersWrite {
+				let (regs, _) = ata_do(&file, Direction::From, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					features: ata::SMARTFeature::ReturnStatus as u8,
 					sector_count: 0,
@@ -342,7 +343,7 @@ fn main() {
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
-				let (_, data) = ata_do(&file, &ata::RegistersWrite {
+				let (_, data) = ata_do(&file, Direction::From, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					sector: 0,
 					features: ata::SMARTFeature::ReadValues as u8,
@@ -351,7 +352,7 @@ fn main() {
 					cyl_high: 0xc2,
 					device: 0,
 				}).unwrap();
-				let (_, thresh) = ata_do(&file, &ata::RegistersWrite {
+				let (_, thresh) = ata_do(&file, Direction::From, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					sector: 0,
 					features: ata::SMARTFeature::ReadThresholds as u8,

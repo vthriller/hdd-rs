@@ -5,10 +5,11 @@ extern crate cam;
 use self::cam::*;
 
 use ata;
+use Direction;
 
 use std::io::Error;
 
-pub fn ata_do(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
+pub fn ata_do(file: &str, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
 	let dev = CAMDevice::open(file)?;
 
 	let timeout = 10; // in seconds; TODO configurable
@@ -20,7 +21,12 @@ pub fn ata_do(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersR
 	unsafe {
 		let h = ccb.ccb_h();
 		h.func_code = xpt_opcode::XPT_ATA_IO;
-		h.flags = ccb_flags::CAM_DIR_IN as u32;
+		h.flags = match dir {
+			Direction::From => ccb_flags::CAM_DIR_IN,
+			Direction::To => ccb_flags::CAM_DIR_OUT,
+			Direction::Both => ccb_flags::CAM_DIR_BOTH,
+			Direction::None => ccb_flags::CAM_DIR_NONE,
+		} as u32;
 		h.retry_count = 0;
 		h.timeout = timeout * 1000;
 

@@ -43,10 +43,11 @@ One might notice there's no linux support here. There's a couple of reasons for 
 */
 
 use std::io::Error;
+use Direction;
 
 #[cfg(target_os = "linux")]
 #[allow(unused_variables)]
-pub fn ata_do(file: &str, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error> {
+pub fn ata_do(file: &str, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error> {
 	unimplemented!()
 }
 

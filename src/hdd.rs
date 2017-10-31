@@ -6,6 +6,9 @@ extern crate nom;
 extern crate regex;
 extern crate byteorder;
 
+/// Data transfer direction
+pub enum Direction { None, From, To, Both }
+
 pub mod ata;
 pub mod scsi;
 

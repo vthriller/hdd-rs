@@ -4,10 +4,11 @@ use self::libc::c_void;
 extern crate cam;
 use self::cam::*;
 
+use Direction;
 use std::io::Error;
 
 /// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
-pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> {
+pub fn do_cmd(file: &str, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
 	let mut sense: [u8; 64] = [0; 64];
 
 	let dev = CAMDevice::open(file)?;
@@ -21,7 +22,12 @@ pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> 
 		// cannot use cam_fill_csio() here: it is defined right in cam/cam_ccb.h
 		// besides, it is a pretty simple function of dubious benefit: sure it's less things to type, but with huge number of arguments it's less clear what's actually filled in a struct
 		csio.ccb_h.func_code = xpt_opcode::XPT_SCSI_IO;
-		csio.ccb_h.flags = ccb_flags::CAM_DIR_IN as u32;
+		csio.ccb_h.flags = match dir {
+			Direction::From => ccb_flags::CAM_DIR_IN,
+			Direction::To => ccb_flags::CAM_DIR_OUT,
+			Direction::Both => ccb_flags::CAM_DIR_BOTH,
+			Direction::None => ccb_flags::CAM_DIR_NONE,
+		} as u32;
 		csio.ccb_h.xflags = 0;
 		csio.ccb_h.retry_count = 1;
 		csio.ccb_h.timeout = timeout*1000;

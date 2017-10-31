@@ -11,6 +11,8 @@ use std::fs::File;
 use std::os::unix::io::AsRawFd;
 use std::io::Error;
 
+use Direction;
+
 // see scsi/sg.h
 
 #[cfg(not(any(target_env = "musl")))]
@@ -18,11 +20,6 @@ const SG_IO: c_ulong = 0x2285;
 
 #[cfg(any(target_env = "musl"))]
 const SG_IO: c_int = 0x2285;
-
-const SG_DXFER_NONE: c_int = -1;
-const SG_DXFER_TO_DEV: c_int = -2;
-const SG_DXFER_FROM_DEV: c_int = -3;
-const SG_DXFER_TO_FROM_DEV: c_int = -4;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -52,7 +49,7 @@ struct sg_io_hdr {
 }
 
 /// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
-pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> {
+pub fn do_cmd(file: &str, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
 	let file = File::open(file).unwrap(); // XXX unwrap
 
 	let mut sense: [u8; 64] = [0; 64];
@@ -60,7 +57,13 @@ pub fn do_cmd(file: &str, cmd: &[u8], buf: &mut [u8])-> Result<[u8; 64], Error> 
 	let hdr = sg_io_hdr {
 		interface_id:	'S' as c_int,
 
-		dxfer_direction:	SG_DXFER_FROM_DEV, // TODO
+		dxfer_direction: match dir {
+			// see scsi/sg.h, constants SG_DXFER_{NONE,{TO,FROM,TO_FROM}_DEV}
+			Direction::None => -1,
+			Direction::To => -2,
+			Direction::From => -3,
+			Direction::Both => -4,
+		},
 		dxferp:	buf.as_mut_ptr() as *mut c_void,
 		dxfer_len:	buf.len() as c_uint,
 		resid:	0,

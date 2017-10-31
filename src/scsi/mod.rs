@@ -13,6 +13,8 @@ use ata;
 use byteorder::{ReadBytesExt, BigEndian};
 use data::sense;
 
+use Direction;
+
 pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8; 4096]), Error> {
 	// TODO as u16 argument, not const
 	const alloc: usize = 4096;
@@ -27,7 +29,7 @@ pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8;
 	];
 	let mut buf = [0u8; alloc];
 
-	let sense = do_cmd(file, &cmd, &mut buf)?;
+	let sense = do_cmd(file, &cmd, Direction::From, &mut buf)?;
 
 	Ok((sense, buf))
 }
@@ -54,7 +56,7 @@ pub fn read_capacity_10(file: &str, lba: Option<u32>) -> Result<([u8; 64], u32, 
 	];
 	let mut buf = [0u8; 8];
 
-	let sense = do_cmd(file, &cmd, &mut buf)?;
+	let sense = do_cmd(file, &cmd, Direction::From, &mut buf)?;
 
 	Ok((
 		sense,
@@ -63,10 +65,15 @@ pub fn read_capacity_10(file: &str, lba: Option<u32>) -> Result<([u8; 64], u32, 
 	))
 }
 
-pub fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
+pub fn ata_pass_through_16(file: &str, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
 	// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 	let extend = 0; // TODO
-	let protocol = 4; // PIO Data-In; TODO
+	let protocol = match dir {
+		Direction::None => 3, // Non-data
+		Direction::From => 4, // PIO Data-In
+		Direction::To => 5, // PIO Data-Out
+		_ => unimplemented!(),
+	};
 	let multiple_count = 0; // TODO
 	let ata_cmd: [u8; 16] = [
 		0x85, // opcode: ATA PASS-THROUGH (16)
@@ -90,7 +97,7 @@ pub fn ata_pass_through_16(file: &str, regs: &ata::RegistersWrite) -> Result<(at
 
 	let mut buf: [u8; 512] = [0; 512];
 
-	let sense = do_cmd(file, &ata_cmd, &mut buf)?;
+	let sense = do_cmd(file, &ata_cmd, Direction::From, &mut buf)?;
 
 	let descriptors = match sense::parse(&sense) {
 		// current sense in the descriptor format
