@@ -318,7 +318,7 @@ fn main() {
 
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
-				let (regs, _) = ata_do(&file, Direction::From, &ata::RegistersWrite {
+				let (regs, _) = ata_do(&file, Direction::None, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					features: ata::SMARTFeature::ReturnStatus as u8,
 					sector_count: 0,
