@@ -20,15 +20,17 @@ fn print_hex(data: &[u8]) {
 	print!("\n");
 }
 
-fn query(what: &str, file: &str, vpd: bool, page: u8) -> [u8; 4096] {
+fn query(what: &str, file: &str, vpd: bool, page: u8, verbose: bool) -> [u8; 4096] {
 	print!("=== {} ===\n", what);
 	let (sense, data) = scsi::scsi_inquiry(&file, vpd, page).unwrap();
 
-	print!("sense:");
-	print_hex(&sense);
+	if verbose {
+		print!("sense:");
+		print_hex(&sense);
 
-	print!("data:");
-	print_hex(&data);
+		print!("data:");
+		print_hex(&data);
+	}
 
 	data
 }
@@ -41,9 +43,15 @@ fn main() {
 			.required(true)
 			.index(1)
 		)
+		.arg(Arg::with_name("verbose")
+			.short("v")
+			.long("verbose")
+			.help("show hex data")
+		)
 		.get_matches();
 
 	let file = args.value_of("device").unwrap();
+	let verbose = args.is_present("verbose");
 
 	let (_, lba, block_size) = scsi::read_capacity_10(file, None).unwrap();
 	let cap = lba as u64 * block_size as u64;
@@ -60,10 +68,10 @@ fn main() {
 		},
 	);
 
-	let data = query("Inquiry", &file, false, 0);
+	let data = query("Inquiry", &file, false, 0, verbose);
 	print!("{:#?}\n", inquiry::parse_inquiry(&data));
 
-	let data = query("[00] Supported VPD pages", &file, true, 0);
+	let data = query("[00] Supported VPD pages", &file, true, 0, verbose);
 	let len = data[3];
 	print!("supported:");
 	for i in 0..len {
@@ -71,7 +79,7 @@ fn main() {
 	}
 	print!("\n");
 
-	let data = query("[83] Device Information", &file, true, 0x83);
+	let data = query("[83] Device Information", &file, true, 0x83, verbose);
 	let len = ((data[2] as usize) << 8) + (data[3] as usize);
 
 	print!("descriptors:\n");
