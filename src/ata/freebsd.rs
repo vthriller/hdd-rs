@@ -1,8 +1,7 @@
 extern crate libc;
 use std::mem;
 
-extern crate cam;
-use self::cam::*;
+use cam::*;
 
 use ata;
 use Direction;

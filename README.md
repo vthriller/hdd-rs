@@ -48,7 +48,6 @@ Features:
 * Tests.
 * More tests.
 * Publish on crates.io
-  * ``no matching package named `cam` found (required by `hdd`)``
 * Even more tests: big-endian systems, old hardware…
 * Feature parity with [insert your favourite package name here].
 * Support for RAID weirdos (LSI, Adaptec, Areca, you name it) and USB bridges.

@@ -17,7 +17,7 @@ For more on CAM, see:
 */
 
 pub mod bindings;
-pub use bindings::{
+pub use self::bindings::{
 	CAM_ATAIO_48BIT,
 	CAM_ATAIO_NEEDRESULT,
 	MSG_SIMPLE_Q_TAG,
@@ -27,8 +27,8 @@ pub use bindings::{
 };
 
 pub mod device;
-pub use device::*;
+pub use self::device::*;
 pub mod ccb;
-pub use ccb::*;
+pub use self::ccb::*;
 pub mod error;
-pub use error::*;
+pub use self::error::*;

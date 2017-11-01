@@ -1,8 +1,14 @@
+// XXX seems like Cargo has no support for target-specific build scripts…
+
+#[cfg(target_os = "freebsd")]
 extern crate bindgen;
 
+#[cfg(target_os = "freebsd")]
 use std::env;
+#[cfg(target_os = "freebsd")]
 use std::path::PathBuf;
 
+#[cfg(target_os = "freebsd")]
 fn main() {
 	println!("cargo:rustc-link-lib=cam");
 
@@ -23,4 +29,8 @@ fn main() {
 	bindings
 		.write_to_file(out_path.join("bindings.rs"))
 		.expect("Couldn't write bindings!");
+}
+
+#[cfg(not(target_os = "freebsd"))]
+fn main() {
 }

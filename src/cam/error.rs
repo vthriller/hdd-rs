@@ -1,4 +1,4 @@
-use bindings;
+use cam::bindings;
 
 use std::ffi::CStr;
 use std::error;

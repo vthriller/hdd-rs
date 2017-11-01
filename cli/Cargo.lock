@@ -71,14 +71,6 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "cam"
-version = "0.1.0"
-dependencies = [
- "bindgen 0.26.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.21 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "cexpr"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -140,8 +132,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "hdd"
 version = "0.6.0"
 dependencies = [
+ "bindgen 0.26.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cam 0.1.0",
  "libc 0.2.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "nom 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",

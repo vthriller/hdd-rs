@@ -9,6 +9,9 @@ extern crate byteorder;
 /// Data transfer direction
 pub enum Direction { None, From, To, Both }
 
+#[cfg(target_os = "freebsd")]
+mod cam;
+
 pub mod ata;
 pub mod scsi;
 

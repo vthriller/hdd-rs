@@ -15,8 +15,8 @@ nom = "^2.2"
 regex = "0.2"
 byteorder = "1"
 
-[target.'cfg(target_os = "freebsd")'.dependencies]
-cam = { path = "cam", version = "0.1" }
+[target.'cfg(target_os = "freebsd")'.build-dependencies]
+bindgen = "0.26.3"
 
 [lib]
 name = "hdd"

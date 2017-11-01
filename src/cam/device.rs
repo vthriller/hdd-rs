@@ -1,6 +1,6 @@
-use bindings;
-use error::CAMError;
-use ccb::CCB;
+use cam::bindings;
+use cam::error::CAMError;
+use cam::ccb::CCB;
 
 use std::ffi::CString;
 

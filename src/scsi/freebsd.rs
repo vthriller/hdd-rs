@@ -1,8 +1,7 @@
 extern crate libc;
 use self::libc::c_void;
 
-extern crate cam;
-use self::cam::*;
+use cam::*;
 
 use Direction;
 use std::io::Error;
