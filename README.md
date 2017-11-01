@@ -47,7 +47,6 @@ Features:
 * Documentation.
 * Tests.
 * More tests.
-* Publish on crates.io
 * Even more tests: big-endian systems, old hardware…
 * Feature parity with [insert your favourite package name here].
 * Support for RAID weirdos (LSI, Adaptec, Areca, you name it) and USB bridges.
