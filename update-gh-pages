@@ -14,9 +14,6 @@ import shutil
 
 shutil.rmtree('target/doc')
 check_call(('cargo', 'doc', '--no-deps'))
-if platform.system() == 'FreeBSD':
-	# XXX more hard-coded things
-	check_call(('cargo', 'doc', '--no-deps', '-p', 'cam'))
 
 repo = Repo('.')
 
