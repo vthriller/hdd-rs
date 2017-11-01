@@ -1,6 +1,6 @@
 # `hdd`: instruments for querying ATA and SCSI disks
 
-[Documentation](https://vthriller.github.io/hdd-rs/).
+[Documentation](https://docs.rs/hdd/).
 
 ## Why?
 
