@@ -2,6 +2,8 @@
 
 [Documentation](https://docs.rs/hdd/).
 
+This is [work in progress](#to-do).
+
 ## Why?
 
 Mainly because I was disappointed in all the available options for putting SMART and SCSI log info into various monitoring systems.
@@ -21,10 +23,10 @@ cargo build --release
 sudo ./target/release/smart-rs -i --json /dev/sda
 ```
 
-Then put this into your `Cargo.toml`:
+Put this into your `Cargo.toml` to start using this crate:
 ```toml
 [dependencies]
-hdd = { git = "https://github.com/vthriller/hdd-rs" }
+hdd = "0.7"
 ```
 
 ## What's supported?
@@ -48,6 +50,7 @@ Features:
 * Tests.
 * More tests.
 * Even more tests: big-endian systems, old hardware…
+* `rg 'TODO|FIXME|XXX|((?i)WTF)|unimplemented!' src cli/src build.rs`
 * Feature parity with [insert your favourite package name here].
 * Support for RAID weirdos (LSI, Adaptec, Areca, you name it) and USB bridges.
 * Debugging options (think `smartctl -r ataioctl,2` or `skdump`) for CLI tool.
