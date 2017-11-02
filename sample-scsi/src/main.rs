@@ -13,6 +13,9 @@ use separator::Separatable;
 extern crate number_prefix;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
+extern crate byteorder;
+use byteorder::{ReadBytesExt, BigEndian};
+
 fn print_hex(data: &[u8]) {
 	for i in 0..data.len() {
 		if i % 16 == 0 { print!("\n"); }
@@ -129,11 +132,197 @@ fn main() {
 	let page = log_page::parse(&data);
 	if let Some(page) = page {
 		for p in page.data {
-			let data = ask_log(&format!("[{:02x}] ?", p), &file, *p, 0x00, verbose);
+			if *p == 00 { continue; }
+
+			let name = match *p {
+				0x02 => "Write Error Counter",
+				0x03 => "Read Error Counter",
+				0x04 => "Read Reverse Error Counter",
+				0x05 => "Verify Error Counter",
+				0x06 => "Non-Medium Error",
+				0x0d => "Temperature",
+				0x0e => "Start-Stop Cycle Counter",
+				0x10 => "Self-Test results",
+				0x2f => "Informational Exceptions",
+				0x30...0x3e => "(Vendor-Specific)",
+				0x3f => "(Reserved)",
+				_ => "?",
+			};
+
+			let err_cnt_desc = |x| match x {
+				0000 => "Errors corrected without substantial delay".to_string(),
+				0001 => "Errors corrected with possible delays".to_string(),
+				0002 => "Total (e.g., rewrites or rereads)".to_string(),
+				0003 => "Total errors corrected".to_string(),
+				0004 => "Total times correction algorithm processed".to_string(),
+				0005 => "Total bytes processed".to_string(),
+				0006 => "Total uncorrected errors".to_string(),
+				x @ 0x8000...0xffff => format!("(Vendor specific) {}", x),
+				x => format!("(Reserved) {}", x),
+			};
+
+			let data = ask_log(&format!("[{:02x}] {}", p, name), &file, *p, 0x00, verbose);
 			let page = log_page::parse(&data);
 			if let Some(page) = page {
-				print!("{:?}\n", page);
-				print!("{:#?}\n", page.parse_params());
+				match *p {
+					0x02...0x05 => { // xxx Error Counter
+						if let Some(params) = page.parse_params() {
+							for param in params {
+								// XXX tell about unexpected params?
+								if param.value.len() == 0 { continue; }
+
+								print!("{}: {}\n",
+									err_cnt_desc(param.code),
+									(&param.value[..]).read_uint::<BigEndian>(param.value.len()).unwrap(),
+								);
+							}
+						}
+					},
+					0x06 => { // Non-Medium Error Count
+						if let Some(params) = page.parse_params() {
+							for param in params {
+								// XXX tell about unexpected params?
+								if param.value.len() == 0 { continue; }
+								if param.code != 0 { continue; }
+
+								print!("Error Count: {}\n",
+									(&param.value[..]).read_uint::<BigEndian>(param.value.len()).unwrap(),
+								);
+							}
+						}
+					},
+					0x0d => { // Temperature
+						if let Some(params) = page.parse_params() {
+							for param in params {
+								// XXX tell about unexpected params?
+								if param.value.len() < 2 { continue; }
+
+								// value[0] is reserved
+								print!("{}: {} C\n", match param.code {
+									0x0000 => "Temperature",
+									0x0001 => "Reference Temperature", // maximum temperature at which device is capable of operating continuously without degrading
+									_ => "?",
+								}, match param.value[1] {
+									0xff => continue, // unable to return temperature despite including this param in the answer
+									x => x,
+								});
+							}
+						}
+					},
+					0x0e => { // Start-Stop Cycle Counter
+						if let Some(params) = page.parse_params() {
+							for param in params {
+								match param.code {
+									0x0001 => {
+										// XXX tell about unexpected params?
+										if param.value.len() < 6 { continue; }
+										print!("Date of manufacturing: week {} of {}\n",
+											String::from_utf8(param.value[4..6].to_vec()).unwrap(), // ASCII
+											String::from_utf8(param.value[0..4].to_vec()).unwrap(), // ASCII
+										);
+									},
+									0x0002 => {
+										// XXX tell about unexpected params?
+										if param.value.len() < 6 { continue; }
+										print!("Accounting Date: week {} of {}\n", // in which the device was placed in service
+											String::from_utf8(param.value[4..6].to_vec()).unwrap(), // ASCII, might be all-spaces
+											String::from_utf8(param.value[0..4].to_vec()).unwrap(), // ASCII, might be all-spaces
+										);
+									},
+									0x0003 => {
+										if param.value.len() < 4 { continue; }
+										print!("Specified Cycle Count Over Device Lifetime: {}\n",
+											(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
+										);
+									},
+									0x0004 => {
+										if param.value.len() < 4 { continue; }
+										print!("Accumulated Start-Stop Cycles: {}\n",
+											(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
+										);
+									},
+									0x0005 => {
+										if param.value.len() < 4 { continue; }
+										print!("Specified Load-Unload Count Over Device Lifetime: {}\n",
+											(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
+										);
+									},
+									0x0006 => {
+										if param.value.len() < 4 { continue; }
+										print!("Accumulated Load-Unload Cycles: {}\n",
+											(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
+										);
+									},
+									_ => {
+										print!("? {:?}\n", param);
+									},
+								}
+							}
+						}
+					},
+					0x10 => { // Self-Test results
+						if let Some(params) = page.parse_params() {
+							for param in params {
+								// XXX tell about unexpected params?
+								if param.code == 0 || param.code > 0x0014 { continue; }
+								if param.value.len() < 0x10 { continue; }
+
+								// unused self-test log parameter is all zeroes
+								if *param.value.iter().max().unwrap() == 0 { continue }
+
+								print!("self-test:\n");
+								print!("result = {}\n", match param.value[0] & 0b111 {
+									0 => "no error".to_string(),
+									1 => "aborted explicitly".to_string(),
+									2 => "aborted by other means".to_string(),
+									3 => "unknown error occurred".to_string(),
+									4 => "failed (unknown segment)".to_string(),
+									5 => "failed (1st segment)".to_string(),
+									6 => "failed (2nd segment)".to_string(),
+									7 => "failed (other segment)".to_string(),
+									15 => "in progress".to_string(),
+									x => format!("(reserved) {}", x),
+								});
+								print!("test code: {}\n", (param.value[0] & 0b11100000) >> 5);
+								print!("test number: {}\n", param.value[1]);
+								let hours = (&param.value[2..4]).read_u16::<BigEndian>().unwrap();
+								if hours == 0xffff {
+									print!("accumulated power-on hours: > {}\n", hours);
+								} else {
+									print!("accumulated power-on hours: {}\n", hours);
+								}
+								print!("address of first failure: {:016x}\n",
+									(&param.value[4..12]).read_u64::<BigEndian>().unwrap(),
+								);
+								print!("sense key/ASC/ASCQ: {} {} {}\n",
+									param.value[12] & 0b1111,
+									param.value[13],
+									param.value[14],
+								);
+								print!("(vendor specific): {}\n", param.value[15]);
+							}
+						}
+					},
+					0x2f => { // Informational Exceptions
+						if let Some(params) = page.parse_params() {
+							for param in params {
+								// XXX tell about unexpected params?
+								if param.code != 0 { continue; }
+								if param.value.len() < 3 { continue; }
+
+								print!("IE ASC: {:02x}\n", param.value[0]);
+								print!("IE ASCQ: {:02x}\n", param.value[1]);
+								print!("Most Recent Temperature Reading: {}\n", param.value[2]);
+								print!("(Vendor-specific): len={}\n", param.value[3..].len());
+								print_hex(&param.value[3..]);
+							}
+						}
+					},
+					_ => {
+						print!("{:?}\n", page);
+						print!("{:#?}\n", page.parse_params());
+					},
+				}
 			}
 		}
 	}
