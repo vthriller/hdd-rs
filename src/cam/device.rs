@@ -23,7 +23,7 @@ impl CAMDevice {
 		}
 	}
 
-	pub fn send_ccb(self, ccb: &CCB) -> Result<(), CAMError> {
+	pub fn send_ccb(&self, ccb: &CCB) -> Result<(), CAMError> {
 		if unsafe { bindings::cam_send_ccb(self.0, ccb.0) } < 0 {
 			Err(CAMError::current())
 		} else { Ok(()) }
