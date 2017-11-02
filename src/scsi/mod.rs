@@ -65,6 +65,50 @@ pub fn read_capacity_10(file: &str, lba: Option<u32>) -> Result<([u8; 64], u32, 
 	))
 }
 
+// TODO? struct as a single argument
+/**
+Executes LOG SENSE command.
+
+Arguments are:
+- `changed`: whether to return code values changed since the last LOG SELECT or LOG CHANGE command (obsolete)
+- `save_params`: record log parameters marked as saveable into non-volatile, vendor-specific location (might not be supported)
+- `default`: whether to return current or default values (?)
+- `threshold`: whether to return cumulative or threshold values
+- `page`, `subpage`: log page to return parameters from
+- `param_ptr`: limit list of return values to parameters starting with id `param_ptr`
+*/
+pub fn log_sense(file: &str, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<([u8; 64], [u8; 4096]), Error> {
+	// TODO as u16 argument, not const
+	const alloc: usize = 4096;
+
+	// Page Control field
+	let pc = match (default, threshold) {
+		(false, true) => 0b00, // > threshold values
+		(false, false) => 0b01, // > cumulative values
+		(true, true) => 0b10, // > default threshold values
+		(true, false) => 0b11, // > default cumulative values
+	};
+
+	let cmd: [u8; 10] = [
+		0x4d, // opcode
+		if changed {0b10} else {0} + if save_params {0b1} else {0}, // [reserved × 6][ppc][sp]
+		// TODO Err() if page >= 0b1'000'000
+		(pc << 6) + page,
+		subpage,
+		0, // reserved
+		(param_ptr >> 8) as u8,
+		(param_ptr & 0xff) as u8,
+		(alloc >> 8) as u8,
+		(alloc & 0xff) as u8,
+		0, // control (XXX what's that?!)
+	];
+	let mut buf = [0u8; alloc];
+
+	let sense = do_cmd(file, &cmd, Direction::From, &mut buf)?;
+
+	Ok((sense, buf))
+}
+
 pub fn ata_pass_through_16(file: &str, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
 	// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 	let extend = 0; // TODO

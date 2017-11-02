@@ -2,6 +2,7 @@ extern crate hdd;
 use hdd::scsi;
 use hdd::data::inquiry;
 use hdd::data::vpd::device_id;
+use hdd::data::log_page;
 
 #[macro_use]
 extern crate clap;
@@ -23,6 +24,28 @@ fn print_hex(data: &[u8]) {
 fn query(what: &str, file: &str, vpd: bool, page: u8, verbose: bool) -> [u8; 4096] {
 	print!("=== {} ===\n", what);
 	let (sense, data) = scsi::scsi_inquiry(&file, vpd, page).unwrap();
+
+	if verbose {
+		print!("sense:");
+		print_hex(&sense);
+
+		print!("data:");
+		print_hex(&data);
+	}
+
+	data
+}
+
+fn ask_log(what: &str, file: &str, page: u8, subpage: u8, verbose: bool) -> [u8; 4096] {
+	print!("=== {} ===\n", what);
+	let (sense, data) = scsi::log_sense(&file,
+		false, // changed
+		false, // save_params
+		false, // default
+		false, // threshold
+		page, subpage,
+		0, // param_ptr
+	).unwrap();
 
 	if verbose {
 		print!("sense:");
@@ -101,4 +124,7 @@ fn main() {
 			}
 		}
 	}
+
+	let data = ask_log("Supported Log Pages", &file, 0x00, 0x00, verbose);
+	print!("{:#?}\n", log_page::parse(&data));
 }

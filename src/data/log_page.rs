@@ -1,0 +1,109 @@
+use byteorder::{ReadBytesExt, BigEndian};
+
+/**
+When devices server should establish a unit attention condition (SAM-4).
+
+Makes no sense for parameters of format other than `Format::BoundedCounter`.
+*/
+#[derive(Debug)]
+pub enum Condition {
+	/// Values are never compared.
+	Never,
+	/// Condition is always true.
+	Always,
+	/// Cumulative = Threshold.
+	Eq,
+	/// Cumulative ≠ Threshold.
+	Ne,
+	/// Cumulative > Threshold.
+	Gt,
+}
+
+#[derive(Debug)]
+pub enum Format { BoundedCounter, UnboundedCounter, ASCIIList, BinaryList }
+
+#[derive(Debug)]
+pub struct Parameter<'a> {
+	pub code: u16,
+	/// Whether cumulative parameter reflects all the events, or is only updated by the LOG SELECT command. For threshold parameters, this should be `false`.
+	pub update_disabled: bool,
+	/// Whether this parameter is implicitly saved at vendor-specific intervals; inverse of the TCD bit. (See also Control Mode Page bit GLTSD.)
+	pub target_save: bool,
+	/// See [enum Condition](enum.Condition.html)
+	pub threshold_comparison: Condition,
+	pub format: Format,
+	pub value: &'a [u8],
+}
+
+#[derive(Debug)]
+pub struct Page<'a> {
+	pub page: u8,
+	pub subpage: Option<u8>,
+	/// Whether this paged is saved if LOG SENSE is executed with SP bit set; inverse of DS log page bit
+	pub saved: bool,
+	pub params: Vec<Parameter<'a>>
+}
+
+// TODO return Result<>
+pub fn parse(data: &[u8]) -> Option<Page> {
+	if data.len() < 4 {
+		return None;
+	}
+
+	// data[2..4] is Page Length, starting from data[4],
+	let len = ((&data[2..4]).read_u16::<BigEndian>().unwrap() + 4) as usize;
+	let mut params = vec![];
+
+	if data.len() < len {
+		// not enough data
+		return None;
+	}
+
+	// iterate over params
+	let mut current_param: usize = 4;
+	while current_param < len {
+		let code = (&data[current_param .. current_param + 2]).read_u16::<BigEndian>().unwrap();
+		let control = data[current_param + 2];
+		let plen = data[current_param + 3] as usize;
+
+		// skip this param's header
+		current_param += 4;
+
+		params.push(Parameter {
+			code: code,
+
+			update_disabled: control & 0b10000000 != 0,
+			target_save: control & 0b100000 != 0,
+			threshold_comparison: match (control & 0b10000 != 0, (control & 0b1100) >> 2) {
+				(false, _) => Condition::Never,
+				(true, 0b00) => Condition::Always,
+				(true, 0b01) => Condition::Eq,
+				(true, 0b10) => Condition::Ne,
+				(true, 0b11) => Condition::Gt,
+				_ => unreachable!(),
+			},
+			format: match control & 0b11 {
+				0b00 => Format::BoundedCounter,
+				0b01 => Format::ASCIIList,
+				0b10 => Format::UnboundedCounter,
+				0b11 => Format::BinaryList,
+				_ => unreachable!(),
+			},
+			value: &data[current_param .. current_param+plen],
+		});
+
+		current_param += plen;
+	}
+
+	Some(Page {
+		saved: data[0] & 0b10000000 == 0,
+		page: data[0] & 0b111111,
+		subpage: match (data[0] & 0b1000000 != 0, data[1]) {
+			(false, 0) => None,
+			// we're not expecting subpage != 0 if SPF bit is unset
+			(false, _) => { return None },
+			(true, sp) => Some(sp),
+		},
+		params: params,
+	})
+}
