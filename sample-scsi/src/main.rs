@@ -125,13 +125,34 @@ fn main() {
 		}
 	}
 
-	let data = ask_log("Supported Log Pages", &file, 0x00, 0x00, verbose);
+	let data = ask_log("[00] Supported Log Pages", &file, 0x00, 0x00, verbose);
 	let page = log_page::parse(&data);
 	if let Some(page) = page {
-		print!("supported:");
-		for i in page.data {
-			print!(" {:02x}", i);
+		for p in page.data {
+			let data = ask_log(&format!("[{:02x}] ?", p), &file, *p, 0x00, verbose);
+			let page = log_page::parse(&data);
+			if let Some(page) = page {
+				print!("{:?}\n", page);
+				print!("{:#?}\n", page.parse_params());
+			}
 		}
-		print!("\n");
 	}
+
+	/*
+	// TODO tell whether subpages are supported at all
+	let data = ask_log("[00/ff] Supported Log Pages/Subpages", &file, 0x00, 0xff, verbose);
+	let page = log_page::parse(&data);
+	if let Some(page) = page {
+		for psp in page.data[..].chunks(2) {
+			let (page, subpage) = (psp[0], psp[1]);
+
+			let data = ask_log(&format!("[{:02x}/{:02x}] ?", page, subpage), &file, page, subpage, verbose);
+			let page = log_page::parse(&data);
+			if let Some(page) = page {
+				print!("{:?}\n", page);
+				print!("{:#?}\n", page.parse_params());
+			}
+		}
+	}
+	*/
 }
