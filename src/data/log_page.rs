@@ -41,7 +41,57 @@ pub struct Page<'a> {
 	pub subpage: Option<u8>,
 	/// Whether this paged is saved if LOG SENSE is executed with SP bit set; inverse of DS log page bit
 	pub saved: bool,
-	pub params: Vec<Parameter<'a>>
+	pub data: &'a [u8],
+}
+
+impl<'a> Page<'a> {
+	// TODO? as iterator
+	/**
+	Parse page data as list of params.
+
+	Note that not all pages contain params; page 00h (Supported Log Pages) is a notable example, as it represents list of supported pages with a simple array of `u8`s.
+	*/
+	pub fn parse_params(&self) -> Vec<Parameter<'a>> {
+		let mut params = vec![];
+
+		// iterate over params
+		let mut current_param: usize = 0;
+		while current_param < self.data.len() {
+			let code = (&self.data[current_param .. current_param + 2]).read_u16::<BigEndian>().unwrap();
+			let control = self.data[current_param + 2];
+			let plen = self.data[current_param + 3] as usize;
+
+			// skip this param's header
+			current_param += 4;
+
+			params.push(Parameter {
+				code: code,
+
+				update_disabled: control & 0b10000000 != 0,
+				target_save: control & 0b100000 != 0,
+				threshold_comparison: match (control & 0b10000 != 0, (control & 0b1100) >> 2) {
+					(false, _) => Condition::Never,
+					(true, 0b00) => Condition::Always,
+					(true, 0b01) => Condition::Eq,
+					(true, 0b10) => Condition::Ne,
+					(true, 0b11) => Condition::Gt,
+					_ => unreachable!(),
+				},
+				format: match control & 0b11 {
+					0b00 => Format::BoundedCounter,
+					0b01 => Format::ASCIIList,
+					0b10 => Format::UnboundedCounter,
+					0b11 => Format::BinaryList,
+					_ => unreachable!(),
+				},
+				value: &self.data[current_param .. current_param+plen],
+			});
+
+			current_param += plen;
+		}
+
+		params
+	}
 }
 
 // TODO return Result<>
@@ -52,47 +102,10 @@ pub fn parse(data: &[u8]) -> Option<Page> {
 
 	// data[2..4] is Page Length, starting from data[4],
 	let len = ((&data[2..4]).read_u16::<BigEndian>().unwrap() + 4) as usize;
-	let mut params = vec![];
 
 	if data.len() < len {
 		// not enough data
 		return None;
-	}
-
-	// iterate over params
-	let mut current_param: usize = 4;
-	while current_param < len {
-		let code = (&data[current_param .. current_param + 2]).read_u16::<BigEndian>().unwrap();
-		let control = data[current_param + 2];
-		let plen = data[current_param + 3] as usize;
-
-		// skip this param's header
-		current_param += 4;
-
-		params.push(Parameter {
-			code: code,
-
-			update_disabled: control & 0b10000000 != 0,
-			target_save: control & 0b100000 != 0,
-			threshold_comparison: match (control & 0b10000 != 0, (control & 0b1100) >> 2) {
-				(false, _) => Condition::Never,
-				(true, 0b00) => Condition::Always,
-				(true, 0b01) => Condition::Eq,
-				(true, 0b10) => Condition::Ne,
-				(true, 0b11) => Condition::Gt,
-				_ => unreachable!(),
-			},
-			format: match control & 0b11 {
-				0b00 => Format::BoundedCounter,
-				0b01 => Format::ASCIIList,
-				0b10 => Format::UnboundedCounter,
-				0b11 => Format::BinaryList,
-				_ => unreachable!(),
-			},
-			value: &data[current_param .. current_param+plen],
-		});
-
-		current_param += plen;
 	}
 
 	Some(Page {
@@ -104,6 +117,6 @@ pub fn parse(data: &[u8]) -> Option<Page> {
 			(false, _) => { return None },
 			(true, sp) => Some(sp),
 		},
-		params: params,
+		data: &data[4 .. len],
 	})
 }

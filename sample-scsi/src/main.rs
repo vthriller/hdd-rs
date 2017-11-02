@@ -126,5 +126,9 @@ fn main() {
 	}
 
 	let data = ask_log("Supported Log Pages", &file, 0x00, 0x00, verbose);
-	print!("{:#?}\n", log_page::parse(&data));
+	let page = log_page::parse(&data);
+	print!("{:#?}\n", page);
+	if let Some(page) = page {
+		print!("{:#?}\n", page.parse_params());
+	}
 }
