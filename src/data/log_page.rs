@@ -45,24 +45,35 @@ pub struct Page<'a> {
 }
 
 impl<'a> Page<'a> {
-	// TODO? as iterator
+	// TODO? as iterator (but then, how to deal with invalid pages?)
 	/**
 	Parse page data as list of params.
 
 	Note that not all pages contain params; page 00h (Supported Log Pages) is a notable example, as it represents list of supported pages with a simple array of `u8`s.
+
+	Returns `None` if some param spans past the transferred data buffer (usually it means that it's not the params that are attached to the page).
 	*/
-	pub fn parse_params(&self) -> Vec<Parameter<'a>> {
+	pub fn parse_params(&self) -> Option<Vec<Parameter<'a>>> {
 		let mut params = vec![];
 
 		// iterate over params
 		let mut current_param: usize = 0;
-		while current_param < self.data.len() {
+		let len = self.data.len();
+		while current_param < len {
+			if current_param + 4 > len {
+				return None; // not enough data
+			}
+
 			let code = (&self.data[current_param .. current_param + 2]).read_u16::<BigEndian>().unwrap();
 			let control = self.data[current_param + 2];
 			let plen = self.data[current_param + 3] as usize;
 
 			// skip this param's header
 			current_param += 4;
+
+			if current_param + plen > len {
+				return None; // not enough data
+			}
 
 			params.push(Parameter {
 				code: code,
@@ -90,7 +101,7 @@ impl<'a> Page<'a> {
 			current_param += plen;
 		}
 
-		params
+		Some(params)
 	}
 }
 
