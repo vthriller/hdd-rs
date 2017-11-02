@@ -127,8 +127,11 @@ fn main() {
 
 	let data = ask_log("Supported Log Pages", &file, 0x00, 0x00, verbose);
 	let page = log_page::parse(&data);
-	print!("{:#?}\n", page);
 	if let Some(page) = page {
-		print!("{:#?}\n", page.parse_params());
+		print!("supported:");
+		for i in page.data {
+			print!(" {:02x}", i);
+		}
+		print!("\n");
 	}
 }
