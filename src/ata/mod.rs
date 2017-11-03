@@ -56,15 +56,12 @@ One might notice there's no linux support here. There's a couple of reasons for 
 #[cfg(target_os = "linux")]
 use Device;
 
-// TODO reindent
 #[cfg(target_os = "linux")]
 #[allow(unused_variables)]
 impl ATADevice for Device {
-
-fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error> {
-	unimplemented!()
-}
-
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error> {
+		unimplemented!()
+	}
 }
 
 #[cfg(target_os = "freebsd")]

@@ -49,56 +49,53 @@ struct sg_io_hdr {
 	info:	c_uint,	// [o] auxiliary information
 }
 
-// TODO reindent
 impl SCSIDevice for Device {
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
+		let mut sense: [u8; 64] = [0; 64];
 
-fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
-	let mut sense: [u8; 64] = [0; 64];
+		let hdr = sg_io_hdr {
+			interface_id:	'S' as c_int,
 
-	let hdr = sg_io_hdr {
-		interface_id:	'S' as c_int,
+			dxfer_direction: match dir {
+				// see scsi/sg.h, constants SG_DXFER_{NONE,{TO,FROM,TO_FROM}_DEV}
+				Direction::None => -1,
+				Direction::To => -2,
+				Direction::From => -3,
+				Direction::Both => -4,
+			},
+			dxferp:	buf.as_mut_ptr() as *mut c_void,
+			dxfer_len:	buf.len() as c_uint,
+			resid:	0,
 
-		dxfer_direction: match dir {
-			// see scsi/sg.h, constants SG_DXFER_{NONE,{TO,FROM,TO_FROM}_DEV}
-			Direction::None => -1,
-			Direction::To => -2,
-			Direction::From => -3,
-			Direction::Both => -4,
-		},
-		dxferp:	buf.as_mut_ptr() as *mut c_void,
-		dxfer_len:	buf.len() as c_uint,
-		resid:	0,
+			sbp:	sense.as_mut_ptr(),
+			mx_sb_len:	sense.len() as c_uchar,
+			sb_len_wr:	0,
 
-		sbp:	sense.as_mut_ptr(),
-		mx_sb_len:	sense.len() as c_uchar,
-		sb_len_wr:	0,
+			cmdp:	cmd.as_ptr(),
+			cmd_len:	cmd.len() as c_uchar,
 
-		cmdp:	cmd.as_ptr(),
-		cmd_len:	cmd.len() as c_uchar,
+			status:	0,
+			host_status:	0,
+			driver_status:	0,
 
-		status:	0,
-		host_status:	0,
-		driver_status:	0,
+			timeout:	10000,	// TODO configurable
+			duration:	0,
 
-		timeout:	10000,	// TODO configurable
-		duration:	0,
+			iovec_count:	0,
+			flags:	0,
+			pack_id:	0,
+			usr_ptr:	ptr::null_mut(),
+			masked_status:	0,
+			msg_status:	0,
+			info:	0,
+		};
 
-		iovec_count:	0,
-		flags:	0,
-		pack_id:	0,
-		usr_ptr:	ptr::null_mut(),
-		masked_status:	0,
-		msg_status:	0,
-		info:	0,
-	};
-
-	unsafe {
-		if ioctl(self.file.as_raw_fd(), SG_IO, &hdr) == -1 {
-			return Err(Error::last_os_error());
+		unsafe {
+			if ioctl(self.file.as_raw_fd(), SG_IO, &hdr) == -1 {
+				return Err(Error::last_os_error());
+			}
 		}
+
+		Ok(sense)
 	}
-
-	Ok(sense)
-}
-
 }
