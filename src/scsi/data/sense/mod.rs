@@ -22,7 +22,7 @@ Returns tuple `(current, data)`, where `current` indicates whether this sense re
 
 Panics if `data` is empty.
 */
-pub fn parse(data: &[u8]) -> Option<(bool, Sense)> {
+pub fn parse(data: &Vec<u8>) -> Option<(bool, Sense)> {
 	let response_code = data[0] & 0x7f;
 	let (fixed, current) = match response_code {
 		0x70 => (true, true),

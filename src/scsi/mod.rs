@@ -15,9 +15,9 @@ use Direction;
 
 pub trait SCSIDevice {
 	/// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error>;
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<Vec<u8>, Error>;
 
-	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<([u8; 64], [u8; 4096]), Error> {
+	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, [u8; 4096]), Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -37,7 +37,7 @@ pub trait SCSIDevice {
 	}
 
 	/// returns tuple of (sense, logical block address, block length in bytes)
-	fn read_capacity_10(&self, lba: Option<u32>) -> Result<([u8; 64], u32, u32), Error> {
+	fn read_capacity_10(&self, lba: Option<u32>) -> Result<(Vec<u8>, u32, u32), Error> {
 		// pmi is partial medium indicator
 		let (pmi, lba) = match lba {
 			Some(lba) => (true, lba),
@@ -79,7 +79,7 @@ pub trait SCSIDevice {
 	- `page`, `subpage`: log page to return parameters from
 	- `param_ptr`: limit list of return values to parameters starting with id `param_ptr`
 	*/
-	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<([u8; 64], [u8; 4096]), Error> {
+	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, [u8; 4096]), Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 

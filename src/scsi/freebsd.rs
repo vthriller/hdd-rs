@@ -10,7 +10,8 @@ use scsi::SCSIDevice;
 use std::io::Error;
 
 impl SCSIDevice for Device {
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<Vec<u8>, Error> {
+		// TODO sense len as an argument
 		let mut sense: [u8; 64] = [0; 64];
 
 		let timeout = 10; // in seconds; TODO configurable
@@ -55,7 +56,6 @@ impl SCSIDevice for Device {
 		// TODO actual data len, data.len() - ccb.csio.resid
 		// TODO ccb.csio.scsi_status
 		if (status & cam_status::CAM_AUTOSNS_VALID as u32) != 0 {
-			// TODO actual sense len, ccb.csio.sense_len - ccb.csio.sense_resid
 			unsafe { libc::memcpy(
 				sense.as_mut_ptr() as *mut c_void,
 				&ccb.csio().sense_data as *const _ as *const c_void,
@@ -63,6 +63,11 @@ impl SCSIDevice for Device {
 			) };
 		}
 
-		Ok(sense)
+		let sense_len = unsafe {
+			let csio = ccb.csio();
+			csio.sense_len - csio.sense_resid
+		};
+
+		Ok(sense[ .. sense_len as usize].to_vec())
 	}
 }

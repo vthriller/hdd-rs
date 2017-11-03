@@ -50,7 +50,8 @@ struct sg_io_hdr {
 }
 
 impl SCSIDevice for Device {
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<Vec<u8>, Error> {
+		// TODO sense len as an argument
 		let mut sense: [u8; 64] = [0; 64];
 
 		let hdr = sg_io_hdr {
@@ -96,6 +97,6 @@ impl SCSIDevice for Device {
 			}
 		}
 
-		Ok(sense)
+		Ok(sense[ .. hdr.sb_len_wr as usize].to_vec())
 	}
 }
