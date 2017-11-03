@@ -1,3 +1,5 @@
+pub mod data;
+
 use Direction;
 use std::io::Error;
 

@@ -1,5 +1,5 @@
 use std::cmp::{min, max};
-use super::super::super::drivedb;
+use drivedb;
 use std::fmt;
 
 // Initially I used `BigEndian` from the `byteorder` crate; however, it quickly resulted in an iterator mess (`.chunks()`, `.take()`, `.skip()`, `.map()`, `.unwrap()` et al.), and it also did not help with 24-bit and 48-bit packed values at all.

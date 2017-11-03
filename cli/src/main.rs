@@ -5,9 +5,7 @@ use hdd::{Device, Direction};
 use hdd::scsi::SCSIDevice;
 use hdd::ata::ATADevice;
 
-use hdd::data::id;
-use hdd::data::attr;
-use hdd::data::health;
+use hdd::ata::data::{id,attr,health};
 use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
 

@@ -1,3 +1,5 @@
+pub mod data;
+
 #[cfg(target_os = "linux")]
 mod linux;
 
@@ -7,7 +9,7 @@ mod freebsd;
 use std::io::{Error, ErrorKind};
 use ata;
 use byteorder::{ReadBytesExt, BigEndian};
-use data::sense;
+use self::data::sense;
 
 use Direction;
 

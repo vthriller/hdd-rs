@@ -1,7 +1,7 @@
 pub mod raw;
 
 use std::collections::HashMap;
-use super::super::drivedb;
+use drivedb;
 
 #[derive(Serialize, Debug)]
 pub struct SmartAttribute {

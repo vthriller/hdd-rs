@@ -47,7 +47,7 @@ use nom;
 
 use std::{error, fmt, convert};
 
-use super::data::id;
+use ata::data::id;
 
 use regex::bytes::Regex;
 

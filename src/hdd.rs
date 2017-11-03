@@ -18,5 +18,4 @@ mod cam;
 pub mod ata;
 pub mod scsi;
 
-pub mod data;
 pub mod drivedb;

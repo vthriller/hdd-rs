@@ -1,9 +1,8 @@
 extern crate hdd;
 use hdd::Device;
 use hdd::scsi::SCSIDevice;
-use hdd::data::inquiry;
-use hdd::data::vpd::device_id;
-use hdd::data::log_page;
+use hdd::scsi::data::{inquiry, log_page};
+use hdd::scsi::data::vpd::device_id;
 
 #[macro_use]
 extern crate clap;
