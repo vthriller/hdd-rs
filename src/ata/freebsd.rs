@@ -4,13 +4,16 @@ use std::mem;
 use cam::*;
 
 use ata;
+use ata::ATADevice;
 use Direction;
+use Device;
 
 use std::io::Error;
 
-pub fn ata_do(file: &str, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
-	let dev = CAMDevice::open(file)?;
+// TODO reindent
+impl ATADevice for Device {
 
+fn ata_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
 	let timeout = 10; // in seconds; TODO configurable
 
 	let mut data: [u8; 512] = [0; 512];
@@ -50,7 +53,7 @@ pub fn ata_do(file: &str, dir: Direction, regs: &ata::RegistersWrite) -> Result<
 		h.flags |= ccb_flags::CAM_DEV_QFRZDIS as u32;
 	}
 
-	dev.send_ccb(&ccb)?;
+	self.dev.send_ccb(&ccb)?;
 
 	if ccb.get_status() != (cam_status::CAM_REQ_CMP as u32) {
 		Err(CAMError::current())?
@@ -70,4 +73,6 @@ pub fn ata_do(file: &str, dir: Direction, regs: &ata::RegistersWrite) -> Result<
 
 		status: ataio.res.status,
 	}, data))
+}
+
 }

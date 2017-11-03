@@ -1,12 +1,8 @@
 #[cfg(target_os = "linux")]
 mod linux;
-#[cfg(target_os = "linux")]
-use self::linux::do_cmd;
 
 #[cfg(target_os = "freebsd")]
 mod freebsd;
-#[cfg(target_os = "freebsd")]
-use self::freebsd::do_cmd;
 
 use std::io::{Error, ErrorKind};
 use ata;
@@ -15,7 +11,13 @@ use data::sense;
 
 use Direction;
 
-pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8; 4096]), Error> {
+// TODO reindent
+pub trait SCSIDevice {
+
+/// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
+fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error>;
+
+fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<([u8; 64], [u8; 4096]), Error> {
 	// TODO as u16 argument, not const
 	const alloc: usize = 4096;
 
@@ -29,13 +31,13 @@ pub fn scsi_inquiry(file: &str, vital: bool, code: u8) -> Result<([u8; 64], [u8;
 	];
 	let mut buf = [0u8; alloc];
 
-	let sense = do_cmd(file, &cmd, Direction::From, &mut buf)?;
+	let sense = self.do_cmd(&cmd, Direction::From, &mut buf)?;
 
 	Ok((sense, buf))
 }
 
 /// returns tuple of (sense, logical block address, block length in bytes)
-pub fn read_capacity_10(file: &str, lba: Option<u32>) -> Result<([u8; 64], u32, u32), Error> {
+fn read_capacity_10(&self, lba: Option<u32>) -> Result<([u8; 64], u32, u32), Error> {
 	// pmi is partial medium indicator
 	let (pmi, lba) = match lba {
 		Some(lba) => (true, lba),
@@ -56,7 +58,7 @@ pub fn read_capacity_10(file: &str, lba: Option<u32>) -> Result<([u8; 64], u32, 
 	];
 	let mut buf = [0u8; 8];
 
-	let sense = do_cmd(file, &cmd, Direction::From, &mut buf)?;
+	let sense = self.do_cmd(&cmd, Direction::From, &mut buf)?;
 
 	Ok((
 		sense,
@@ -77,7 +79,7 @@ Arguments are:
 - `page`, `subpage`: log page to return parameters from
 - `param_ptr`: limit list of return values to parameters starting with id `param_ptr`
 */
-pub fn log_sense(file: &str, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<([u8; 64], [u8; 4096]), Error> {
+fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<([u8; 64], [u8; 4096]), Error> {
 	// TODO as u16 argument, not const
 	const alloc: usize = 4096;
 
@@ -104,12 +106,12 @@ pub fn log_sense(file: &str, changed: bool, save_params: bool, default: bool, th
 	];
 	let mut buf = [0u8; alloc];
 
-	let sense = do_cmd(file, &cmd, Direction::From, &mut buf)?;
+	let sense = self.do_cmd(&cmd, Direction::From, &mut buf)?;
 
 	Ok((sense, buf))
 }
 
-pub fn ata_pass_through_16(file: &str, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
+fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
 	// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 	let extend = 0; // TODO
 	let protocol = match dir {
@@ -141,7 +143,7 @@ pub fn ata_pass_through_16(file: &str, dir: Direction, regs: &ata::RegistersWrit
 
 	let mut buf: [u8; 512] = [0; 512];
 
-	let sense = do_cmd(file, &ata_cmd, Direction::From, &mut buf)?;
+	let sense = self.do_cmd(&ata_cmd, Direction::From, &mut buf)?;
 
 	let descriptors = match sense::parse(&sense) {
 		// current sense in the descriptor format
@@ -179,4 +181,6 @@ pub fn ata_pass_through_16(file: &str, dir: Direction, regs: &ata::RegistersWrit
 
 	// TODO proper error
 	return Err(Error::new(ErrorKind::Other, "no (valid) sense descriptors found"));
+}
+
 }

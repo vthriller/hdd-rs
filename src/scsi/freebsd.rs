@@ -4,16 +4,20 @@ use self::libc::c_void;
 use cam::*;
 
 use Direction;
+use Device;
+use scsi::SCSIDevice;
+
 use std::io::Error;
 
-/// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
-pub fn do_cmd(file: &str, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
+// TODO reindent
+impl SCSIDevice for Device {
+
+fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
 	let mut sense: [u8; 64] = [0; 64];
 
-	let dev = CAMDevice::open(file)?;
 	let timeout = 10; // in seconds; TODO configurable
 
-	let ccb: CCB = CCB::new(&dev);
+	let ccb: CCB = CCB::new(&self.dev);
 
 	unsafe {
 		let csio = ccb.csio();
@@ -43,7 +47,7 @@ pub fn do_cmd(file: &str, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[
 		csio.cdb_len = cmd.len() as u8; // TODO check
 	}
 
-	dev.send_ccb(&ccb)?;
+	self.dev.send_ccb(&ccb)?;
 
 	let status = ccb.get_status();
 	if !(status == cam_status::CAM_REQ_CMP as u32 || status == cam_status::CAM_SCSI_STATUS_ERROR as u32) {
@@ -62,4 +66,6 @@ pub fn do_cmd(file: &str, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[
 	}
 
 	Ok(sense)
+}
+
 }

@@ -7,11 +7,12 @@ use std::ptr;
 #[cfg(not(any(target_env = "musl")))]
 use self::libc::c_ulong;
 
-use std::fs::File;
 use std::os::unix::io::AsRawFd;
 use std::io::Error;
 
 use Direction;
+use Device;
+use scsi::SCSIDevice;
 
 // see scsi/sg.h
 
@@ -48,10 +49,10 @@ struct sg_io_hdr {
 	info:	c_uint,	// [o] auxiliary information
 }
 
-/// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
-pub fn do_cmd(file: &str, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
-	let file = File::open(file).unwrap(); // XXX unwrap
+// TODO reindent
+impl SCSIDevice for Device {
 
+fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[u8; 64], Error> {
 	let mut sense: [u8; 64] = [0; 64];
 
 	let hdr = sg_io_hdr {
@@ -92,10 +93,12 @@ pub fn do_cmd(file: &str, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<[
 	};
 
 	unsafe {
-		if ioctl(file.as_raw_fd(), SG_IO, &hdr) == -1 {
+		if ioctl(self.file.as_raw_fd(), SG_IO, &hdr) == -1 {
 			return Err(Error::last_os_error());
 		}
 	}
 
 	Ok(sense)
+}
+
 }

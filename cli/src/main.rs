@@ -1,8 +1,9 @@
 extern crate hdd;
 
 use hdd::ata;
-use hdd::scsi;
-use hdd::Direction;
+use hdd::{Device, Direction};
+use hdd::scsi::SCSIDevice;
+use hdd::ata::ATADevice;
 
 use hdd::data::id;
 use hdd::data::attr;
@@ -230,23 +231,26 @@ fn main() {
 		)
 		.get_matches();
 
-	let ata_do:
-		fn(&str, Direction, &ata::RegistersWrite)
+	type F = fn(&Device, Direction, &ata::RegistersWrite)
 		-> Result<
 			(ata::RegistersRead, [u8; 512]),
 			std::io::Error
-		>
-	= match args.value_of("type") {
+		>;
+	let satl: F = |dev: &Device, dir: Direction, regs: &ata::RegistersWrite| dev.ata_pass_through_16(dir, regs);
+	let direct: F = |dev: &Device, dir: Direction, regs: &ata::RegistersWrite| dev.ata_do(dir, regs);
+	let ata_do: F = match args.value_of("type") {
 		Some("ata") if cfg!(target_os = "linux") => unreachable!(),
-		Some("ata") if cfg!(target_os = "freebsd") => ata::ata_do,
-		Some("sat") => scsi::ata_pass_through_16,
+		Some("ata") if cfg!(target_os = "freebsd") => direct,
+		Some("sat") => satl,
 		// defaults
-		None if cfg!(target_os = "linux") => scsi::ata_pass_through_16,
-		None if cfg!(target_os = "freebsd") => ata::ata_do,
+		None if cfg!(target_os = "linux") => satl,
+		None if cfg!(target_os = "freebsd") => direct,
 		_ => unreachable!(),
 	};
 
-	let file = args.value_of("device").unwrap();
+	let dev = Device::open(
+		args.value_of("device").unwrap()
+	).unwrap();
 
 	let drivedb = match args.value_of("drivedb") {
 		Some(file) => drivedb::load(file),
@@ -280,7 +284,7 @@ fn main() {
 	let mut json_map = serde_json::Map::new();
 
 	if print_info || print_attrs || print_health {
-		let (_, data) = ata_do(&file, Direction::From, &ata::RegistersWrite {
+		let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
 			command: ata::Command::Identify as u8,
 			sector: 1,
 			features: 0,
@@ -318,7 +322,7 @@ fn main() {
 
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
-				let (regs, _) = ata_do(&file, Direction::None, &ata::RegistersWrite {
+				let (regs, _) = ata_do(&dev, Direction::None, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					features: ata::SMARTFeature::ReturnStatus as u8,
 					sector_count: 0,
@@ -343,7 +347,7 @@ fn main() {
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
-				let (_, data) = ata_do(&file, Direction::From, &ata::RegistersWrite {
+				let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					sector: 0,
 					features: ata::SMARTFeature::ReadValues as u8,
@@ -352,7 +356,7 @@ fn main() {
 					cyl_high: 0xc2,
 					device: 0,
 				}).unwrap();
-				let (_, thresh) = ata_do(&file, Direction::From, &ata::RegistersWrite {
+				let (_, thresh) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
 					command: ata::Command::SMART as u8,
 					sector: 0,
 					features: ata::SMARTFeature::ReadThresholds as u8,

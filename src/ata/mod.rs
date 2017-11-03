@@ -1,3 +1,6 @@
+use Direction;
+use std::io::Error;
+
 pub enum Command {
 	Identify = 0xec,
 	SMART = 0xb0,
@@ -34,6 +37,10 @@ pub struct RegistersWrite {
 	pub command: u8,
 }
 
+pub trait ATADevice {
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error>;
+}
+
 /*
 One might notice there's no linux support here. There's a couple of reasons for that:
 - generally available ioctls like HDIO_DRIVE_{CMD,TASK} are too specialized and unsuitable for writing generic code
@@ -42,15 +49,20 @@ One might notice there's no linux support here. There's a couple of reasons for 
 - CONFIG_IDE is disabled for a really long time in modern distros, and support for most of HDIO_* ioctls is absent from libata in favour of issuing ATA commangs through SG_IO, which is already covered in scsi module of this crate
 */
 
-#[cfg(target_os = "linux")]
-use std::io::Error;
-#[cfg(target_os = "linux")]
-use Direction;
+// XXX REMOVE THIS LINUX STUB
 
 #[cfg(target_os = "linux")]
+use Device;
+
+// TODO reindent
+#[cfg(target_os = "linux")]
 #[allow(unused_variables)]
-pub fn ata_do(file: &str, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error> {
+impl ATADevice for Device {
+
+fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error> {
 	unimplemented!()
+}
+
 }
 
 #[cfg(target_os = "freebsd")]

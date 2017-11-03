@@ -1,5 +1,6 @@
 extern crate hdd;
-use hdd::scsi;
+use hdd::Device;
+use hdd::scsi::SCSIDevice;
 use hdd::data::inquiry;
 use hdd::data::vpd::device_id;
 use hdd::data::log_page;
@@ -24,9 +25,9 @@ fn print_hex(data: &[u8]) {
 	print!("\n");
 }
 
-fn query(what: &str, file: &str, vpd: bool, page: u8, verbose: bool) -> [u8; 4096] {
+fn query(what: &str, dev: &Device, vpd: bool, page: u8, verbose: bool) -> [u8; 4096] {
 	print!("=== {} ===\n", what);
-	let (sense, data) = scsi::scsi_inquiry(&file, vpd, page).unwrap();
+	let (sense, data) = dev.scsi_inquiry(vpd, page).unwrap();
 
 	if verbose {
 		print!("sense:");
@@ -39,9 +40,9 @@ fn query(what: &str, file: &str, vpd: bool, page: u8, verbose: bool) -> [u8; 409
 	data
 }
 
-fn ask_log(what: &str, file: &str, page: u8, subpage: u8, verbose: bool) -> [u8; 4096] {
+fn ask_log(what: &str, dev: &Device, page: u8, subpage: u8, verbose: bool) -> [u8; 4096] {
 	print!("=== {} ===\n", what);
-	let (sense, data) = scsi::log_sense(&file,
+	let (sense, data) = dev.log_sense(
 		false, // changed
 		false, // save_params
 		false, // default
@@ -76,10 +77,12 @@ fn main() {
 		)
 		.get_matches();
 
-	let file = args.value_of("device").unwrap();
+	let dev = Device::open(
+		args.value_of("device").unwrap()
+	).unwrap();
 	let verbose = args.is_present("verbose");
 
-	let (_, lba, block_size) = scsi::read_capacity_10(file, None).unwrap();
+	let (_, lba, block_size) = dev.read_capacity_10(None).unwrap();
 	let cap = lba as u64 * block_size as u64;
 	print!("Capacity: {} × {}\n", lba, block_size);
 	print!("          {} bytes\n", cap.separated_string());
@@ -94,10 +97,10 @@ fn main() {
 		},
 	);
 
-	let data = query("Inquiry", &file, false, 0, verbose);
+	let data = query("Inquiry", &dev, false, 0, verbose);
 	print!("{:#?}\n", inquiry::parse_inquiry(&data));
 
-	let data = query("[00] Supported VPD pages", &file, true, 0, verbose);
+	let data = query("[00] Supported VPD pages", &dev, true, 0, verbose);
 	let len = data[3];
 	print!("supported:");
 	for i in 0..len {
@@ -105,7 +108,7 @@ fn main() {
 	}
 	print!("\n");
 
-	let data = query("[83] Device Information", &file, true, 0x83, verbose);
+	let data = query("[83] Device Information", &dev, true, 0x83, verbose);
 	let len = ((data[2] as usize) << 8) + (data[3] as usize);
 
 	print!("descriptors:\n");
@@ -128,7 +131,7 @@ fn main() {
 		}
 	}
 
-	let data = ask_log("[00] Supported Log Pages", &file, 0x00, 0x00, verbose);
+	let data = ask_log("[00] Supported Log Pages", &dev, 0x00, 0x00, verbose);
 	let page = log_page::parse(&data);
 	if let Some(page) = page {
 		for p in page.data {
@@ -161,7 +164,7 @@ fn main() {
 				x => format!("(Reserved) {}", x),
 			};
 
-			let data = ask_log(&format!("[{:02x}] {}", p, name), &file, *p, 0x00, verbose);
+			let data = ask_log(&format!("[{:02x}] {}", p, name), &dev, *p, 0x00, verbose);
 			let page = log_page::parse(&data);
 			if let Some(page) = page {
 				match *p {
@@ -329,13 +332,13 @@ fn main() {
 
 	/*
 	// TODO tell whether subpages are supported at all
-	let data = ask_log("[00/ff] Supported Log Pages/Subpages", &file, 0x00, 0xff, verbose);
+	let data = ask_log("[00/ff] Supported Log Pages/Subpages", &dev, 0x00, 0xff, verbose);
 	let page = log_page::parse(&data);
 	if let Some(page) = page {
 		for psp in page.data[..].chunks(2) {
 			let (page, subpage) = (psp[0], psp[1]);
 
-			let data = ask_log(&format!("[{:02x}/{:02x}] ?", page, subpage), &file, page, subpage, verbose);
+			let data = ask_log(&format!("[{:02x}/{:02x}] ?", page, subpage), &dev, page, subpage, verbose);
 			let page = log_page::parse(&data);
 			if let Some(page) = page {
 				print!("{:?}\n", page);
