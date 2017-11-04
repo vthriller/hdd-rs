@@ -55,18 +55,24 @@ impl SCSIDevice for Device {
 
 		// TODO actual data len, data.len() - ccb.csio.resid
 		// TODO ccb.csio.scsi_status
-		if (ccb.get_status_flags() & cam_status::CAM_AUTOSNS_VALID as u32) != 0 {
-			unsafe { libc::memcpy(
-				sense.as_mut_ptr() as *mut c_void,
-				&ccb.csio().sense_data as *const _ as *const c_void,
-				64,
-			) };
-		}
 
-		let sense_len = unsafe {
-			let csio = ccb.csio();
-			csio.sense_len - csio.sense_resid
-		};
+		let sense_len =
+			if (ccb.get_status_flags() & cam_status::CAM_AUTOSNS_VALID as u32) != 0 {
+				unsafe {
+					let csio = ccb.csio();
+
+					libc::memcpy(
+						sense.as_mut_ptr() as *mut c_void,
+						&csio.sense_data as *const _ as *const c_void,
+						64,
+					);
+
+					// XXX sense_resid is always 0 to me on 11.0-RELEASE-p1 for some reason, need more testing
+					csio.sense_len - csio.sense_resid
+				}
+			} else {
+				0 // no valid sense, nothing to copy, sense has length 0
+			};
 
 		Ok(sense[ .. sense_len as usize].to_vec())
 	}
