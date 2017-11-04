@@ -38,6 +38,11 @@ impl CCB {
 			(*self.0).ccb_h.as_ref()
 		}.status & bindings::cam_status_CAM_STATUS_MASK as u32
 	}
+	pub fn get_status_flags(&self) -> u32 {
+		unsafe {
+			(*self.0).ccb_h.as_ref()
+		}.status
+	}
 
 	// those are deliberately kept unsafe
 	pub unsafe fn ccb_h(&self) -> &mut bindings::ccb_hdr { (*self.0).ccb_h.as_mut() }

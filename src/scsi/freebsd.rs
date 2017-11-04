@@ -55,7 +55,7 @@ impl SCSIDevice for Device {
 
 		// TODO actual data len, data.len() - ccb.csio.resid
 		// TODO ccb.csio.scsi_status
-		if (status & cam_status::CAM_AUTOSNS_VALID as u32) != 0 {
+		if (ccb.get_status_flags() & cam_status::CAM_AUTOSNS_VALID as u32) != 0 {
 			unsafe { libc::memcpy(
 				sense.as_mut_ptr() as *mut c_void,
 				&ccb.csio().sense_data as *const _ as *const c_void,
