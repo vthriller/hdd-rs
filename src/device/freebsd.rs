@@ -1,6 +1,7 @@
 use cam::{CAMDevice, CAMError};
 
 /// See [parent module docs](../index.html)
+#[derive(Debug)]
 pub struct Device {
 	pub dev: CAMDevice,
 }

@@ -6,6 +6,7 @@ use std::mem;
 /// Thin wrapper for `union ccb *`, the CAM Control Block. Note that the underlying raw pointer is *mutable*.
 ///
 /// This struct implements `Drop`, i.e. you don't need to call `cam_freeccb` yourself.
+#[derive(Debug)]
 pub struct CCB(pub *mut bindings::ccb);
 
 impl CCB {

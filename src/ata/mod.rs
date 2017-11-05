@@ -3,10 +3,12 @@ pub mod data;
 use Direction;
 use std::io::Error;
 
+#[derive(Debug)]
 pub enum Command {
 	Identify = 0xec,
 	SMART = 0xb0,
 }
+#[derive(Debug)]
 pub enum SMARTFeature {
 	ReadValues = 0xd0, // in ATA8-ACS it's called 'SMART READ DATA', which is a bit unclear to people not familiar with ATA… or sometimes even to some who knows ATA well
 	ReadThresholds = 0xd1,
@@ -14,6 +16,7 @@ pub enum SMARTFeature {
 }
 
 // data port is omitted for obvious reasons
+#[derive(Debug)]
 pub struct RegistersRead {
 	pub error: u8,
 
@@ -26,6 +29,7 @@ pub struct RegistersRead {
 
 	pub status: u8,
 }
+#[derive(Debug)]
 pub struct RegistersWrite {
 	pub features: u8,
 

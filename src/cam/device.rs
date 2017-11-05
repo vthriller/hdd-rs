@@ -9,6 +9,7 @@ extern crate libc;
 /// Thin wrapper for `struct cam_device *`. Note that the underlying raw pointer is *mutable*.
 ///
 /// This struct implements `Drop`, i.e. you don't need to call `cam_close_device` yourself.
+#[derive(Debug)]
 pub struct CAMDevice(pub *mut bindings::cam_device);
 
 impl CAMDevice {

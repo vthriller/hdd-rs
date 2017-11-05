@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::Error;
 
 /// See [parent module docs](../index.html)
+#[derive(Debug)]
 pub struct Device {
 	pub file: File,
 }
