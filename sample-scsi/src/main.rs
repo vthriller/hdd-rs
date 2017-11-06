@@ -32,7 +32,7 @@ fn query(what: &str, dev: &Device, vpd: bool, page: u8, verbose: bool) -> Vec<u8
 		print!("sense:");
 		print_hex(&sense);
 
-		print!("data:");
+		print!("data: len={}", data.len());
 		print_hex(&data);
 	}
 
@@ -54,7 +54,7 @@ fn ask_log(what: &str, dev: &Device, page: u8, subpage: u8, verbose: bool) -> Ve
 		print!("sense:");
 		print_hex(&sense);
 
-		print!("data:");
+		print!("data: len={}", data.len());
 		print_hex(&data);
 	}
 
