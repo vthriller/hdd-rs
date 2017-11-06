@@ -30,6 +30,24 @@ pub enum ErrorCounter {
 	Reserved(u16),
 }
 
+#[derive(Debug)]
+pub struct Date {
+	// TODO u8, u16
+	pub week: String,
+	pub year: String,
+}
+
+#[derive(Debug)]
+pub struct DatesAndCycleCounters {
+	pub manufacturing_date:	Option<Date>,
+	/// Date in which the device was placed in service
+	pub accounting_date:	Option<Date>,
+	pub lifetime_start_stop_cycles:	Option<u32>,
+	pub start_stop_cycles:	Option<u32>,
+	pub lifetime_load_unload_cycles:	Option<u32>,
+	pub load_unload_cycles:	Option<u32>,
+}
+
 // TODO proper errors
 // TODO non-empty autosense errors
 /// Methods in this trait issue LOG SENSE command against the device and return interpreted log page responses
@@ -176,6 +194,90 @@ pub trait Pages: SCSIDevice {
 		}
 
 		Ok((temp, ref_temp))
+	}
+
+	/// In SPC-4, this is called Start-Stop Cycle Counter
+	fn dates_and_cycle_counters(&self) -> Result<DatesAndCycleCounters, Error> {
+		let (_sense, data) = self.log_sense(
+			false, // changed
+			false, // save_params
+			false, // default
+			false, // threshold
+			0x0e, 0, // page, subpage
+			0, // param_ptr
+		)?;
+
+		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
+		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+
+		let mut result = DatesAndCycleCounters {
+			manufacturing_date: None,
+			accounting_date: None,
+			lifetime_start_stop_cycles: None,
+			start_stop_cycles: None,
+			lifetime_load_unload_cycles: None,
+			load_unload_cycles: None,
+		};
+
+		for param in params {
+			match param.code {
+				0x0001 => {
+					// XXX tell about unexpected params?
+					if param.value.len() < 6 { continue; }
+
+					result.manufacturing_date = Some(Date {
+						year: String::from_utf8(param.value[0..4].to_vec()).unwrap(), // ASCII
+						week: String::from_utf8(param.value[4..6].to_vec()).unwrap(), // ASCII
+					});
+				},
+				0x0002 => {
+					// XXX tell about unexpected params?
+					if param.value.len() < 6 { continue; }
+
+					result.accounting_date = Some(Date {
+						year: String::from_utf8(param.value[0..4].to_vec()).unwrap(), // ASCII, might be all-spaces
+						week: String::from_utf8(param.value[4..6].to_vec()).unwrap(), // ASCII, might be all-spaces
+					});
+				},
+				0x0003 => {
+					// XXX tell about unexpected params?
+					if param.value.len() < 4 { continue; }
+
+					result.lifetime_start_stop_cycles = Some(
+						(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
+					);
+				},
+				0x0004 => {
+					// XXX tell about unexpected params?
+					if param.value.len() < 4 { continue; }
+
+					result.start_stop_cycles = Some(
+						(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
+					);
+				},
+				0x0005 => {
+					// XXX tell about unexpected params?
+					if param.value.len() < 4 { continue; }
+
+					result.lifetime_load_unload_cycles = Some(
+						(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
+					);
+				},
+				0x0006 => {
+					// XXX tell about unexpected params?
+					if param.value.len() < 4 { continue; }
+
+					result.load_unload_cycles = Some(
+						(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
+					);
+				},
+				_ => {
+					// XXX tell about unexpected params?
+				},
+			}
+		}
+
+		Ok(result)
 	}
 }
 

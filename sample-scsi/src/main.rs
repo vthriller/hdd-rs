@@ -165,57 +165,7 @@ fn main() {
 							print!("Reference temperature: {:?} °C\n", ref_temp);
 						});
 					},
-					0x0e => { // Start-Stop Cycle Counter
-						if let Some(params) = page.parse_params() {
-							for param in params {
-								match param.code {
-									0x0001 => {
-										// XXX tell about unexpected params?
-										if param.value.len() < 6 { continue; }
-										print!("Date of manufacturing: week {} of {}\n",
-											String::from_utf8(param.value[4..6].to_vec()).unwrap(), // ASCII
-											String::from_utf8(param.value[0..4].to_vec()).unwrap(), // ASCII
-										);
-									},
-									0x0002 => {
-										// XXX tell about unexpected params?
-										if param.value.len() < 6 { continue; }
-										print!("Accounting Date: week {} of {}\n", // in which the device was placed in service
-											String::from_utf8(param.value[4..6].to_vec()).unwrap(), // ASCII, might be all-spaces
-											String::from_utf8(param.value[0..4].to_vec()).unwrap(), // ASCII, might be all-spaces
-										);
-									},
-									0x0003 => {
-										if param.value.len() < 4 { continue; }
-										print!("Specified Cycle Count Over Device Lifetime: {}\n",
-											(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
-										);
-									},
-									0x0004 => {
-										if param.value.len() < 4 { continue; }
-										print!("Accumulated Start-Stop Cycles: {}\n",
-											(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
-										);
-									},
-									0x0005 => {
-										if param.value.len() < 4 { continue; }
-										print!("Specified Load-Unload Count Over Device Lifetime: {}\n",
-											(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
-										);
-									},
-									0x0006 => {
-										if param.value.len() < 4 { continue; }
-										print!("Accumulated Load-Unload Cycles: {}\n",
-											(&param.value[0 .. 4]).read_u32::<BigEndian>().unwrap()
-										);
-									},
-									_ => {
-										print!("? {:?}\n", param);
-									},
-								}
-							}
-						}
-					},
+					0x0e => { print!("{:#?}\n", dev.dates_and_cycle_counters()) }
 					0x10 => { // Self-Test results
 						if let Some(params) = page.parse_params() {
 							for param in params {
