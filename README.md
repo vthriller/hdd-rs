@@ -26,7 +26,7 @@ sudo ./target/release/smart-rs -i --json /dev/sda
 Put this into your `Cargo.toml` to start using this crate:
 ```toml
 [dependencies]
-hdd = "0.7"
+hdd = "0.8"
 ```
 
 ## What's supported?
