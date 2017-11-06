@@ -21,8 +21,6 @@ use separator::Separatable;
 extern crate number_prefix;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
-use std::io::Write;
-
 fn bool_to_sup(b: bool) -> &'static str {
 	match b {
 		false => "not supported",
@@ -149,17 +147,11 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 	print!("                             └────── P prefailure warning\n");
 }
 
-// this also helps maintaining serialized output (JSON) clean
-fn warn(msg: String) {
-	// XXX unused result
-	let _ = std::io::stderr().write(msg.as_bytes());
-}
-
 // XXX macro?
 fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F) where F: FnMut() -> () {
 	match *status {
-		id::Ternary::Unsupported => warn(format!("S.M.A.R.T. is not supported, cannot show {}\n", action_name)),
-		id::Ternary::Disabled => warn(format!("S.M.A.R.T. is disabled, cannot show {}\n", action_name)),
+		id::Ternary::Unsupported => eprint!("S.M.A.R.T. is not supported, cannot show {}\n", action_name),
+		id::Ternary::Disabled => eprint!("S.M.A.R.T. is disabled, cannot show {}\n", action_name),
 		id::Ternary::Enabled => action(),
 	}
 }
@@ -262,7 +254,7 @@ fn main() {
 			.unwrap_or(None)
 	};
 	if drivedb.is_none() {
-		warn(format!("Cannot open drivedb file\n"));
+		eprint!("Cannot open drivedb file\n");
 	};
 
 	let user_attributes = args.values_of("vendorattribute")
