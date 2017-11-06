@@ -150,35 +150,14 @@ fn main() {
 				_ => "?",
 			};
 
-			let err_cnt_desc = |x| match x {
-				0000 => "Errors corrected without substantial delay".to_string(),
-				0001 => "Errors corrected with possible delays".to_string(),
-				0002 => "Total (e.g., rewrites or rereads)".to_string(),
-				0003 => "Total errors corrected".to_string(),
-				0004 => "Total times correction algorithm processed".to_string(),
-				0005 => "Total bytes processed".to_string(),
-				0006 => "Total uncorrected errors".to_string(),
-				x @ 0x8000...0xffff => format!("(Vendor specific) {}", x),
-				x => format!("(Reserved) {}", x),
-			};
-
 			let data = ask_log(&format!("[{:02x}] {}", p, name), &dev, p, 0x00, verbose);
 			let page = log_page::parse(&data);
 			if let Some(page) = page {
 				match p {
-					0x02...0x05 => { // xxx Error Counter
-						if let Some(params) = page.parse_params() {
-							for param in params {
-								// XXX tell about unexpected params?
-								if param.value.len() == 0 { continue; }
-
-								print!("{}: {}\n",
-									err_cnt_desc(param.code),
-									(&param.value[..]).read_uint::<BigEndian>(param.value.len()).unwrap(),
-								);
-							}
-						}
-					},
+					0x02 => { print!("Write Error Counters: {:#?}\n", dev.write_error_counters()) }
+					0x03 => { print!("Read Error Counters: {:#?}\n", dev.read_error_counters()) }
+					0x04 => { print!("Read Reverse Error Counters: {:#?}\n", dev.read_reverse_error_counters()) }
+					0x05 => { print!("Verify Error Counters: {:#?}\n", dev.verify_error_counters()) }
 					0x06 => { // Non-Medium Error Count
 						if let Some(params) = page.parse_params() {
 							for param in params {
