@@ -1,4 +1,5 @@
 pub mod data;
+pub mod pages;
 
 #[cfg(target_os = "linux")]
 mod linux;

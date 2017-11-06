@@ -1,6 +1,7 @@
 extern crate hdd;
 use hdd::Device;
 use hdd::scsi::SCSIDevice;
+use hdd::scsi::pages::Pages;
 use hdd::scsi::data::{inquiry, log_page};
 use hdd::scsi::data::vpd::device_id;
 
@@ -130,13 +131,11 @@ fn main() {
 		}
 	}
 
-	let data = ask_log("[00] Supported Log Pages", &dev, 0x00, 0x00, verbose);
-	let page = log_page::parse(&data);
-	if let Some(page) = page {
-		for p in page.data {
-			if *p == 00 { continue; }
+	dev.supported_pages().map(|pages| {
+		for p in pages {
+			if p == 00 { continue; }
 
-			let name = match *p {
+			let name = match p {
 				0x02 => "Write Error Counter",
 				0x03 => "Read Error Counter",
 				0x04 => "Read Reverse Error Counter",
@@ -163,10 +162,10 @@ fn main() {
 				x => format!("(Reserved) {}", x),
 			};
 
-			let data = ask_log(&format!("[{:02x}] {}", p, name), &dev, *p, 0x00, verbose);
+			let data = ask_log(&format!("[{:02x}] {}", p, name), &dev, p, 0x00, verbose);
 			let page = log_page::parse(&data);
 			if let Some(page) = page {
-				match *p {
+				match p {
 					0x02...0x05 => { // xxx Error Counter
 						if let Some(params) = page.parse_params() {
 							for param in params {
@@ -327,7 +326,7 @@ fn main() {
 				}
 			}
 		}
-	}
+	});
 
 	/*
 	// TODO tell whether subpages are supported at all
