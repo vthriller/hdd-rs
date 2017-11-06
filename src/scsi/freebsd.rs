@@ -69,6 +69,7 @@ impl SCSIDevice for Device {
 					);
 
 					// XXX sense_resid is always 0 to me on 11.0-RELEASE-p1 for some reason, need more testing
+					// probably because I currently run this in `qemu -device lsi`
 					csio.sense_len - csio.sense_resid
 				}
 			} else {
