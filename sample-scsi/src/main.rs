@@ -159,23 +159,11 @@ fn main() {
 					0x04 => { print!("Read Reverse Error Counters: {:#?}\n", dev.read_reverse_error_counters()) }
 					0x05 => { print!("Verify Error Counters: {:#?}\n", dev.verify_error_counters()) }
 					0x06 => { print!("Non-Medium Error Count: {:?}\n", dev.non_medium_error_count()) }
-					0x0d => { // Temperature
-						if let Some(params) = page.parse_params() {
-							for param in params {
-								// XXX tell about unexpected params?
-								if param.value.len() < 2 { continue; }
-
-								// value[0] is reserved
-								print!("{}: {} C\n", match param.code {
-									0x0000 => "Temperature",
-									0x0001 => "Reference Temperature", // maximum temperature at which device is capable of operating continuously without degrading
-									_ => "?",
-								}, match param.value[1] {
-									0xff => continue, // unable to return temperature despite including this param in the answer
-									x => x,
-								});
-							}
-						}
+					0x0d => {
+						dev.temperature().map(|(temp, ref_temp)| {
+							print!("Temperature: {:?} °C\n", temp);
+							print!("Reference temperature: {:?} °C\n", ref_temp);
+						});
 					},
 					0x0e => { // Start-Stop Cycle Counter
 						if let Some(params) = page.parse_params() {

@@ -135,6 +135,48 @@ pub trait Pages: SCSIDevice {
 
 		Err(Error::new(ErrorKind::Other, "Cannot find valid param for this log page"))
 	}
+
+	/**
+	Returns tuple of `(temp, ref_temp)`, where:
+
+	* `temp`: current temperature, °C,
+	* `ref_temp`: reference temperature, °C; maximum temperature at which device is capable of operating continuously without degrading
+	*/
+	fn temperature(&self) -> Result<(Option<u8>, Option<u8>), Error> {
+		let (_sense, data) = self.log_sense(
+			false, // changed
+			false, // save_params
+			false, // default
+			false, // threshold
+			0x0d, 0, // page, subpage
+			0, // param_ptr
+		)?;
+
+		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
+		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+
+		let mut temp = None;
+		let mut ref_temp = None;
+
+		for param in params {
+			// XXX tell about unexpected params?
+			if param.value.len() < 2 { continue; }
+
+			// value[0] is reserved
+			let value = match param.value[1] {
+				0xff => None, // unable to return temperature despite including this param in the answer
+				x => Some(x),
+			};
+
+			match param.code {
+				0x0000 => { temp = value },
+				0x0001 => { ref_temp = value },
+				_ => (),
+			};
+		}
+
+		Ok((temp, ref_temp))
+	}
 }
 
 impl Pages for Device {}
