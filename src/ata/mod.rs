@@ -44,7 +44,7 @@ pub struct RegistersWrite {
 }
 
 pub trait ATADevice {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error>;
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error>;
 }
 
 /*
@@ -63,7 +63,7 @@ use Device;
 #[cfg(target_os = "linux")]
 #[allow(unused_variables)]
 impl ATADevice for Device {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, [u8; 512]), Error> {
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
 		unimplemented!()
 	}
 }

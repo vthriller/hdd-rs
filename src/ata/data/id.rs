@@ -1,16 +1,20 @@
 use std::fmt;
 
-fn bytes_to_words(data: &[u8; 512]) -> [u16; 256] {
-	// XXX mut?
-	let mut output: [u16; 256] = [0; 256];
+fn bytes_to_words(data: &Vec<u8>) -> Vec<u16> {
+	let mut output = vec![];
 
-	for i in 0..256 {
+	// XXX what if `data` contains odd number of u8s?
+	for i in 0 .. data.len()/2 {
 		if cfg!(target_endian = "little") {
-			output[i]  = (data[2 * i + 1] as u16) << 8;
-			output[i] += data[2 * i] as u16;
+			output.push(
+				((data[2 * i + 1] as u16) << 8)
+				+ (data[2 * i] as u16)
+			);
 		} else {
-			output[i]  = (data[2 * i] as u16) << 8;
-			output[i] += data[2 * i + 1] as u16;
+			output.push(
+				((data[2 * i] as u16) << 8)
+				+ (data[2 * i + 1] as u16)
+			);
 		}
 	}
 
@@ -19,7 +23,7 @@ fn bytes_to_words(data: &[u8; 512]) -> [u16; 256] {
 
 // TODO make sure characters are in the range of 0x20 to (and including) 0x7e
 // (this is in the standard, and also to make std::String safe again)
-fn read_string(arr: [u16; 256], start: usize, fin: usize) -> String {
+fn read_string(arr: &Vec<u16>, start: usize, fin: usize) -> String {
 	let mut output = String::with_capacity((fin - start) * 2);
 
 	for i in start..(fin+1) {
@@ -105,7 +109,7 @@ pub struct Id {
 fn is_set(word: u16, bit: usize) -> bool {
 	word & (1<<bit) != 0
 }
-fn make_ternary(data: [u16; 256], word_sup: usize, bit_sup: usize, word_enabled: usize, bit_enabled: usize) -> Ternary {
+fn make_ternary(data: &Vec<u16>, word_sup: usize, bit_sup: usize, word_enabled: usize, bit_enabled: usize) -> Ternary {
 	if !is_set(data[word_sup], bit_sup) {
 		Ternary::Unsupported
 	} else {
@@ -114,7 +118,8 @@ fn make_ternary(data: [u16; 256], word_sup: usize, bit_sup: usize, word_enabled:
 	}
 }
 
-pub fn parse_id(data: &[u8; 512]) -> Id {
+pub fn parse_id(data: &Vec<u8>) -> Id {
+	// TODO return None if data.len() < 512
 	let data = bytes_to_words(data);
 	/*
 	TODO ATA8-ACS T13/1699-D Revision 3f field description
@@ -262,9 +267,9 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 		is_ata: !is_set(data[0], 15),
 		incomplete: is_set(data[0], 2),
 
-		serial: read_string(data, 10, 19),
-		firmware: read_string(data, 23, 26),
-		model: read_string(data, 27, 46),
+		serial: read_string(&data, 10, 19),
+		firmware: read_string(&data, 23, 26),
+		model: read_string(&data, 27, 46),
 
 		capacity: (sector_size_log as u64) * if sectors_48bit > 0 { sectors_48bit } else { sectors },
 
@@ -364,21 +369,21 @@ pub fn parse_id(data: &[u8; 512]) -> Id {
 		},
 
 		power_mgmt_supported: is_set(data[82], 3),
-		write_cache: make_ternary(data, 82, 5, 85, 5),
-		read_look_ahead: make_ternary(data, 82, 6, 85, 6),
+		write_cache: make_ternary(&data, 82, 5, 85, 5),
+		read_look_ahead: make_ternary(&data, 82, 6, 85, 6),
 		/* TODO
 		> the device is not indicating its full size as defined by READ NATIVE MAX or READ NATIVE MAX EXT command
 		> because a SET MAX ADDESS or SET MAX ADDRESS EXT command has been issued to resize the device
 		which is indicated by hpa == Enabled
 		*/
-		hpa: make_ternary(data, 82, 10, 85, 10),
-		apm: make_ternary(data, 83, 3, 86, 3),
-		aam: make_ternary(data, 83, 9, 86, 9),
+		hpa: make_ternary(&data, 82, 10, 85, 10),
+		apm: make_ternary(&data, 83, 3, 86, 3),
+		aam: make_ternary(&data, 83, 9, 86, 9),
 		gp_logging_supported: is_set(data[84], 5),
 		wwn_supported: is_set(data[84], 8), // XXX mirrored; see commands_supported
-		security: make_ternary(data, 82, 1, 85, 1),
+		security: make_ternary(&data, 82, 1, 85, 1),
 
-		smart: make_ternary(data, 82, 0, 85, 0),
+		smart: make_ternary(&data, 82, 0, 85, 0),
 
 		smart_error_logging_supported: is_set(data[84], 0), // XXX mirrored; see commands_supported
 		smart_self_test_supported: is_set(data[84], 1), // XXX mirrored; see commands_supported

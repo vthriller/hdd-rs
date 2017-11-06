@@ -231,7 +231,7 @@ fn main() {
 
 	type F = fn(&Device, Direction, &ata::RegistersWrite)
 		-> Result<
-			(ata::RegistersRead, [u8; 512]),
+			(ata::RegistersRead, Vec<u8>),
 			std::io::Error
 		>;
 	let satl: F = |dev: &Device, dir: Direction, regs: &ata::RegistersWrite| dev.ata_pass_through_16(dir, regs);

@@ -11,7 +11,7 @@ use Device;
 use std::io::Error;
 
 impl ATADevice for Device {
-	fn ata_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
+	fn ata_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), Error> {
 		let timeout = 10; // in seconds; TODO configurable
 
 		let mut data: [u8; 512] = [0; 512];
@@ -70,6 +70,6 @@ impl ATADevice for Device {
 			device: ataio.res.device,
 
 			status: ataio.res.status,
-		}, data))
+		}, data.to_vec()))
 	}
 }
