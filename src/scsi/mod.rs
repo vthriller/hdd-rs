@@ -15,7 +15,7 @@ use Direction;
 
 pub trait SCSIDevice {
 	/// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<Vec<u8>, Error>;
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8], sense_len: u8)-> Result<Vec<u8>, Error>;
 
 	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, [u8; 4096]), Error> {
 		// TODO as u16 argument, not const
@@ -31,7 +31,7 @@ pub trait SCSIDevice {
 		];
 		let mut buf = [0u8; alloc];
 
-		let sense = self.do_cmd(&cmd, Direction::From, &mut buf)?;
+		let sense = self.do_cmd(&cmd, Direction::From, &mut buf, 32)?;
 
 		Ok((sense, buf))
 	}
@@ -58,7 +58,7 @@ pub trait SCSIDevice {
 		];
 		let mut buf = [0u8; 8];
 
-		let sense = self.do_cmd(&cmd, Direction::From, &mut buf)?;
+		let sense = self.do_cmd(&cmd, Direction::From, &mut buf, 32)?;
 
 		Ok((
 			sense,
@@ -106,7 +106,7 @@ pub trait SCSIDevice {
 		];
 		let mut buf = [0u8; alloc];
 
-		let sense = self.do_cmd(&cmd, Direction::From, &mut buf)?;
+		let sense = self.do_cmd(&cmd, Direction::From, &mut buf, 32)?;
 
 		Ok((sense, buf))
 	}
@@ -143,7 +143,7 @@ pub trait SCSIDevice {
 
 		let mut buf: [u8; 512] = [0; 512];
 
-		let sense = self.do_cmd(&ata_cmd, Direction::From, &mut buf)?;
+		let sense = self.do_cmd(&ata_cmd, Direction::From, &mut buf, 32)?;
 
 		let descriptors = match sense::parse(&sense) {
 			// current sense in the descriptor format

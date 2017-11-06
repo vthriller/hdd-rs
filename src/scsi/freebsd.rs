@@ -10,9 +10,10 @@ use scsi::SCSIDevice;
 use std::io::Error;
 
 impl SCSIDevice for Device {
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8])-> Result<Vec<u8>, Error> {
-		// TODO sense len as an argument
-		let mut sense: [u8; 64] = [0; 64];
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8], sense_len: u8)-> Result<Vec<u8>, Error> {
+		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of a sense,
+		// and we're not expecting this function to be someone's bottleneck
+		let mut sense = vec![0; sense_len as usize];
 
 		let timeout = 10; // in seconds; TODO configurable
 
@@ -35,7 +36,7 @@ impl SCSIDevice for Device {
 			csio.ccb_h.timeout = timeout*1000;
 			csio.data_ptr = buf.as_mut_ptr();
 			csio.dxfer_len = buf.len() as u32;
-			csio.sense_len = 64;
+			csio.sense_len = sense.capacity() as u8;
 			csio.tag_action = MSG_SIMPLE_Q_TAG as u8;
 
 			libc::memcpy(
@@ -64,7 +65,7 @@ impl SCSIDevice for Device {
 					libc::memcpy(
 						sense.as_mut_ptr() as *mut c_void,
 						&csio.sense_data as *const _ as *const c_void,
-						64,
+						sense.capacity(),
 					);
 
 					// XXX sense_resid is always 0 to me on 11.0-RELEASE-p1 for some reason, need more testing
