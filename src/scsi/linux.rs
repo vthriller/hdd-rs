@@ -14,6 +14,8 @@ use Direction;
 use Device;
 use scsi::SCSIDevice;
 
+use std::cmp::max;
+
 // see scsi/sg.h
 
 #[cfg(not(any(target_env = "musl")))]
@@ -50,10 +52,11 @@ struct sg_io_hdr {
 }
 
 impl SCSIDevice for Device {
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8], sense_len: u8)-> Result<Vec<u8>, Error> {
-		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of a sense,
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: u8, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), Error> {
+		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len as usize];
+		let mut data = vec![0; data_len as usize];
 
 		let hdr = sg_io_hdr {
 			interface_id:	'S' as c_int,
@@ -65,8 +68,8 @@ impl SCSIDevice for Device {
 				Direction::From => -3,
 				Direction::Both => -4,
 			},
-			dxferp:	buf.as_mut_ptr() as *mut c_void,
-			dxfer_len:	buf.len() as c_uint,
+			dxferp:	data.as_mut_ptr() as *mut c_void,
+			dxfer_len:	data.capacity() as c_uint,
 			resid:	0,
 
 			sbp:	sense.as_mut_ptr(),
@@ -98,6 +101,15 @@ impl SCSIDevice for Device {
 			}
 		}
 
-		Ok(sense[ .. hdr.sb_len_wr as usize].to_vec())
+		// > In practice [resid] only reports underruns (i.e. positive number) as data overruns should never happen
+		// but I'd still not cast i32 to u32 blindly, just to be sure
+		// TODO? return overrun flag
+		// XXX sg_io set resid to 0 for SATA disks, and Hitachi SAS disks behind Adaptec also set this to 0 for things like LOG SENSE 0fh/00h—need more reading/testing
+		let data_len = hdr.dxfer_len - max(hdr.resid, 0) as u32;
+
+		Ok((
+			sense[ .. hdr.sb_len_wr as usize].to_vec(),
+			data[ .. data_len as usize].to_vec(),
+		))
 	}
 }

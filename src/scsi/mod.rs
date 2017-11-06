@@ -14,10 +14,10 @@ use self::data::sense;
 use Direction;
 
 pub trait SCSIDevice {
-	/// Executes `cmd` and puts response in the `buf`. Returns SCSI sense.
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8], sense_len: u8)-> Result<Vec<u8>, Error>;
+	/// Executes `cmd` and returns tuple of `(sense, data)`.
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: u8, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), Error>;
 
-	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, [u8; 4096]), Error> {
+	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -29,11 +29,8 @@ pub trait SCSIDevice {
 			(alloc & 0xff) as u8,
 			0, // control (XXX what's that?!)
 		];
-		let mut buf = [0u8; alloc];
 
-		let sense = self.do_cmd(&cmd, Direction::From, &mut buf, 32)?;
-
-		Ok((sense, buf))
+		self.do_cmd(&cmd, Direction::From, 32, alloc)
 	}
 
 	/// returns tuple of (sense, logical block address, block length in bytes)
@@ -56,14 +53,13 @@ pub trait SCSIDevice {
 			if pmi { 1 } else { 0 }, // reserved, pmi
 			0, // control (XXX what's that?!)
 		];
-		let mut buf = [0u8; 8];
 
-		let sense = self.do_cmd(&cmd, Direction::From, &mut buf, 32)?;
+		let (sense, data) = self.do_cmd(&cmd, Direction::From, 32, 8)?;
 
 		Ok((
 			sense,
-			(&buf[0..4]).read_u32::<BigEndian>().unwrap(),
-			(&buf[4..8]).read_u32::<BigEndian>().unwrap(),
+			(&data[0..4]).read_u32::<BigEndian>().unwrap(),
+			(&data[4..8]).read_u32::<BigEndian>().unwrap(),
 		))
 	}
 
@@ -79,7 +75,7 @@ pub trait SCSIDevice {
 	- `page`, `subpage`: log page to return parameters from
 	- `param_ptr`: limit list of return values to parameters starting with id `param_ptr`
 	*/
-	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, [u8; 4096]), Error> {
+	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -104,14 +100,11 @@ pub trait SCSIDevice {
 			(alloc & 0xff) as u8,
 			0, // control (XXX what's that?!)
 		];
-		let mut buf = [0u8; alloc];
 
-		let sense = self.do_cmd(&cmd, Direction::From, &mut buf, 32)?;
-
-		Ok((sense, buf))
+		self.do_cmd(&cmd, Direction::From, 32, alloc)
 	}
 
-	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, [u8; 512]), Error> {
+	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), Error> {
 		// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 		let extend = 0; // TODO
 		let protocol = match dir {
@@ -141,9 +134,7 @@ pub trait SCSIDevice {
 			0, // control (XXX what's that?!)
 		];
 
-		let mut buf: [u8; 512] = [0; 512];
-
-		let sense = self.do_cmd(&ata_cmd, Direction::From, &mut buf, 32)?;
+		let (sense, data) = self.do_cmd(&ata_cmd, Direction::From, 32, 512)?;
 
 		let descriptors = match sense::parse(&sense) {
 			// current sense in the descriptor format
@@ -162,21 +153,21 @@ pub trait SCSIDevice {
 			if desc.code != 0x09 { continue; }
 			if desc.data.len() != 12 { continue; }
 
-			let data = desc.data;
+			let d = desc.data;
 
 			// TODO? EXTEND bit, ATA PASS-THROUGH 12 vs 16
 			return Ok((ata::RegistersRead {
-				error: data[1],
+				error: d[1],
 
-				sector_count: data[3],
+				sector_count: d[3],
 
-				sector: data[5],
-				cyl_low: data[7],
-				cyl_high: data[9],
-				device: data[10],
+				sector: d[5],
+				cyl_low: d[7],
+				cyl_high: d[9],
+				device: d[10],
 
-				status: data[11],
-			}, buf))
+				status: d[11],
+			}, data))
 		}
 
 		// TODO proper error

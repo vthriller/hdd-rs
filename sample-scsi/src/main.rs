@@ -24,7 +24,7 @@ fn print_hex(data: &[u8]) {
 	print!("\n");
 }
 
-fn query(what: &str, dev: &Device, vpd: bool, page: u8, verbose: bool) -> [u8; 4096] {
+fn query(what: &str, dev: &Device, vpd: bool, page: u8, verbose: bool) -> Vec<u8> {
 	print!("=== {} ===\n", what);
 	let (sense, data) = dev.scsi_inquiry(vpd, page).unwrap();
 
@@ -39,7 +39,7 @@ fn query(what: &str, dev: &Device, vpd: bool, page: u8, verbose: bool) -> [u8; 4
 	data
 }
 
-fn ask_log(what: &str, dev: &Device, page: u8, subpage: u8, verbose: bool) -> [u8; 4096] {
+fn ask_log(what: &str, dev: &Device, page: u8, subpage: u8, verbose: bool) -> Vec<u8> {
 	print!("=== {} ===\n", what);
 	let (sense, data) = dev.log_sense(
 		false, // changed

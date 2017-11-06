@@ -1,13 +1,3 @@
-fn read_string(arr: &[u8; 4096], start: usize, fin: usize) -> String {
-	let mut output = String::with_capacity((fin - start) * 2);
-
-	for i in start..(fin+1) {
-		output.push(arr[i] as char);
-	}
-
-	String::from(output.trim())
-}
-
 #[derive(Serialize, Debug)]
 pub struct Inquiry {
 	connected: Option<bool>,
@@ -38,7 +28,7 @@ fn is_set(x: u8, bit: usize) -> bool {
 	x & (1<<bit) != 0
 }
 
-pub fn parse_inquiry(data: &[u8; 4096]) -> Inquiry {
+pub fn parse_inquiry(data: &Vec<u8>) -> Inquiry {
 	Inquiry {
 		connected: match (data[0] & 0b11100000) >> 5 { // Peripheral Qualifier
 			0b000 => Some(true),
@@ -105,10 +95,11 @@ pub fn parse_inquiry(data: &[u8; 4096]) -> Inquiry {
 		11 invalid
 		*/
 
-		vendor_id: read_string(data, 8, 15),
-		product_id: read_string(data, 16, 31),
-		product_rev: read_string(data, 32, 35),
-		drive_serial: read_string(data, 36, 43),
+		// XXX? > ASCII data fields … may be terminated with one or more ASCII null (00h) characters.
+		vendor_id: String::from_utf8(data[8..16].to_vec()).unwrap().trim().to_string(),
+		product_id: String::from_utf8(data[16..32].to_vec()).unwrap().trim().to_string(),
+		product_rev: String::from_utf8(data[32..36].to_vec()).unwrap().trim().to_string(),
+		drive_serial: String::from_utf8(data[36..44].to_vec()).unwrap().trim().to_string(),
 
 		// TODO TODO TODO TODO TODO
 	}

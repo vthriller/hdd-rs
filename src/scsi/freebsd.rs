@@ -10,10 +10,11 @@ use scsi::SCSIDevice;
 use std::io::Error;
 
 impl SCSIDevice for Device {
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, buf: &mut [u8], sense_len: u8)-> Result<Vec<u8>, Error> {
-		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of a sense,
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: u8, data_len: usize)-> Result<(Vec<u8>, Vec<u8>), Error> {
+		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len as usize];
+		let mut data = vec![0; data_len as usize];
 
 		let timeout = 10; // in seconds; TODO configurable
 
@@ -34,8 +35,8 @@ impl SCSIDevice for Device {
 			csio.ccb_h.xflags = 0;
 			csio.ccb_h.retry_count = 1;
 			csio.ccb_h.timeout = timeout*1000;
-			csio.data_ptr = buf.as_mut_ptr();
-			csio.dxfer_len = buf.len() as u32;
+			csio.data_ptr = data.as_mut_ptr();
+			csio.dxfer_len = data.capacity() as u32;
 			csio.sense_len = sense.capacity() as u8;
 			csio.tag_action = MSG_SIMPLE_Q_TAG as u8;
 
@@ -54,7 +55,6 @@ impl SCSIDevice for Device {
 			Err(CAMError::current())?;
 		}
 
-		// TODO actual data len, data.len() - ccb.csio.resid
 		// TODO ccb.csio.scsi_status
 
 		let sense_len =
@@ -75,6 +75,17 @@ impl SCSIDevice for Device {
 				0 // no valid sense, nothing to copy, sense has length 0
 			};
 
-		Ok(sense[ .. sense_len as usize].to_vec())
+		// TODO? return overrun flag
+		// XXX > u_int32_t resid; /* Transfer residual length: 2's comp */
+		// 2's comp uint?! WTF *!!*
+		// XXX resid, like sense_resid, is also always 0
+		let data_len = unsafe {
+			ccb.csio().dxfer_len - ccb.csio().resid
+		};
+
+		Ok((
+			sense[ .. sense_len as usize].to_vec(),
+			data[ .. data_len as usize].to_vec(),
+		))
 	}
 }
