@@ -27,9 +27,10 @@ impl SCSIDevice for Device {
 			// besides, it is a pretty simple function of dubious benefit: sure it's less things to type, but with huge number of arguments it's less clear what's actually filled in a struct
 			csio.ccb_h.func_code = xpt_opcode::XPT_SCSI_IO;
 			csio.ccb_h.flags = match dir {
+				// TODO &[u8] arg → data → csio.data_ptr for Direction::{To,Both}
 				Direction::From => ccb_flags::CAM_DIR_IN,
-				Direction::To => ccb_flags::CAM_DIR_OUT,
-				Direction::Both => ccb_flags::CAM_DIR_BOTH,
+				Direction::To => unimplemented!(),//ccb_flags::CAM_DIR_OUT,
+				Direction::Both => unimplemented!(), //ccb_flags::CAM_DIR_BOTH,
 				Direction::None => ccb_flags::CAM_DIR_NONE,
 			} as u32;
 			csio.ccb_h.xflags = 0;

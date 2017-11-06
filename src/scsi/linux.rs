@@ -63,10 +63,11 @@ impl SCSIDevice for Device {
 
 			dxfer_direction: match dir {
 				// see scsi/sg.h, constants SG_DXFER_{NONE,{TO,FROM,TO_FROM}_DEV}
+				// TODO &[u8] arg → data → sg_io_hdr.dxferp for Direction::{To,Both}
 				Direction::None => -1,
-				Direction::To => -2,
+				Direction::To => unimplemented!(), //-2,
 				Direction::From => -3,
-				Direction::Both => -4,
+				Direction::Both => unimplemented!(), //-4,
 			},
 			dxferp:	data.as_mut_ptr() as *mut c_void,
 			dxfer_len:	data.capacity() as c_uint,

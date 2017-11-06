@@ -110,7 +110,7 @@ pub trait SCSIDevice {
 		let protocol = match dir {
 			Direction::None => 3, // Non-data
 			Direction::From => 4, // PIO Data-In
-			Direction::To => 5, // PIO Data-Out
+			Direction::To => unimplemented!(), //5, // PIO Data-Out
 			_ => unimplemented!(),
 		};
 		let multiple_count = 0; // TODO

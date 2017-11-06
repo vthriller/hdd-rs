@@ -23,8 +23,8 @@ impl ATADevice for Device {
 			h.func_code = xpt_opcode::XPT_ATA_IO;
 			h.flags = match dir {
 				Direction::From => ccb_flags::CAM_DIR_IN,
-				Direction::To => ccb_flags::CAM_DIR_OUT,
-				Direction::Both => ccb_flags::CAM_DIR_BOTH,
+				Direction::To => unimplemented!(), //ccb_flags::CAM_DIR_OUT,
+				Direction::Both => unimplemented!(), //ccb_flags::CAM_DIR_BOTH,
 				Direction::None => ccb_flags::CAM_DIR_NONE,
 			} as u32;
 			h.retry_count = 0;
