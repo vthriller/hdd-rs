@@ -56,7 +56,6 @@ Features:
 * Debugging options (think `smartctl -r ataioctl,2` or `skdump`) for CLI tool.
 * More devices (smartmontools can query NVMe devices).
 * More platforms (Windows, macOS, \*BSD, Redox…).
-* Traits: do not reopen device over and over again.
 * Readable masks (`0b0110_0000`).
 
 ## License
