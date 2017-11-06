@@ -251,18 +251,18 @@ fn main() {
 	).unwrap();
 
 	let drivedb = match args.value_of("drivedb") {
-		Some(file) => drivedb::load(file),
-		None =>
-			drivedb::load("/var/lib/smartmontools/drivedb/drivedb.h").or(
-				drivedb::load("/usr/share/smartmontools/drivedb.h")
-			)
+		Some(file) => drivedb::load(file).ok(), // .ok(): see below
+		None => [
+				"/var/lib/smartmontools/drivedb/drivedb.h",
+				"/usr/local/share/smartmontools/drivedb.h", // for all FreeBSD folks out there
+				"/usr/share/smartmontools/drivedb.h",
+			].iter()
+			.map(|f| drivedb::load(f).ok()) // .ok(): what's the point in collecting all these "no such file or directory" errors?
+			.find(|ref db| db.is_some())
+			.unwrap_or(None)
 	};
-	let drivedb = match drivedb {
-		Ok(x) => Some(x),
-		Err(e) => {
-			warn(format!("Cannot open drivedb file: {}\n", e));
-			None
-		},
+	if drivedb.is_none() {
+		warn(format!("Cannot open drivedb file\n"));
 	};
 
 	let user_attributes = args.values_of("vendorattribute")
