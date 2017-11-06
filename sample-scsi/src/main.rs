@@ -158,19 +158,7 @@ fn main() {
 					0x03 => { print!("Read Error Counters: {:#?}\n", dev.read_error_counters()) }
 					0x04 => { print!("Read Reverse Error Counters: {:#?}\n", dev.read_reverse_error_counters()) }
 					0x05 => { print!("Verify Error Counters: {:#?}\n", dev.verify_error_counters()) }
-					0x06 => { // Non-Medium Error Count
-						if let Some(params) = page.parse_params() {
-							for param in params {
-								// XXX tell about unexpected params?
-								if param.value.len() == 0 { continue; }
-								if param.code != 0 { continue; }
-
-								print!("Error Count: {}\n",
-									(&param.value[..]).read_uint::<BigEndian>(param.value.len()).unwrap(),
-								);
-							}
-						}
-					},
+					0x06 => { print!("Non-Medium Error Count: {:?}\n", dev.non_medium_error_count()) }
 					0x0d => { // Temperature
 						if let Some(params) = page.parse_params() {
 							for param in params {

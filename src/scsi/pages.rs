@@ -111,6 +111,30 @@ pub trait Pages: SCSIDevice {
 	fn verify_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x05)
 	}
+
+	fn non_medium_error_count(&self) -> Result<u64, Error> {
+		let (_sense, data) = self.log_sense(
+			false, // changed
+			false, // save_params
+			false, // default
+			false, // threshold
+			0x06, 0, // page, subpage
+			0, // param_ptr
+		)?;
+
+		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
+		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+
+		for param in params {
+			// XXX tell about unexpected params?
+			if param.value.len() == 0 { continue; }
+			if param.code != 0 { continue; }
+
+			return Ok((&param.value[..]).read_uint::<BigEndian>(param.value.len()).unwrap());
+		}
+
+		Err(Error::new(ErrorKind::Other, "Cannot find valid param for this log page"))
+	}
 }
 
 impl Pages for Device {}
