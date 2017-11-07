@@ -5,8 +5,8 @@ This module is not intended to be a full-featured wrapper even for a subset of a
 Instead, this module offers a number of helpers and shortcuts, like `impl Drop`, that should aid with writing a bit more concise and idiomatic code against libcam.
 Users of this module are expected to do most of the things on their own, manually, using things like `unsafe {}` and `.0`.
 
-This module is not for a general use. Besides the fact that it is utterly incomplete and unfriendly, this binding also lacks a lot of things that libcam provides, as they are irrelevant to the purposes of the parent crate.
-For the list of exported FFI interfaces, consult `cam/build.rs`.
+This module is not for a general use. Besides the fact that it is utterly incomplete and unfriendly, this binding also lacks a lot of things that libcam provides, as they are irrelevant to the purposes of the crate.
+For the list of exported FFI interfaces, consult `/build.rs`.
 
 For more on CAM, see:
 
