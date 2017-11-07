@@ -13,7 +13,7 @@ fn main() {
 	println!("cargo:rustc-link-lib=cam");
 
 	let bindings = bindgen::Builder::default()
-		.header("wrapper.h")
+		.header("bindgen-freebsd.h")
 		.whitelisted_function("cam_(open|close)_device")
 		.whitelisted_function("cam_(get|free)ccb")
 		.whitelisted_function("cam_send_ccb")
