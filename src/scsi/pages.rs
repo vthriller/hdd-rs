@@ -48,6 +48,31 @@ pub struct DatesAndCycleCounters {
 	pub load_unload_cycles:	Option<u32>,
 }
 
+#[derive(Debug)]
+pub enum SelfTestResult {
+	NoError,
+	Aborted { explicitly: bool },
+	UnknownError,
+	// XXX don't bother with distinguishing segments in which self-test failed …yet
+	Failed,
+	InProgress,
+	Reserved(u8),
+}
+
+#[derive(Debug)]
+pub struct SelfTest {
+	pub result: SelfTestResult,
+	pub code: u8,
+	pub number: u8,
+	/// saturated value (i.e. `0xffff` really means `>= 0xffff`)
+	pub power_on_hours: u16,
+	pub first_failure_lba: u64,
+	pub sense_key: u8,
+	pub sense_asc: u8,
+	pub sense_ascq: u8,
+	pub vendor_specific: u8,
+}
+
 // TODO proper errors
 // TODO non-empty autosense errors
 /// Methods in this trait issue LOG SENSE command against the device and return interpreted log page responses
@@ -278,6 +303,54 @@ pub trait Pages: SCSIDevice {
 		}
 
 		Ok(result)
+	}
+
+	fn self_test_results(&self) -> Result<Vec<SelfTest>, Error> {
+		let (_sense, data) = self.log_sense(
+			false, // changed
+			false, // save_params
+			false, // default
+			false, // threshold
+			0x10, 0, // page, subpage
+			0, // param_ptr
+		)?;
+
+		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
+		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+
+		let self_tests = params.iter().map(|param| {
+			// XXX tell about unexpected params?
+			if param.code == 0 || param.code > 0x0014 { return None; }
+			if param.value.len() < 0x10 { return None; }
+
+			// unused self-test log parameter is all zeroes
+			if *param.value.iter().max().unwrap() == 0 { return None }
+
+			Some(SelfTest {
+				result: match param.value[0] & 0b111 {
+					0 => SelfTestResult::NoError,
+					1 => SelfTestResult::Aborted { explicitly: true },
+					2 => SelfTestResult::Aborted { explicitly: false },
+					3 => SelfTestResult::UnknownError,
+					4...7 => SelfTestResult::Failed,
+					15 => SelfTestResult::InProgress,
+					x => SelfTestResult::Reserved(x),
+				},
+				code: (param.value[0] & 0b11100000) >> 5,
+				number: param.value[1],
+				power_on_hours: (&param.value[2..4]).read_u16::<BigEndian>().unwrap(),
+				first_failure_lba: (&param.value[4..12]).read_u64::<BigEndian>().unwrap(),
+				sense_key: param.value[12] & 0b1111,
+				sense_asc: param.value[13],
+				sense_ascq: param.value[14],
+				vendor_specific: param.value[15],
+			})
+		})
+		.filter(|kv| kv.is_some())
+		.map(|kv| kv.unwrap())
+		.collect();
+
+		Ok(self_tests)
 	}
 }
 

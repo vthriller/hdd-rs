@@ -2,7 +2,6 @@
 name = "sample-scsi"
 version = "0.8.0"
 dependencies = [
- "byteorder 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.20.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hdd 0.8.0",
  "number_prefix 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",

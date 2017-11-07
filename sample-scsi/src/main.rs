@@ -14,9 +14,6 @@ use separator::Separatable;
 extern crate number_prefix;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
-extern crate byteorder;
-use byteorder::{ReadBytesExt, BigEndian};
-
 fn print_hex(data: &[u8]) {
 	for i in 0..data.len() {
 		if i % 16 == 0 { print!("\n"); }
@@ -166,49 +163,7 @@ fn main() {
 						});
 					},
 					0x0e => { print!("{:#?}\n", dev.dates_and_cycle_counters()) }
-					0x10 => { // Self-Test results
-						if let Some(params) = page.parse_params() {
-							for param in params {
-								// XXX tell about unexpected params?
-								if param.code == 0 || param.code > 0x0014 { continue; }
-								if param.value.len() < 0x10 { continue; }
-
-								// unused self-test log parameter is all zeroes
-								if *param.value.iter().max().unwrap() == 0 { continue }
-
-								print!("self-test:\n");
-								print!("result = {}\n", match param.value[0] & 0b111 {
-									0 => "no error".to_string(),
-									1 => "aborted explicitly".to_string(),
-									2 => "aborted by other means".to_string(),
-									3 => "unknown error occurred".to_string(),
-									4 => "failed (unknown segment)".to_string(),
-									5 => "failed (1st segment)".to_string(),
-									6 => "failed (2nd segment)".to_string(),
-									7 => "failed (other segment)".to_string(),
-									15 => "in progress".to_string(),
-									x => format!("(reserved) {}", x),
-								});
-								print!("test code: {}\n", (param.value[0] & 0b11100000) >> 5);
-								print!("test number: {}\n", param.value[1]);
-								let hours = (&param.value[2..4]).read_u16::<BigEndian>().unwrap();
-								if hours == 0xffff {
-									print!("accumulated power-on hours: > {}\n", hours);
-								} else {
-									print!("accumulated power-on hours: {}\n", hours);
-								}
-								print!("address of first failure: {:016x}\n",
-									(&param.value[4..12]).read_u64::<BigEndian>().unwrap(),
-								);
-								print!("sense key/ASC/ASCQ: {} {} {}\n",
-									param.value[12] & 0b1111,
-									param.value[13],
-									param.value[14],
-								);
-								print!("(vendor specific): {}\n", param.value[15]);
-							}
-						}
-					},
+					0x10 => { print!("{:#?}\n", dev.self_test_results()) }
 					0x2f => { // Informational Exceptions
 						if let Some(params) = page.parse_params() {
 							for param in params {
