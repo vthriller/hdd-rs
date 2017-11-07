@@ -81,6 +81,26 @@ pub struct InformationalException {
 	pub vendor_specific: Vec<u8>,
 }
 
+/// For a given page number `page`, return its name
+pub fn page_name(page: u8) -> &'static str {
+	match page {
+		0x00 => "Supported Log Pages",
+		0x02 => "Write Error Counter",
+		0x03 => "Read Error Counter",
+		0x04 => "Read Reverse Error Counter",
+		0x05 => "Verify Error Counter",
+		0x06 => "Non-Medium Error",
+		0x0d => "Temperature",
+		0x0e => "Start-Stop Cycle Counter",
+		0x10 => "Self-Test results",
+		0x2f => "Informational Exceptions",
+		0x30...0x3e => "(Vendor-Specific)",
+		0x3f => "(Reserved)",
+		// TODO Option<>?
+		_ => "?",
+	}
+}
+
 // TODO proper errors
 // TODO non-empty autosense errors
 /// Methods in this trait issue LOG SENSE command against the device and return interpreted log page responses

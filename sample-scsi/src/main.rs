@@ -1,7 +1,7 @@
 extern crate hdd;
 use hdd::Device;
 use hdd::scsi::SCSIDevice;
-use hdd::scsi::pages::Pages;
+use hdd::scsi::pages::{Pages, page_name};
 use hdd::scsi::data::{inquiry, log_page};
 use hdd::scsi::data::vpd::device_id;
 
@@ -132,22 +132,7 @@ fn main() {
 		for p in pages {
 			if p == 00 { continue; }
 
-			let name = match p {
-				0x02 => "Write Error Counter",
-				0x03 => "Read Error Counter",
-				0x04 => "Read Reverse Error Counter",
-				0x05 => "Verify Error Counter",
-				0x06 => "Non-Medium Error",
-				0x0d => "Temperature",
-				0x0e => "Start-Stop Cycle Counter",
-				0x10 => "Self-Test results",
-				0x2f => "Informational Exceptions",
-				0x30...0x3e => "(Vendor-Specific)",
-				0x3f => "(Reserved)",
-				_ => "?",
-			};
-
-			let data = ask_log(&format!("[{:02x}] {}", p, name), &dev, p, 0x00, verbose);
+			let data = ask_log(&format!("[{:02x}] {}", p, page_name(p)), &dev, p, 0x00, verbose);
 			let page = log_page::parse(&data);
 			if let Some(page) = page {
 				match p {
