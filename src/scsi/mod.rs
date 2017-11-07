@@ -69,6 +69,7 @@ pub trait SCSIDevice {
 	Executes LOG SENSE command.
 
 	Arguments are:
+
 	- `changed`: whether to return code values changed since the last LOG SELECT or LOG CHANGE command (obsolete)
 	- `save_params`: record log parameters marked as saveable into non-volatile, vendor-specific location (might not be supported)
 	- `default`: whether to return current or default values (?)
