@@ -1,4 +1,6 @@
-Consider using `use self::Whatever::*` for matches that use more than 4 enum variants (regardless of number of enums), or if enum qualifiers are quite long, to keep things concise; e.g. prefer this:
+* For trivial things like indentation style, consult `.editorconfig`; see http://editorconfig.org/ for more.
+* Put trailing commas after the last items and match arms to keep future diffs cleaner.
+* Consider using `use self::Whatever::*` for matches that use more than 4 enum variants (regardless of number of enums), or if enum qualifiers are quite long, to keep things concise; e.g. prefer this:
 ```rust
 let drivetype = {
 	use self::id::RPM::*;
