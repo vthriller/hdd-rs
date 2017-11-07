@@ -1,4 +1,23 @@
-//! Functions implementing typical log page queries
+/*!
+Functions implementing typical log page queries
+
+## Example
+
+```
+use hdd::Device;
+use hdd::scsi::SCSIDevice;
+use hdd::scsi::pages::{Pages, page_name};
+
+...
+
+let pages = dev.supported_pages().unwrap();
+
+if pages.contains(0x03) {
+	println!("{}:", page_name(0x03));
+	println!("{:#?}\n", dev.read_error_counters()),
+}
+```
+*/
 
 use Device;
 use super::SCSIDevice;
