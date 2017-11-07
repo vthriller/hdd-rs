@@ -5,13 +5,7 @@ This module (and struct it provides) allows opening (`Device::open(&path)`) and 
 
 ## Example
 
-```
-use hdd::Device;
-use hdd::scsi::SCSIDevice;
-
-let dev = Device::open("/dev/da0").unwrap();
-let (sense, data) = dev.scsi_inquiry(vpd, page).unwrap();
-```
+See [parent module](../index.html).
 */
 
 #[cfg(target_os = "linux")]
