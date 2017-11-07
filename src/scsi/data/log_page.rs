@@ -45,7 +45,7 @@ pub enum Condition {
 pub enum Format { BoundedCounter, UnboundedCounter, ASCIIList, BinaryList }
 
 #[derive(Debug)]
-pub struct Parameter<'a> {
+pub struct Parameter {
 	pub code: u16,
 	/// Whether cumulative parameter reflects all the events, or is only updated by the LOG SELECT command. For threshold parameters, this should be `false`.
 	pub update_disabled: bool,
@@ -54,19 +54,19 @@ pub struct Parameter<'a> {
 	/// See [enum Condition](enum.Condition.html)
 	pub threshold_comparison: Condition,
 	pub format: Format,
-	pub value: &'a [u8],
+	pub value: Vec<u8>,
 }
 
 #[derive(Debug)]
-pub struct Page<'a> {
+pub struct Page {
 	pub page: u8,
 	pub subpage: Option<u8>,
 	/// Whether this paged is saved if LOG SENSE is executed with SP bit set; inverse of DS log page bit
 	pub saved: bool,
-	pub data: &'a [u8],
+	pub data: Vec<u8>,
 }
 
-impl<'a> Page<'a> {
+impl Page {
 	// TODO? as iterator (but then, how to deal with invalid pages?)
 	/**
 	Parse page data as list of params.
@@ -75,7 +75,7 @@ impl<'a> Page<'a> {
 
 	Returns `None` if some param spans past the transferred data buffer (usually it means that it's not the params that are attached to the page).
 	*/
-	pub fn parse_params(&self) -> Option<Vec<Parameter<'a>>> {
+	pub fn parse_params(&self) -> Option<Vec<Parameter>> {
 		let mut params = vec![];
 
 		// iterate over params
@@ -117,7 +117,7 @@ impl<'a> Page<'a> {
 					0b11 => Format::BinaryList,
 					_ => unreachable!(),
 				},
-				value: &self.data[current_param .. current_param+plen],
+				value: self.data[current_param .. current_param+plen].to_vec(),
 			});
 
 			current_param += plen;
@@ -150,6 +150,6 @@ pub fn parse(data: &[u8]) -> Option<Page> {
 			(false, _) => { return None },
 			(true, sp) => Some(sp),
 		},
-		data: &data[4 .. len],
+		data: data[4 .. len].to_vec(),
 	})
 }
