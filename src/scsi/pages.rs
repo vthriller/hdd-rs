@@ -77,7 +77,8 @@ pub struct SelfTest {
 pub struct InformationalException {
 	pub asc: u8,
 	pub ascq: u8,
-	pub recent_temperature_reading: u8,
+	/// Bottom-saturated (i.e. values less than 0 are represented as 0) temperature, in °C, with an accuracy of ±3°C
+	pub recent_temperature_reading: Option<u8>,
 	pub vendor_specific: Vec<u8>,
 }
 
@@ -402,7 +403,10 @@ pub trait Pages: SCSIDevice {
 			Some(InformationalException {
 				asc: param.value[0],
 				ascq: param.value[1],
-				recent_temperature_reading: param.value[2],
+				recent_temperature_reading: match param.value[2] {
+					0xff => None,
+					x => Some(x),
+				},
 				vendor_specific: param.value[3..].to_vec(),
 			})
 		})
