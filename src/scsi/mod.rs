@@ -64,7 +64,7 @@ pub trait SCSIDevice {
 		))
 	}
 
-	// TODO? struct as a single argument
+	// TODO? struct as a single argument, or maybe even resort to the builder pattern
 	/**
 	Executes LOG SENSE command.
 
