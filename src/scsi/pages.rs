@@ -73,6 +73,14 @@ pub struct SelfTest {
 	pub vendor_specific: u8,
 }
 
+#[derive(Debug)]
+pub struct InformationalException {
+	pub asc: u8,
+	pub ascq: u8,
+	pub recent_temperature_reading: u8,
+	pub vendor_specific: Vec<u8>,
+}
+
 // TODO proper errors
 // TODO non-empty autosense errors
 /// Methods in this trait issue LOG SENSE command against the device and return interpreted log page responses
@@ -351,6 +359,38 @@ pub trait Pages: SCSIDevice {
 		.collect();
 
 		Ok(self_tests)
+	}
+
+	fn informational_exceptions(&self) -> Result<Vec<InformationalException>, Error> {
+		let (_sense, data) = self.log_sense(
+			false, // changed
+			false, // save_params
+			false, // default
+			false, // threshold
+			0x2f, 0, // page, subpage
+			0, // param_ptr
+		)?;
+
+		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
+		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+
+		let exceptions = params.iter().map(|param| {
+			// XXX tell about unexpected params?
+			if param.code != 0 { return None; }
+			if param.value.len() < 3 { return None; }
+
+			Some(InformationalException {
+				asc: param.value[0],
+				ascq: param.value[1],
+				recent_temperature_reading: param.value[2],
+				vendor_specific: param.value[3..].to_vec(),
+			})
+		})
+		.filter(|kv| kv.is_some())
+		.map(|kv| kv.unwrap())
+		.collect();
+
+		Ok(exceptions)
 	}
 }
 

@@ -164,21 +164,7 @@ fn main() {
 					},
 					0x0e => { print!("{:#?}\n", dev.dates_and_cycle_counters()) }
 					0x10 => { print!("{:#?}\n", dev.self_test_results()) }
-					0x2f => { // Informational Exceptions
-						if let Some(params) = page.parse_params() {
-							for param in params {
-								// XXX tell about unexpected params?
-								if param.code != 0 { continue; }
-								if param.value.len() < 3 { continue; }
-
-								print!("IE ASC: {:02x}\n", param.value[0]);
-								print!("IE ASCQ: {:02x}\n", param.value[1]);
-								print!("Most Recent Temperature Reading: {}\n", param.value[2]);
-								print!("(Vendor-specific): len={}\n", param.value[3..].len());
-								print_hex(&param.value[3..]);
-							}
-						}
-					},
+					0x2f => { print!("{:#?}\n", dev.informational_exceptions()) }
 					_ => {
 						print!("{:?}\n", page);
 						print!("{:#?}\n", page.parse_params());
