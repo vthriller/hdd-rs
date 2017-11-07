@@ -35,8 +35,8 @@ impl SCSIDevice for Device {
 					To => unimplemented!(), //CAM_DIR_OUT,
 					Both => unimplemented!(), //CAM_DIR_BOTH,
 					None => CAM_DIR_NONE,
-				} as u32
-			};
+				}
+			} as u32;
 			csio.ccb_h.xflags = 0;
 			csio.ccb_h.retry_count = 1;
 			csio.ccb_h.timeout = timeout*1000;

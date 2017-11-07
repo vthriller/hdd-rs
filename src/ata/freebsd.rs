@@ -29,8 +29,8 @@ impl ATADevice for Device {
 					To => unimplemented!(), //CAM_DIR_OUT,
 					Both => unimplemented!(), //CAM_DIR_BOTH,
 					None => CAM_DIR_NONE,
-				} as u32
-			};
+				}
+			} as u32;
 			h.retry_count = 0;
 			h.timeout = timeout * 1000;
 
