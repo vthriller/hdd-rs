@@ -102,13 +102,16 @@ impl Page {
 
 				update_disabled: control & 0b10000000 != 0,
 				target_save: control & 0b100000 != 0,
-				threshold_comparison: match (control & 0b10000 != 0, (control & 0b1100) >> 2) {
-					(false, _) => Condition::Never,
-					(true, 0b00) => Condition::Always,
-					(true, 0b01) => Condition::Eq,
-					(true, 0b10) => Condition::Ne,
-					(true, 0b11) => Condition::Gt,
-					_ => unreachable!(),
+				threshold_comparison: {
+					use self::Condition::*;
+					match (control & 0b10000 != 0, (control & 0b1100) >> 2) {
+						(false, _) => Never,
+						(true, 0b00) => Always,
+						(true, 0b01) => Eq,
+						(true, 0b10) => Ne,
+						(true, 0b11) => Gt,
+						_ => unreachable!(),
+					}
 				},
 				format: match control & 0b11 {
 					0b00 => Format::BoundedCounter,

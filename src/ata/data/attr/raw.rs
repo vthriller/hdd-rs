@@ -38,11 +38,12 @@ where T: fmt::Display {
 
 impl fmt::Display for Raw {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		use self::Raw::*;
 		match *self {
-			Raw::Raw8(ref vals) => write_vec(f, &vals),
-			Raw::Raw16(ref vals) => write_vec(f, &vals),
-			Raw::Raw64(val) => write!(f, "{}", val),
-			Raw::Raw16opt16(ref x, ref y) => {
+			Raw8(ref vals) => write_vec(f, &vals),
+			Raw16(ref vals) => write_vec(f, &vals),
+			Raw64(val) => write!(f, "{}", val),
+			Raw16opt16(ref x, ref y) => {
 				write!(f, "{}", x)?;
 				if let &Some(ref vec) = y {
 					write!(f, " (")?;
@@ -51,7 +52,7 @@ impl fmt::Display for Raw {
 				}
 				Ok(())
 			}
-			Raw::Raw24opt8(ref x, ref y) => {
+			Raw24opt8(ref x, ref y) => {
 				write!(f, "{}", x)?;
 				if let &Some(ref vec) = y {
 					write!(f, " (")?;
@@ -60,31 +61,31 @@ impl fmt::Display for Raw {
 				}
 				Ok(())
 			}
-			Raw::Raw16avg16 { value, average } =>
+			Raw16avg16 { value, average } =>
 				write!(f, "{} (avg: {})", value, average),
-			Raw::Raw24div(x, y) => write!(f, "{}/{}", x, y),
-			Raw::Minutes(m) => {
+			Raw24div(x, y) => write!(f, "{}/{}", x, y),
+			Minutes(m) => {
 				let h = m / 60; let m = m - h * 60;
 				let d = h / 24; let h = h - d * 24;
 
 				write!(f, "{}d {:02}:{:02}", d, h, m)
 			},
-			Raw::Seconds(s) => {
+			Seconds(s) => {
 				let m = s / 60; let s = s - m * 60;
 				let h = m / 60; let m = m - h * 60;
 				let d = h / 24; let h = h - d * 24;
 
 				write!(f, "{}d {:02}:{:02}:{:02}", d, h, m, s)
 			},
-			Raw::HoursMilliseconds(h, ms) => {
+			HoursMilliseconds(h, ms) => {
 				let s = ms as f32 / 1000.;
 				let m = s as u32 / 60; let s = s - (m as f32) * 60.;
 				let d = h / 24; let h = h - d * 24;
 
 				write!(f, "{}d {:02}:{:02}:{:02}", d, h, m, s)
 			},
-			Raw::Celsius(cur) => write!(f, "{:.1}°C", cur), // .1 because f32
-			Raw::CelsiusMinMax { current, min, max } =>
+			Celsius(cur) => write!(f, "{:.1}°C", cur), // .1 because f32
+			CelsiusMinMax { current, min, max } =>
 				write!(f, "{}°C (min: {}°C, max: {}°C)", current, min, max),
 		}
 	}
@@ -121,16 +122,17 @@ impl Raw {
 		let raw48 = reorder(&data, &byte_order);
 		let raw64 = reorder(&data, &format!("{:_>8}", byte_order));
 
+		use self::Raw::*;
 		match fmt.as_ref() {
-			"raw8" => Raw::Raw8(raw48),
-			"raw16" => Raw::Raw16(
+			"raw8" => Raw8(raw48),
+			"raw16" => Raw16(
 				raw48.chunks(2).map(|i| read(i, 16) as u16).collect()
 			),
-			"raw56" | "hex56" => Raw::Raw64(read(&raw64[1..8], 56)),
-			"raw64" | "hex64" => Raw::Raw64(read(&raw64, 64)),
+			"raw56" | "hex56" => Raw64(read(&raw64[1..8], 56)),
+			"raw64" | "hex64" => Raw64(read(&raw64, 64)),
 			"raw16(avg16)" => {
 				let mut raw48 = raw48.chunks(2).map(|i| read(i, 16) as u16);
-				Raw::Raw16avg16 {
+				Raw16avg16 {
 					value: raw48.next().unwrap(), // the 0th element should always be here
 					average: raw48.next().unwrap(), // and so is the 1st
 				}
@@ -139,29 +141,29 @@ impl Raw {
 				let mut raw48 = raw48.chunks(2).map(|i| read(i, 16) as u16);
 				let x = raw48.next().unwrap(); // 0th element should always be here
 				let opt: Vec<u16> = raw48.collect();
-				Raw::Raw16opt16(x, opt.iter().filter(|&&i| i>0).max().map(|_| opt.clone()))
+				Raw16opt16(x, opt.iter().filter(|&&i| i>0).max().map(|_| opt.clone()))
 			},
 			"raw24(raw8)" => {
 				let x = read(&raw48[3..6], 24) as u32;
 				let opt: Vec<u8> = raw48.iter().take(3).map(|&i|i).collect();
-				Raw::Raw24opt8(x, opt.iter().filter(|&&i| i>0).max().map(|_| opt.clone()))
+				Raw24opt8(x, opt.iter().filter(|&&i| i>0).max().map(|_| opt.clone()))
 			},
-			"raw24/raw24" => Raw::Raw24div(
+			"raw24/raw24" => Raw24div(
 				read(&raw48[0..3], 24) as u32,
 				read(&raw48[3..6], 24) as u32,
 			),
-			"raw24/raw32" => Raw::Raw24div(
+			"raw24/raw32" => Raw24div(
 				read(&raw64[1..4], 24) as u32,
 				read(&raw64[4..8], 32) as u32,
 			),
-			"sec2hour" => Raw::Seconds(read(&raw48, 48)),
-			"min2hour" => Raw::Minutes(read(&raw48, 48)),
-			"halfmin2hour" => Raw::Seconds(read(&raw48, 48) * 30),
-			"msec24hour32" => Raw::HoursMilliseconds(
+			"sec2hour" => Seconds(read(&raw48, 48)),
+			"min2hour" => Minutes(read(&raw48, 48)),
+			"halfmin2hour" => Seconds(read(&raw48, 48) * 30),
+			"msec24hour32" => HoursMilliseconds(
 				read(&raw64[4..8], 32) as u32, // hour
 				read(&raw64[1..4], 24) as u32, // msec
 			),
-			"temp10x" => Raw::Celsius(
+			"temp10x" => Celsius(
 				read(&raw48[4..6], 16) as f32 / 10.
 			),
 			"tempminmax" => {
@@ -198,28 +200,28 @@ impl Raw {
 					*r.next().unwrap(),
 				);
 				match r {
-					(0, 0, 0, 0, 0, t) => Raw::Celsius(t as f32),
-					(0, 0, 0, x, y, t) => Raw::CelsiusMinMax {
+					(0, 0, 0, 0, 0, t) => Celsius(t as f32),
+					(0, 0, 0, x, y, t) => CelsiusMinMax {
 						current: t,
 						min: min(x, y),
 						max: max(x, y),
 					},
-					(0, 0, x, y, 0, t) => Raw::CelsiusMinMax {
+					(0, 0, x, y, 0, t) => CelsiusMinMax {
 						current: t,
 						min: min(x, y),
 						max: max(x, y),
 					},
-					(0, x, 0, y, 0, t) => Raw::CelsiusMinMax {
+					(0, x, 0, y, 0, t) => CelsiusMinMax {
 						current: t,
 						min: min(x, y),
 						max: max(x, y),
 					},
 					// whatever this might be, show it using default formatter
-					_ => Raw::Raw64( read(&raw48, 48) ),
+					_ => Raw64( read(&raw48, 48) ),
 				}
 			},
 			// {raw,hex}48 is the default
-			_ => Raw::Raw64( read(&raw48, 48) ),
+			_ => Raw64( read(&raw48, 48) ),
 		}
 
 	}

@@ -167,16 +167,17 @@ pub trait Pages: SCSIDevice + Sized {
 			// XXX tell about unexpected params?
 			if param.value.len() == 0 { return None; }
 
+			use self::ErrorCounter::*;
 			let counter = match param.code {
-				0x0000 => ErrorCounter::CorrectedNoDelay,
-				0x0001 => ErrorCounter::CorrectedDelay,
-				0x0002 => ErrorCounter::Total,
-				0x0003 => ErrorCounter::ErrorsCorrected,
-				0x0004 => ErrorCounter::CRCProcessed,
-				0x0005 => ErrorCounter::BytesProcessed,
-				0x0006 => ErrorCounter::Uncorrected,
-				x @ 0x8000...0xffff => ErrorCounter::VendorSpecific(x),
-				x => ErrorCounter::Reserved(x),
+				0x0000 => CorrectedNoDelay,
+				0x0001 => CorrectedDelay,
+				0x0002 => Total,
+				0x0003 => ErrorsCorrected,
+				0x0004 => CRCProcessed,
+				0x0005 => BytesProcessed,
+				0x0006 => Uncorrected,
+				x @ 0x8000...0xffff => VendorSpecific(x),
+				x => Reserved(x),
 			};
 			let value = (&param.value[..]).read_uint::<BigEndian>(param.value.len()).unwrap();
 
@@ -333,15 +334,16 @@ pub trait Pages: SCSIDevice + Sized {
 			// unused self-test log parameter is all zeroes
 			if *param.value.iter().max().unwrap() == 0 { return None }
 
+			use self::SelfTestResult::*;
 			Some(SelfTest {
 				result: match param.value[0] & 0b111 {
-					0 => SelfTestResult::NoError,
-					1 => SelfTestResult::Aborted { explicitly: true },
-					2 => SelfTestResult::Aborted { explicitly: false },
-					3 => SelfTestResult::UnknownError,
-					4...7 => SelfTestResult::Failed,
-					15 => SelfTestResult::InProgress,
-					x => SelfTestResult::Reserved(x),
+					0 => NoError,
+					1 => Aborted { explicitly: true },
+					2 => Aborted { explicitly: false },
+					3 => UnknownError,
+					4...7 => Failed,
+					15 => InProgress,
+					x => Reserved(x),
 				},
 				code: (param.value[0] & 0b11100000) >> 5,
 				number: param.value[1],

@@ -107,10 +107,14 @@ pub fn load(file: &str) -> Result<Vec<Entry>, Error> {
 }
 
 fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
-	let drivetype = match id.rpm {
-		id::RPM::RPM(_) => Some(vendor_attribute::Type::HDD),
-		id::RPM::NonRotating => Some(vendor_attribute::Type::SSD),
-		id::RPM::Unknown => None,
+	let drivetype = {
+		use self::id::RPM::*;
+		use self::vendor_attribute::Type::*;
+		match id.rpm {
+			RPM(_) => Some(HDD),
+			NonRotating => Some(SSD),
+			Unknown => None,
+		}
 	};
 
 	preset.into_iter().filter(|ref attr| match (&attr.drivetype, &drivetype) {

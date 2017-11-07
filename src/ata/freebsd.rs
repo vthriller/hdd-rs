@@ -21,12 +21,16 @@ impl ATADevice for Device {
 		unsafe {
 			let h = ccb.ccb_h();
 			h.func_code = xpt_opcode::XPT_ATA_IO;
-			h.flags = match dir {
-				Direction::From => ccb_flags::CAM_DIR_IN,
-				Direction::To => unimplemented!(), //ccb_flags::CAM_DIR_OUT,
-				Direction::Both => unimplemented!(), //ccb_flags::CAM_DIR_BOTH,
-				Direction::None => ccb_flags::CAM_DIR_NONE,
-			} as u32;
+			h.flags = {
+				use self::Direction::*;
+				use self::ccb_flags::*;
+				match dir {
+					From => CAM_DIR_IN,
+					To => unimplemented!(), //CAM_DIR_OUT,
+					Both => unimplemented!(), //CAM_DIR_BOTH,
+					None => CAM_DIR_NONE,
+				} as u32
+			};
 			h.retry_count = 0;
 			h.timeout = timeout * 1000;
 
