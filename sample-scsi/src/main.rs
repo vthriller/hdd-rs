@@ -37,28 +37,6 @@ fn query(what: &str, dev: &Device, vpd: bool, page: u8, verbose: bool) -> Vec<u8
 	data
 }
 
-fn ask_log(what: &str, dev: &Device, page: u8, subpage: u8, verbose: bool) -> Vec<u8> {
-	print!("=== {} ===\n", what);
-	let (sense, data) = dev.log_sense(
-		false, // changed
-		false, // save_params
-		false, // default
-		false, // threshold
-		page, subpage,
-		0, // param_ptr
-	).unwrap();
-
-	if verbose {
-		print!("sense:");
-		print_hex(&sense);
-
-		print!("data: len={}", data.len());
-		print_hex(&data);
-	}
-
-	data
-}
-
 fn main() {
 	let args = App::new("sample-scsi")
 		.version(crate_version!())
@@ -132,29 +110,23 @@ fn main() {
 		for p in pages {
 			if p == 00 { continue; }
 
-			let data = ask_log(&format!("[{:02x}] {}", p, page_name(p)), &dev, p, 0x00, verbose);
-			let page = log_page::parse(&data);
-			if let Some(page) = page {
-				match p {
-					0x02 => { print!("Write Error Counters: {:#?}\n", dev.write_error_counters()) }
-					0x03 => { print!("Read Error Counters: {:#?}\n", dev.read_error_counters()) }
-					0x04 => { print!("Read Reverse Error Counters: {:#?}\n", dev.read_reverse_error_counters()) }
-					0x05 => { print!("Verify Error Counters: {:#?}\n", dev.verify_error_counters()) }
-					0x06 => { print!("Non-Medium Error Count: {:?}\n", dev.non_medium_error_count()) }
-					0x0d => {
-						dev.temperature().map(|(temp, ref_temp)| {
-							print!("Temperature: {:?} °C\n", temp);
-							print!("Reference temperature: {:?} °C\n", ref_temp);
-						});
-					},
-					0x0e => { print!("{:#?}\n", dev.dates_and_cycle_counters()) }
-					0x10 => { print!("{:#?}\n", dev.self_test_results()) }
-					0x2f => { print!("{:#?}\n", dev.informational_exceptions()) }
-					_ => {
-						print!("{:?}\n", page);
-						print!("{:#?}\n", page.parse_params());
-					},
-				}
+			print!("=== [{:02x}] {} ===\n", p, page_name(p));
+			match p {
+				0x02 => print!("{:#?}\n", dev.write_error_counters()),
+				0x03 => print!("{:#?}\n", dev.read_error_counters()),
+				0x04 => print!("{:#?}\n", dev.read_reverse_error_counters()),
+				0x05 => print!("{:#?}\n", dev.verify_error_counters()),
+				0x06 => print!("{:?}\n", dev.non_medium_error_count()),
+				0x0d => {
+					dev.temperature().map(|(temp, ref_temp)| {
+						print!("Temperature: {:?} °C\n", temp);
+						print!("Reference temperature: {:?} °C\n", ref_temp);
+					});
+				},
+				0x0e => print!("{:#?}\n", dev.dates_and_cycle_counters()),
+				0x10 => print!("{:#?}\n", dev.self_test_results()),
+				0x2f => print!("{:#?}\n", dev.informational_exceptions()),
+				_ => (),
 			}
 		}
 	});
