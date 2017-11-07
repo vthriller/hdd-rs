@@ -121,24 +121,33 @@ pub fn page_name(page: u8) -> &'static str {
 	}
 }
 
+fn get_page<T: SCSIDevice>(dev: &T, page: u8) -> Result<log_page::Page, Error> {
+	let (_sense, data) = dev.log_sense(
+		false, // changed
+		false, // save_params
+		false, // default
+		false, // threshold
+		page, 0, // page, subpage
+		0, // param_ptr
+	)?;
+
+	log_page::parse(&data)
+		.ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))
+}
+
+fn get_params<T: SCSIDevice>(dev: &T, page: u8) -> Result<Vec<log_page::Parameter>, Error> {
+	let page = get_page(dev, page)?;
+	page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))
+}
+
 // TODO proper errors
 // TODO non-empty autosense errors
 /// Methods in this trait issue LOG SENSE command against the device and return interpreted log page responses
-pub trait Pages: SCSIDevice {
+pub trait Pages: SCSIDevice + Sized {
 	// TODO? use this in a constructor of a new type to prevent user from issuing LOG SENSE against unsupported log pages
 	fn supported_pages(&self) -> Result<Vec<u8>, Error> {
-		let (_sense, data) = self.log_sense(
-			false, // changed
-			false, // save_params
-			false, // default
-			false, // threshold
-			0, 0, // page, subpage
-			0, // param_ptr
-		)?;
-
-		log_page::parse(&data).map(|page| {
-			page.data.to_vec()
-		}).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))
+		let page = get_page(self, 0x00)?;
+		Ok(page.data.to_vec())
 	}
 
 	/**
@@ -152,17 +161,7 @@ pub trait Pages: SCSIDevice {
 	* [verify_error_counters](#method.verify_error_counters)
 	*/
 	fn error_counters(&self, page: u8) -> Result<HashMap<ErrorCounter, u64>, Error> {
-		let (_sense, data) = self.log_sense(
-			false, // changed
-			false, // save_params
-			false, // default
-			false, // threshold
-			page, 0, // page, subpage
-			0, // param_ptr
-		)?;
-
-		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
-		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+		let params = get_params(self, page)?;
 
 		let counters = params.iter().map(|param| {
 			// XXX tell about unexpected params?
@@ -204,17 +203,7 @@ pub trait Pages: SCSIDevice {
 	}
 
 	fn non_medium_error_count(&self) -> Result<u64, Error> {
-		let (_sense, data) = self.log_sense(
-			false, // changed
-			false, // save_params
-			false, // default
-			false, // threshold
-			0x06, 0, // page, subpage
-			0, // param_ptr
-		)?;
-
-		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
-		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+		let params = get_params(self, 0x06)?;
 
 		for param in params {
 			// XXX tell about unexpected params?
@@ -234,17 +223,7 @@ pub trait Pages: SCSIDevice {
 	* `ref_temp`: reference temperature, °C; maximum temperature at which device is capable of operating continuously without degrading
 	*/
 	fn temperature(&self) -> Result<(Option<u8>, Option<u8>), Error> {
-		let (_sense, data) = self.log_sense(
-			false, // changed
-			false, // save_params
-			false, // default
-			false, // threshold
-			0x0d, 0, // page, subpage
-			0, // param_ptr
-		)?;
-
-		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
-		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+		let params = get_params(self, 0x0d)?;
 
 		let mut temp = None;
 		let mut ref_temp = None;
@@ -271,17 +250,7 @@ pub trait Pages: SCSIDevice {
 
 	/// In SPC-4, this is called Start-Stop Cycle Counter
 	fn dates_and_cycle_counters(&self) -> Result<DatesAndCycleCounters, Error> {
-		let (_sense, data) = self.log_sense(
-			false, // changed
-			false, // save_params
-			false, // default
-			false, // threshold
-			0x0e, 0, // page, subpage
-			0, // param_ptr
-		)?;
-
-		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
-		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+		let params = get_params(self, 0x0e)?;
 
 		let mut result = DatesAndCycleCounters {
 			manufacturing_date: None,
@@ -354,17 +323,7 @@ pub trait Pages: SCSIDevice {
 	}
 
 	fn self_test_results(&self) -> Result<Vec<SelfTest>, Error> {
-		let (_sense, data) = self.log_sense(
-			false, // changed
-			false, // save_params
-			false, // default
-			false, // threshold
-			0x10, 0, // page, subpage
-			0, // param_ptr
-		)?;
-
-		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
-		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+		let params = get_params(self, 0x10)?;
 
 		let self_tests = params.iter().map(|param| {
 			// XXX tell about unexpected params?
@@ -402,17 +361,7 @@ pub trait Pages: SCSIDevice {
 	}
 
 	fn informational_exceptions(&self) -> Result<Vec<InformationalException>, Error> {
-		let (_sense, data) = self.log_sense(
-			false, // changed
-			false, // save_params
-			false, // default
-			false, // threshold
-			0x2f, 0, // page, subpage
-			0, // param_ptr
-		)?;
-
-		let page = log_page::parse(&data).ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))?;
-		let params = page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))?;
+		let params = get_params(self, 0x2f)?;
 
 		let exceptions = params.iter().map(|param| {
 			// XXX tell about unexpected params?
