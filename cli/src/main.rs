@@ -411,18 +411,10 @@ fn main() {
 		args.value_of("device").unwrap()
 	).unwrap();
 
-	if let Some(ref args) = args.subcommand_matches("info") {
-		info(&dev, &ata_do, &args);
-		return;
-	}
-
-	if let Some(ref args) = args.subcommand_matches("health") {
-		health(&dev, &ata_do, &args);
-		return;
-	}
-
-	if let Some(ref args) = args.subcommand_matches("attrs") {
-		attrs(&dev, &ata_do, &args);
-		return;
+	match args.subcommand() {
+		("info", Some(args)) => info(&dev, &ata_do, &args),
+		("health", Some(args)) => health(&dev, &ata_do, &args),
+		("attrs", Some(args)) => attrs(&dev, &ata_do, &args),
+		_ => unreachable!(),
 	}
 }
