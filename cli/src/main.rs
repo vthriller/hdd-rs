@@ -254,7 +254,6 @@ fn attrs(
 	ata_do: &F,
 	drivedb: &Option<Vec<drivedb::Entry>>,
 	args: &ArgMatches,
-	user_attributes: Vec<hdd::drivedb::Attribute>,
 ) {
 	let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
 		command: ata::Command::Identify as u8,
@@ -266,6 +265,15 @@ fn attrs(
 		device: 0,
 	}).unwrap();
 	let id = id::parse_id(&data);
+
+	let user_attributes = args.values_of("vendorattribute")
+		.map(|attrs| attrs.collect())
+		.unwrap_or(vec![])
+		.into_iter()
+		.map(|attr| vendor_attribute::parse(attr).ok()) // TODO Err(_)
+		.filter(|x| x.is_some())
+		.map(|x| x.unwrap())
+		.collect();
 
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
 		&id,
@@ -331,6 +339,14 @@ fn main() {
 		.subcommand(SubCommand::with_name("attrs")
 			.about("Prints a list of S.M.A.R.T. attributes")
 			.arg(&arg_json)
+			.arg(Arg::with_name("vendorattribute")
+				.multiple(true)
+				.short("v") // smartctl-like
+				.long("vendorattribute") // smartctl-like
+				.takes_value(true)
+				.value_name("id,format[:byteorder][,name]")
+				.help("set display option for vendor attribute 'id'")
+			)
 		)
 		.arg(Arg::with_name("drivedb")
 			.short("B") // smartctl-like
@@ -338,14 +354,6 @@ fn main() {
 			.takes_value(true)
 			.value_name("FILE")
 			.help("path to drivedb file") // unlike smartctl, does not support '+FILE'
-		)
-		.arg(Arg::with_name("vendorattribute")
-			.multiple(true)
-			.short("v") // smartctl-like
-			.long("vendorattribute") // smartctl-like
-			.takes_value(true)
-			.value_name("id,format[:byteorder][,name]")
-			.help("set display option for vendor attribute 'id'")
 		)
 		.arg(Arg::with_name("type")
 			.short("d") // smartctl-like
@@ -392,15 +400,6 @@ fn main() {
 		eprint!("Cannot open drivedb file\n");
 	};
 
-	let user_attributes = args.values_of("vendorattribute")
-		.map(|attrs| attrs.collect())
-		.unwrap_or(vec![])
-		.into_iter()
-		.map(|attr| vendor_attribute::parse(attr).ok()) // TODO Err(_)
-		.filter(|x| x.is_some())
-		.map(|x| x.unwrap())
-		.collect();
-
 	if let Some(ref args) = args.subcommand_matches("info") {
 		info(&dev, &ata_do, &drivedb, &args);
 		return;
@@ -412,7 +411,7 @@ fn main() {
 	}
 
 	if let Some(ref args) = args.subcommand_matches("attrs") {
-		attrs(&dev, &ata_do, &drivedb, &args, user_attributes);
+		attrs(&dev, &ata_do, &drivedb, &args);
 		return;
 	}
 }
