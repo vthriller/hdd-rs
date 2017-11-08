@@ -186,11 +186,7 @@ fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
 	drivedb
 }
 
-fn info(
-	dev: &hdd::Device,
-	ata_do: &F,
-	args: &ArgMatches,
-) {
+fn get_device_id(ata_do: &F, dev: &Device) -> id::Id {
 	let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
 		command: ata::Command::Identify as u8,
 		sector: 1,
@@ -200,7 +196,15 @@ fn info(
 		cyl_low: 0,
 		device: 0,
 	}).unwrap();
-	let id = id::parse_id(&data);
+	id::parse_id(&data)
+}
+
+fn info(
+	dev: &hdd::Device,
+	ata_do: &F,
+	args: &ArgMatches,
+) {
+	let id = get_device_id(ata_do, dev);
 
 	let drivedb = open_drivedb(args.value_of("drivedb"));
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
@@ -236,16 +240,7 @@ fn health(
 	ata_do: &F,
 	args: &ArgMatches,
 ) {
-	let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
-		command: ata::Command::Identify as u8,
-		sector: 1,
-		features: 0,
-		sector_count: 1,
-		cyl_high: 0,
-		cyl_low: 0,
-		device: 0,
-	}).unwrap();
-	let id = id::parse_id(&data);
+	let id = get_device_id(ata_do, dev);
 
 	let use_json = args.is_present("json");
 
@@ -278,16 +273,7 @@ fn attrs(
 	ata_do: &F,
 	args: &ArgMatches,
 ) {
-	let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
-		command: ata::Command::Identify as u8,
-		sector: 1,
-		features: 0,
-		sector_count: 1,
-		cyl_high: 0,
-		cyl_low: 0,
-		device: 0,
-	}).unwrap();
-	let id = id::parse_id(&data);
+	let id = get_device_id(ata_do, dev);
 
 	let user_attributes = args.values_of("vendorattribute")
 		.map(|attrs| attrs.collect())
