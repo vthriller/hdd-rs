@@ -347,7 +347,6 @@ fn main() {
 			.value_name("id,format[:byteorder][,name]")
 			.help("set display option for vendor attribute 'id'")
 		)
-		.arg(&arg_json)
 		.arg(Arg::with_name("type")
 			.short("d") // smartctl-like
 			.long("device") // smartctl-like
