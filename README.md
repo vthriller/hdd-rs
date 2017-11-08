@@ -14,13 +14,13 @@ Mainly because I was disappointed in all the available options for putting SMART
 
 ## How?
 
-Build sample `smartctl`-esque tool:
+Build sample tool:
 
 ```sh
 git clone https://github.com/vthriller/hdd-rs.git
 cd smart-rs/cli
 cargo build --release
-sudo ./target/release/smart-rs -i --json /dev/sda
+sudo ./target/release/hdd /dev/sda attrs --json
 ```
 
 Put this into your `Cargo.toml` to start using this crate:
