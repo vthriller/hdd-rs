@@ -11,7 +11,13 @@ use hdd::drivedb::vendor_attribute;
 
 #[macro_use]
 extern crate clap;
-use clap::{App, Arg, SubCommand, ArgMatches};
+use clap::{
+	App,
+	Arg,
+	SubCommand,
+	ArgMatches,
+	AppSettings,
+};
 
 extern crate serde_json;
 use serde_json::value::ToJson;
@@ -352,6 +358,7 @@ fn main() {
 	let args = App::new("hdd")
 		.about("yet another S.M.A.R.T. querying tool")
 		.version(crate_version!())
+		.setting(AppSettings::SubcommandRequired)
 		.subcommand(SubCommand::with_name("health")
 			.about("Prints the health status of the device")
 			.arg(&arg_json)
