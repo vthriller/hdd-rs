@@ -11,7 +11,7 @@ use hdd::drivedb::vendor_attribute;
 
 #[macro_use]
 extern crate clap;
-use clap::{App, Arg};
+use clap::{App, Arg, SubCommand, ArgMatches};
 
 extern crate serde_json;
 use serde_json::value::ToJson;
@@ -156,6 +156,57 @@ fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F)
 	}
 }
 
+type F = fn(&Device, Direction, &ata::RegistersWrite)
+	-> Result<
+		(ata::RegistersRead, Vec<u8>),
+		std::io::Error
+	>;
+
+fn info(
+	dev: &hdd::Device,
+	ata_do: &F,
+	drivedb: &Option<Vec<drivedb::Entry>>,
+	args: &ArgMatches,
+) {
+	let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
+		command: ata::Command::Identify as u8,
+		sector: 1,
+		features: 0,
+		sector_count: 1,
+		cyl_high: 0,
+		cyl_low: 0,
+		device: 0,
+	}).unwrap();
+	let id = id::parse_id(&data);
+
+	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
+		&id,
+		&drivedb,
+		// no need to parse custom vendor attributes,
+		// we're only using drivedb for the family and the warning here
+		vec![],
+	));
+
+	let use_json = args.is_present("json");
+
+	if use_json {
+		let mut info = id.to_json().unwrap();
+
+		if let Some(ref dbentry) = dbentry {
+			if let Some(family) = dbentry.family {
+				info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
+			}
+			if let Some(warning) = dbentry.warning {
+				info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
+			}
+		}
+
+		print!("{}\n", serde_json::to_string(&info).unwrap());
+	} else {
+		print_id(&id, &dbentry);
+	}
+}
+
 #[inline]
 #[cfg(target_os = "linux")]
 fn types() -> [&'static str; 1] { ["sat"] }
@@ -164,6 +215,10 @@ fn types() -> [&'static str; 1] { ["sat"] }
 fn types() -> [&'static str; 2] { ["ata", "sat"] }
 
 fn main() {
+	let arg_json = Arg::with_name("json")
+		.long("json")
+		.help("Export data in JSON");
+
 	let args = App::new("hdd")
 		.about("yet another S.M.A.R.T. querying tool")
 		.version(crate_version!())
@@ -172,10 +227,9 @@ fn main() {
 			.long("health") // smartctl-like
 			.help("Prints the health status of the device")
 		)
-		.arg(Arg::with_name("info")
-			.short("i") // smartctl-like
-			.long("info") // smartctl-like
-			.help("Prints a basic information about the device")
+		.subcommand(SubCommand::with_name("info")
+			.about("Prints a basic information about the device")
+			.arg(&arg_json)
 		)
 		.arg(Arg::with_name("attrs")
 			.short("A") // smartctl-like
@@ -186,7 +240,7 @@ fn main() {
 		.arg(Arg::with_name("all")
 			.short("a") // smartctl-like
 			.long("all") // smartctl-like
-			.help("equivalent to --info --health --attrs")
+			.help("equivalent to --health --attrs")
 		)
 		.arg(Arg::with_name("drivedb")
 			.short("B") // smartctl-like
@@ -203,10 +257,7 @@ fn main() {
 			.value_name("id,format[:byteorder][,name]")
 			.help("set display option for vendor attribute 'id'")
 		)
-		.arg(Arg::with_name("json")
-			.long("json")
-			.help("Export data in JSON")
-		)
+		.arg(&arg_json)
 		.arg(Arg::with_name("type")
 			.short("d") // smartctl-like
 			.long("device") // smartctl-like
@@ -221,11 +272,6 @@ fn main() {
 		)
 		.get_matches();
 
-	type F = fn(&Device, Direction, &ata::RegistersWrite)
-		-> Result<
-			(ata::RegistersRead, Vec<u8>),
-			std::io::Error
-		>;
 	let satl: F = |dev: &Device, dir: Direction, regs: &ata::RegistersWrite| dev.ata_pass_through_16(dir, regs);
 	let direct: F = |dev: &Device, dir: Direction, regs: &ata::RegistersWrite| dev.ata_do(dir, regs);
 	let ata_do: F = match args.value_of("type") {
@@ -266,14 +312,18 @@ fn main() {
 		.map(|x| x.unwrap())
 		.collect();
 
-	let print_info  = args.is_present("info") || args.is_present("all");
+	if let Some(ref args) = args.subcommand_matches("info") {
+		info(&dev, &ata_do, &drivedb, &args);
+		return;
+	}
+
 	let print_attrs = args.is_present("attrs") || args.is_present("all");
 	let print_health = args.is_present("health") || args.is_present("all");
 
 	let use_json = args.is_present("json");
 	let mut json_map = serde_json::Map::new();
 
-	if print_info || print_attrs || print_health {
+	if print_attrs || print_health {
 		let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
 			command: ata::Command::Identify as u8,
 			sector: 1,
@@ -290,25 +340,6 @@ fn main() {
 			&drivedb,
 			user_attributes,
 		));
-
-		if print_info {
-			if use_json {
-				let mut info = id.to_json().unwrap();
-
-				if let Some(ref dbentry) = dbentry {
-					if let Some(family) = dbentry.family {
-						info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
-					}
-					if let Some(warning) = dbentry.warning {
-						info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
-					}
-				}
-
-				json_map.insert("info".to_string(), info);
-			} else {
-				print_id(&id, &dbentry);
-			}
-		}
 
 		if print_health {
 			when_smart_enabled(&id.smart, "health status", || {
