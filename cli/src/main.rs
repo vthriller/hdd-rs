@@ -207,6 +207,48 @@ fn info(
 	}
 }
 
+fn health(
+	dev: &hdd::Device,
+	ata_do: &F,
+	args: &ArgMatches,
+) {
+	let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
+		command: ata::Command::Identify as u8,
+		sector: 1,
+		features: 0,
+		sector_count: 1,
+		cyl_high: 0,
+		cyl_low: 0,
+		device: 0,
+	}).unwrap();
+	let id = id::parse_id(&data);
+
+	let use_json = args.is_present("json");
+
+	when_smart_enabled(&id.smart, "health status", || {
+		let (regs, _) = ata_do(&dev, Direction::None, &ata::RegistersWrite {
+			command: ata::Command::SMART as u8,
+			features: ata::SMARTFeature::ReturnStatus as u8,
+			sector_count: 0,
+			sector: 0,
+			cyl_low: 0x4f,
+			cyl_high: 0xc2,
+			device: 0,
+		}).unwrap();
+		let status = health::parse_smart_status(&regs);
+
+		if use_json {
+			print!("{}\n", serde_json::to_string(&status.to_json().unwrap()).unwrap());
+		} else {
+			print!("S.M.A.R.T. health status: {}\n", match status {
+				Some(true) => "good",
+				Some(false) => "BAD",
+				None => "(unknown)",
+			});
+		}
+	});
+}
+
 #[inline]
 #[cfg(target_os = "linux")]
 fn types() -> [&'static str; 1] { ["sat"] }
@@ -222,10 +264,9 @@ fn main() {
 	let args = App::new("hdd")
 		.about("yet another S.M.A.R.T. querying tool")
 		.version(crate_version!())
-		.arg(Arg::with_name("health")
-			.short("H") // smartctl-like
-			.long("health") // smartctl-like
-			.help("Prints the health status of the device")
+		.subcommand(SubCommand::with_name("health")
+			.about("Prints the health status of the device")
+			.arg(&arg_json)
 		)
 		.subcommand(SubCommand::with_name("info")
 			.about("Prints a basic information about the device")
@@ -240,7 +281,7 @@ fn main() {
 		.arg(Arg::with_name("all")
 			.short("a") // smartctl-like
 			.long("all") // smartctl-like
-			.help("equivalent to --health --attrs")
+			.help("equivalent to --attrs")
 		)
 		.arg(Arg::with_name("drivedb")
 			.short("B") // smartctl-like
@@ -317,13 +358,17 @@ fn main() {
 		return;
 	}
 
+	if let Some(ref args) = args.subcommand_matches("health") {
+		health(&dev, &ata_do, &args);
+		return;
+	}
+
 	let print_attrs = args.is_present("attrs") || args.is_present("all");
-	let print_health = args.is_present("health") || args.is_present("all");
 
 	let use_json = args.is_present("json");
 	let mut json_map = serde_json::Map::new();
 
-	if print_attrs || print_health {
+	if print_attrs {
 		let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
 			command: ata::Command::Identify as u8,
 			sector: 1,
@@ -341,30 +386,6 @@ fn main() {
 			user_attributes,
 		));
 
-		if print_health {
-			when_smart_enabled(&id.smart, "health status", || {
-				let (regs, _) = ata_do(&dev, Direction::None, &ata::RegistersWrite {
-					command: ata::Command::SMART as u8,
-					features: ata::SMARTFeature::ReturnStatus as u8,
-					sector_count: 0,
-					sector: 0,
-					cyl_low: 0x4f,
-					cyl_high: 0xc2,
-					device: 0,
-				}).unwrap();
-				let status = health::parse_smart_status(&regs);
-
-				if use_json {
-					json_map.insert("health".to_string(), status.to_json().unwrap());
-				} else {
-					print!("S.M.A.R.T. health status: {}\n", match status {
-						Some(true) => "good",
-						Some(false) => "BAD",
-						None => "(unknown)",
-					});
-				}
-			});
-		}
 
 		if print_attrs {
 			when_smart_enabled(&id.smart, "attributes", || {
