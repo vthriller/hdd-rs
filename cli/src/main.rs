@@ -249,6 +249,62 @@ fn health(
 	});
 }
 
+fn attrs(
+	dev: &hdd::Device,
+	ata_do: &F,
+	drivedb: &Option<Vec<drivedb::Entry>>,
+	args: &ArgMatches,
+	user_attributes: Vec<hdd::drivedb::Attribute>,
+) {
+	let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
+		command: ata::Command::Identify as u8,
+		sector: 1,
+		features: 0,
+		sector_count: 1,
+		cyl_high: 0,
+		cyl_low: 0,
+		device: 0,
+	}).unwrap();
+	let id = id::parse_id(&data);
+
+	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
+		&id,
+		&drivedb,
+		user_attributes,
+	));
+
+	let use_json = args.is_present("json");
+
+	when_smart_enabled(&id.smart, "attributes", || {
+		let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
+			command: ata::Command::SMART as u8,
+			sector: 0,
+			features: ata::SMARTFeature::ReadValues as u8,
+			sector_count: 1,
+			cyl_low: 0x4f,
+			cyl_high: 0xc2,
+			device: 0,
+		}).unwrap();
+		let (_, thresh) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
+			command: ata::Command::SMART as u8,
+			sector: 0,
+			features: ata::SMARTFeature::ReadThresholds as u8,
+			sector_count: 1,
+			cyl_low: 0x4f,
+			cyl_high: 0xc2,
+			device: 0,
+		}).unwrap();
+
+		let values = attr::parse_smart_values(&data, &thresh, &dbentry);
+
+		if use_json {
+			print!("{}\n", serde_json::to_string(&values.to_json().unwrap()).unwrap());
+		} else {
+			print_attributes(&values);
+		}
+	});
+}
+
 #[inline]
 #[cfg(target_os = "linux")]
 fn types() -> [&'static str; 1] { ["sat"] }
@@ -272,16 +328,9 @@ fn main() {
 			.about("Prints a basic information about the device")
 			.arg(&arg_json)
 		)
-		.arg(Arg::with_name("attrs")
-			.short("A") // smartctl-like
-			.long("attributes") // smartctl-like
-			.long("attrs")
-			.help("Prints a list of S.M.A.R.T. attributes")
-		)
-		.arg(Arg::with_name("all")
-			.short("a") // smartctl-like
-			.long("all") // smartctl-like
-			.help("equivalent to --attrs")
+		.subcommand(SubCommand::with_name("attrs")
+			.about("Prints a list of S.M.A.R.T. attributes")
+			.arg(&arg_json)
 		)
 		.arg(Arg::with_name("drivedb")
 			.short("B") // smartctl-like
@@ -363,63 +412,8 @@ fn main() {
 		return;
 	}
 
-	let print_attrs = args.is_present("attrs") || args.is_present("all");
-
-	let use_json = args.is_present("json");
-	let mut json_map = serde_json::Map::new();
-
-	if print_attrs {
-		let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
-			command: ata::Command::Identify as u8,
-			sector: 1,
-			features: 0,
-			sector_count: 1,
-			cyl_high: 0,
-			cyl_low: 0,
-			device: 0,
-		}).unwrap();
-		let id = id::parse_id(&data);
-
-		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
-			&id,
-			&drivedb,
-			user_attributes,
-		));
-
-
-		if print_attrs {
-			when_smart_enabled(&id.smart, "attributes", || {
-				let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
-					command: ata::Command::SMART as u8,
-					sector: 0,
-					features: ata::SMARTFeature::ReadValues as u8,
-					sector_count: 1,
-					cyl_low: 0x4f,
-					cyl_high: 0xc2,
-					device: 0,
-				}).unwrap();
-				let (_, thresh) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
-					command: ata::Command::SMART as u8,
-					sector: 0,
-					features: ata::SMARTFeature::ReadThresholds as u8,
-					sector_count: 1,
-					cyl_low: 0x4f,
-					cyl_high: 0xc2,
-					device: 0,
-				}).unwrap();
-
-				let values = attr::parse_smart_values(&data, &thresh, &dbentry);
-
-				if use_json {
-					json_map.insert("attributes".to_string(), values.to_json().unwrap());
-				} else {
-					print_attributes(&values);
-				}
-			});
-		}
-
-		if use_json {
-			print!("{}\n", serde_json::to_string(&json_map).unwrap());
-		}
+	if let Some(ref args) = args.subcommand_matches("attrs") {
+		attrs(&dev, &ata_do, &drivedb, &args, user_attributes);
+		return;
 	}
 }
