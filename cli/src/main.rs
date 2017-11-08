@@ -12,8 +12,6 @@ use hdd::drivedb;
 extern crate clap;
 use clap::{
 	App,
-	Arg,
-	SubCommand,
 	AppSettings,
 };
 
@@ -77,43 +75,29 @@ fn types() -> [&'static str; 1] { ["sat"] }
 #[cfg(target_os = "freebsd")]
 fn types() -> [&'static str; 2] { ["ata", "sat"] }
 
-fn main() {
-	let arg_json = Arg::with_name("json")
+type Arg = clap::Arg<'static, 'static>;
+pub fn arg_json() -> Arg {
+	Arg::with_name("json")
 		.long("json")
-		.help("Export data in JSON");
-	let arg_drivedb = Arg::with_name("drivedb")
+		.help("Export data in JSON")
+}
+pub fn arg_drivedb() -> Arg {
+	Arg::with_name("drivedb")
 			.short("B") // smartctl-like
 			.long("drivedb") // smartctl-like
 			.takes_value(true)
 			.value_name("FILE")
-			.help("path to drivedb file"); // unlike smartctl, does not support '+FILE'
+			.help("path to drivedb file") // unlike smartctl, does not support '+FILE'
+}
 
+fn main() {
 	let args = App::new("hdd")
 		.about("yet another S.M.A.R.T. querying tool")
 		.version(crate_version!())
 		.setting(AppSettings::SubcommandRequired)
-		.subcommand(SubCommand::with_name("health")
-			.about("Prints the health status of the device")
-			.arg(&arg_json)
-		)
-		.subcommand(SubCommand::with_name("info")
-			.about("Prints a basic information about the device")
-			.arg(&arg_json)
-			.arg(&arg_drivedb)
-		)
-		.subcommand(SubCommand::with_name("attrs")
-			.about("Prints a list of S.M.A.R.T. attributes")
-			.arg(&arg_json)
-			.arg(&arg_drivedb)
-			.arg(Arg::with_name("vendorattribute")
-				.multiple(true)
-				.short("v") // smartctl-like
-				.long("vendorattribute") // smartctl-like
-				.takes_value(true)
-				.value_name("id,format[:byteorder][,name]")
-				.help("set display option for vendor attribute 'id'")
-			)
-		)
+		.subcommand(health::subcommand())
+		.subcommand(info::subcommand())
+		.subcommand(attrs::subcommand())
 		.arg(Arg::with_name("type")
 			.short("d") // smartctl-like
 			.long("device") // smartctl-like

@@ -7,12 +7,17 @@ use hdd::ata::data::attr;
 use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
 
-use clap::ArgMatches;
+use clap::{
+	Arg,
+	ArgMatches,
+	App,
+	SubCommand,
+};
 
 use serde_json;
 use serde_json::value::ToJson;
 
-use super::{F, get_device_id, open_drivedb, when_smart_enabled};
+use super::{F, get_device_id, open_drivedb, when_smart_enabled, arg_json, arg_drivedb};
 
 fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
@@ -61,6 +66,21 @@ fn print_attributes(values: &Vec<attr::SmartAttribute>) {
 	print!("                             ││└──── S speed/performance\n");
 	print!("                             │└───── O updated during off-line testing\n");
 	print!("                             └────── P prefailure warning\n");
+}
+
+pub fn subcommand() -> App<'static, 'static> {
+	SubCommand::with_name("attrs")
+		.about("Prints a list of S.M.A.R.T. attributes")
+		.arg(arg_json())
+		.arg(arg_drivedb())
+		.arg(Arg::with_name("vendorattribute")
+			.multiple(true)
+			.short("v") // smartctl-like
+			.long("vendorattribute") // smartctl-like
+			.takes_value(true)
+			.value_name("id,format[:byteorder][,name]")
+			.help("set display option for vendor attribute 'id'")
+		)
 }
 
 pub fn attrs(

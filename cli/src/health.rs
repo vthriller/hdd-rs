@@ -5,12 +5,22 @@ use hdd::Direction;
 
 use hdd::ata::data::health;
 
-use clap::ArgMatches;
+use clap::{
+	App,
+	ArgMatches,
+	SubCommand,
+};
 
 use serde_json;
 use serde_json::value::ToJson;
 
-use super::{F, get_device_id, when_smart_enabled};
+use super::{F, get_device_id, when_smart_enabled, arg_json};
+
+pub fn subcommand() -> App<'static, 'static> {
+	SubCommand::with_name("health")
+		.about("Prints the health status of the device")
+		.arg(arg_json())
+}
 
 pub fn health(
 	dev: &hdd::Device,

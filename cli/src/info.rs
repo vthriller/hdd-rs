@@ -2,7 +2,11 @@ use hdd;
 use hdd::ata::data::id;
 use hdd::drivedb;
 
-use clap::ArgMatches;
+use clap::{
+	ArgMatches,
+	App,
+	SubCommand,
+};
 
 use serde_json;
 use serde_json::value::ToJson;
@@ -10,7 +14,7 @@ use serde_json::value::ToJson;
 use separator::Separatable;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
-use super::{F, get_device_id, open_drivedb};
+use super::{F, get_device_id, open_drivedb, arg_json, arg_drivedb};
 
 fn bool_to_sup(b: bool) -> &'static str {
 	match b {
@@ -87,6 +91,13 @@ fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 	print!("Self-test:     {}\n", bool_to_sup(id.smart_self_test_supported));
 
 	print!("\n");
+}
+
+pub fn subcommand() -> App<'static, 'static> {
+	SubCommand::with_name("info")
+		.about("Prints a basic information about the device")
+		.arg(arg_json())
+		.arg(arg_drivedb())
 }
 
 pub fn info(
