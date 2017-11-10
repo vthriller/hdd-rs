@@ -7,6 +7,9 @@ repository = "https://github.com/vthriller/hdd-rs"
 license = "MPL-2.0"
 readme = "README.md"
 
+[workspace]
+members = ["cli", "sample-scsi"]
+
 [dependencies]
 libc = "0.2"
 serde = "0.9"
