@@ -1,6 +1,5 @@
-use hdd;
-
 use hdd::ata;
+use hdd::ata::misc::Misc;
 use hdd::Direction;
 
 use hdd::ata::data::health;
@@ -14,7 +13,7 @@ use clap::{
 use serde_json;
 use serde_json::value::ToJson;
 
-use super::{F, get_device_id, when_smart_enabled, arg_json};
+use super::{when_smart_enabled, arg_json};
 
 pub fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("health")
@@ -22,17 +21,16 @@ pub fn subcommand() -> App<'static, 'static> {
 		.arg(arg_json())
 }
 
-pub fn health(
-	dev: &hdd::Device,
-	ata_do: &F,
+pub fn health<T: Misc + ?Sized>(
+	dev: &T,
 	args: &ArgMatches,
 ) {
-	let id = get_device_id(ata_do, dev);
+	let id = dev.get_device_id().unwrap();
 
 	let use_json = args.is_present("json");
 
 	when_smart_enabled(&id.smart, "health status", || {
-		let (regs, _) = ata_do(&dev, Direction::None, &ata::RegistersWrite {
+		let (regs, _) = dev.ata_do(Direction::None, &ata::RegistersWrite {
 			command: ata::Command::SMART as u8,
 			features: ata::SMARTFeature::ReturnStatus as u8,
 			sector_count: 0,

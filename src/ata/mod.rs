@@ -7,6 +7,7 @@ All things ATA.
 */
 
 pub mod data;
+pub mod misc;
 
 use Direction;
 use std::io::Error;

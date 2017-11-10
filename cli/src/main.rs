@@ -1,9 +1,9 @@
 extern crate hdd;
 
-use hdd::ata;
-use hdd::{Device, Direction};
+use hdd::Device;
 use hdd::scsi::SCSIDevice;
 use hdd::ata::ATADevice;
+use hdd::ata::misc::Misc;
 
 use hdd::ata::data::id;
 use hdd::drivedb;
@@ -11,6 +11,7 @@ use hdd::drivedb;
 #[macro_use]
 extern crate clap;
 use clap::{
+	ArgMatches,
 	App,
 	AppSettings,
 };
@@ -31,12 +32,6 @@ pub fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action
 	}
 }
 
-type F = fn(&Device, Direction, &ata::RegistersWrite)
-	-> Result<
-		(ata::RegistersRead, Vec<u8>),
-		std::io::Error
-	>;
-
 pub fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
 	let drivedb = match option {
 		Some(file) => drivedb::load(file).ok(), // .ok(): see below
@@ -55,25 +50,14 @@ pub fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
 	drivedb
 }
 
-pub fn get_device_id(ata_do: &F, dev: &Device) -> id::Id {
-	let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
-		command: ata::Command::Identify as u8,
-		sector: 1,
-		features: 0,
-		sector_count: 1,
-		cyl_high: 0,
-		cyl_low: 0,
-		device: 0,
-	}).unwrap();
-	id::parse_id(&data)
-}
-
 #[inline]
 #[cfg(target_os = "linux")]
 fn types() -> [&'static str; 1] { ["sat"] }
 #[inline]
 #[cfg(target_os = "freebsd")]
 fn types() -> [&'static str; 2] { ["ata", "sat"] }
+
+enum Type { ATA, SCSI }
 
 type Arg = clap::Arg<'static, 'static>;
 pub fn arg_json() -> Arg {
@@ -89,6 +73,8 @@ pub fn arg_drivedb() -> Arg {
 			.value_name("FILE")
 			.help("path to drivedb file") // unlike smartctl, does not support '+FILE'
 }
+
+type F<T: Misc + ?Sized> = fn(&T, &ArgMatches);
 
 fn main() {
 	let args = App::new("hdd")
@@ -112,26 +98,30 @@ fn main() {
 		)
 		.get_matches();
 
-	let satl: F = |dev: &Device, dir: Direction, regs: &ata::RegistersWrite| dev.ata_pass_through_16(dir, regs);
-	let direct: F = |dev: &Device, dir: Direction, regs: &ata::RegistersWrite| dev.ata_do(dir, regs);
-	let ata_do: F = match args.value_of("type") {
-		Some("ata") if cfg!(target_os = "linux") => unreachable!(),
-		Some("ata") if cfg!(target_os = "freebsd") => direct,
-		Some("sat") => satl,
-		// defaults
-		None if cfg!(target_os = "linux") => satl,
-		None if cfg!(target_os = "freebsd") => direct,
-		_ => unreachable!(),
-	};
-
 	let dev = Device::open(
 		args.value_of("device").unwrap()
 	).unwrap();
 
-	match args.subcommand() {
-		("info", Some(args)) => info::info(&dev, &ata_do, &args),
-		("health", Some(args)) => health::health(&dev, &ata_do, &args),
-		("attrs", Some(args)) => attrs::attrs(&dev, &ata_do, &args),
+	let dtype = match args.value_of("type") {
+		Some("ata") if cfg!(target_os = "linux") => unreachable!(),
+		Some("ata") if cfg!(target_os = "freebsd") => Type::ATA,
+		Some("sat") => Type::SCSI,
+		// defaults
+		None if cfg!(target_os = "linux") => Type::SCSI,
+		None if cfg!(target_os = "freebsd") => Type::ATA,
 		_ => unreachable!(),
-	}
+	};
+
+	// cannot have single `subcommand`: it must be of type `F<_>`, and you can't call `F<A>` and pass it `dev as &B` then
+	let (subcommand_ata, subcommand_scsi, sargs): (F<_>, F<_>, _) = match args.subcommand() {
+		("info", Some(args)) => (info::info, info::info, args),
+		("health", Some(args)) => (health::health, health::health, args),
+		("attrs", Some(args)) => (attrs::attrs, attrs::attrs, args),
+		_ => unreachable!(),
+	};
+
+	match dtype {
+		Type::ATA => subcommand_ata(&dev as &ATADevice, &sargs),
+		Type::SCSI => subcommand_scsi(&dev as &SCSIDevice, sargs),
+	};
 }

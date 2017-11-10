@@ -1,4 +1,4 @@
-use hdd;
+use hdd::ata::misc::Misc;
 use hdd::ata::data::id;
 use hdd::drivedb;
 
@@ -14,7 +14,7 @@ use serde_json::value::ToJson;
 use separator::Separatable;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
-use super::{F, get_device_id, open_drivedb, arg_json, arg_drivedb};
+use super::{open_drivedb, arg_json, arg_drivedb};
 
 fn bool_to_sup(b: bool) -> &'static str {
 	match b {
@@ -100,12 +100,11 @@ pub fn subcommand() -> App<'static, 'static> {
 		.arg(arg_drivedb())
 }
 
-pub fn info(
-	dev: &hdd::Device,
-	ata_do: &F,
+pub fn info<T: Misc + ?Sized>(
+	dev: &T,
 	args: &ArgMatches,
 ) {
-	let id = get_device_id(ata_do, dev);
+	let id = dev.get_device_id().unwrap();
 
 	let drivedb = open_drivedb(args.value_of("drivedb"));
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(

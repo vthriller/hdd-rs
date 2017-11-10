@@ -1,6 +1,5 @@
-use hdd;
-
 use hdd::ata;
+use hdd::ata::misc::Misc;
 use hdd::Direction;
 
 use hdd::ata::data::attr;
@@ -17,7 +16,7 @@ use clap::{
 use serde_json;
 use serde_json::value::ToJson;
 
-use super::{F, get_device_id, open_drivedb, when_smart_enabled, arg_json, arg_drivedb};
+use super::{open_drivedb, when_smart_enabled, arg_json, arg_drivedb};
 
 fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
@@ -83,12 +82,11 @@ pub fn subcommand() -> App<'static, 'static> {
 		)
 }
 
-pub fn attrs(
-	dev: &hdd::Device,
-	ata_do: &F,
+pub fn attrs<T: Misc + ?Sized>(
+	dev: &T,
 	args: &ArgMatches,
 ) {
-	let id = get_device_id(ata_do, dev);
+	let id = dev.get_device_id().unwrap();
 
 	let user_attributes = args.values_of("vendorattribute")
 		.map(|attrs| attrs.collect())
@@ -109,7 +107,7 @@ pub fn attrs(
 	let use_json = args.is_present("json");
 
 	when_smart_enabled(&id.smart, "attributes", || {
-		let (_, data) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
+		let (_, data) = dev.ata_do(Direction::From, &ata::RegistersWrite {
 			command: ata::Command::SMART as u8,
 			sector: 0,
 			features: ata::SMARTFeature::ReadValues as u8,
@@ -118,7 +116,7 @@ pub fn attrs(
 			cyl_high: 0xc2,
 			device: 0,
 		}).unwrap();
-		let (_, thresh) = ata_do(&dev, Direction::From, &ata::RegistersWrite {
+		let (_, thresh) = dev.ata_do(Direction::From, &ata::RegistersWrite {
 			command: ata::Command::SMART as u8,
 			sector: 0,
 			features: ata::SMARTFeature::ReadThresholds as u8,
