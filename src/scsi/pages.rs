@@ -142,7 +142,11 @@ fn get_params<T: SCSIDevice>(dev: &T, page: u8) -> Result<Vec<log_page::Paramete
 
 // TODO proper errors
 // TODO non-empty autosense errors
-/// Methods in this trait issue LOG SENSE command against the device and return interpreted log page responses
+/**
+Methods in this trait issue LOG SENSE command against the device and return interpreted log page responses
+
+See [module documentation](index.html) for example.
+*/
 pub trait Pages: SCSIDevice + Sized {
 	// TODO? use this in a constructor of a new type to prevent user from issuing LOG SENSE against unsupported log pages
 	fn supported_pages(&self) -> Result<Vec<u8>, Error> {

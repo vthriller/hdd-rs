@@ -2,8 +2,8 @@
 All things ATA.
 
 * Import [`ATADevice`](trait.ATADevice.html) to start sending ATA commands to the [`Device`](../device/index.html).
-* Use [`data` module](data/index.html) to parse various low-level structures found in ATA replies.
-* Import traits from porcelain modules (TODO) to do typical tasks without needing to compose commands and parse responses yourself.
+* Use [`data` module](data/index.html) to parse various low-level structures found in ATA command replies.
+* Import traits from porcelain modules (currently that's just [`misc`](misc/index.html)) to do typical tasks without needing to compose commands and parse responses yourself.
 */
 
 pub mod data;

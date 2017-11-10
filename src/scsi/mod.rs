@@ -2,8 +2,9 @@
 All things SCSI.
 
 * Import [`SCSIDevice`](trait.SCSIDevice.html) to start sending SCSI commands to the [`Device`](../device/index.html).
-* Use [`data` module](data/index.html) to parse various low-level structures found in SCSI replies.
+* Use [`data` module](data/index.html) to parse various low-level structures found in SCSI command replies.
 * Import traits from porcelain modules (like [`pages`](pages/index.html)) to do typical tasks without needing to compose commands and parse responses yourself.
+  * You can also import modules from [`ata`](../ata/index.html) to issue ATA commands using ATA PASS-THROUGH.
 */
 
 pub mod data;
