@@ -1,8 +1,4 @@
-use hdd::ata;
 use hdd::ata::misc::Misc;
-use hdd::Direction;
-
-use hdd::ata::data::health;
 
 use clap::{
 	App,
@@ -30,16 +26,7 @@ pub fn health<T: Misc + ?Sized>(
 	let use_json = args.is_present("json");
 
 	when_smart_enabled(&id.smart, "health status", || {
-		let (regs, _) = dev.ata_do(Direction::None, &ata::RegistersWrite {
-			command: ata::Command::SMART as u8,
-			features: ata::SMARTFeature::ReturnStatus as u8,
-			sector_count: 0,
-			sector: 0,
-			cyl_low: 0x4f,
-			cyl_high: 0xc2,
-			device: 0,
-		}).unwrap();
-		let status = health::parse_smart_status(&regs);
+		let status = dev.get_smart_health().unwrap();
 
 		if use_json {
 			print!("{}\n", serde_json::to_string(&status.to_json().unwrap()).unwrap());

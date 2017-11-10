@@ -1,9 +1,9 @@
 use Direction;
 
-use ata::{ATADevice, RegistersRead, RegistersWrite, Command};
+use ata::{ATADevice, RegistersRead, RegistersWrite, Command, SMARTFeature};
 use scsi::SCSIDevice;
 
-use ata::data::id;
+use ata::data::{id, health};
 
 use std::io::Error;
 
@@ -24,6 +24,19 @@ pub trait Misc {
 		})?;
 
 		Ok(id::parse_id(&data))
+	}
+
+	fn get_smart_health(&self) -> Result<Option<bool>, Error> {
+		let (regs, _) = self.ata_do(Direction::None, &RegistersWrite {
+			command: Command::SMART as u8,
+			features: SMARTFeature::ReturnStatus as u8,
+			sector_count: 0,
+			sector: 0,
+			cyl_low: 0x4f,
+			cyl_high: 0xc2,
+			device: 0,
+		})?;
+		Ok(health::parse_smart_status(&regs))
 	}
 }
 
