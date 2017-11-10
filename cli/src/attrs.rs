@@ -1,6 +1,4 @@
-use hdd::ata;
 use hdd::ata::misc::Misc;
-use hdd::Direction;
 
 use hdd::ata::data::attr;
 use hdd::drivedb;
@@ -107,26 +105,7 @@ pub fn attrs<T: Misc + ?Sized>(
 	let use_json = args.is_present("json");
 
 	when_smart_enabled(&id.smart, "attributes", || {
-		let (_, data) = dev.ata_do(Direction::From, &ata::RegistersWrite {
-			command: ata::Command::SMART as u8,
-			sector: 0,
-			features: ata::SMARTFeature::ReadValues as u8,
-			sector_count: 1,
-			cyl_low: 0x4f,
-			cyl_high: 0xc2,
-			device: 0,
-		}).unwrap();
-		let (_, thresh) = dev.ata_do(Direction::From, &ata::RegistersWrite {
-			command: ata::Command::SMART as u8,
-			sector: 0,
-			features: ata::SMARTFeature::ReadThresholds as u8,
-			sector_count: 1,
-			cyl_low: 0x4f,
-			cyl_high: 0xc2,
-			device: 0,
-		}).unwrap();
-
-		let values = attr::parse_smart_values(&data, &thresh, &dbentry);
+		let values = dev.get_smart_attributes(&dbentry).unwrap();
 
 		if use_json {
 			print!("{}\n", serde_json::to_string(&values.to_json().unwrap()).unwrap());
