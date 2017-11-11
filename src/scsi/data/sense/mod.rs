@@ -33,9 +33,9 @@ pub fn parse(data: &Vec<u8>) -> Option<(bool, Sense)> {
 	};
 
 	let data = if fixed {
-		fixed::parse(data).map(|data| Sense::Fixed(data))
+		fixed::parse(data).map(Sense::Fixed)
 	} else {
-		descriptor::parse(data).map(|data| Sense::Descriptor(data))
+		descriptor::parse(data).map(Sense::Descriptor)
 	};
 
 	data.map(|data| (current, data))

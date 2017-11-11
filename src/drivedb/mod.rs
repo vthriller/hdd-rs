@@ -117,7 +117,8 @@ fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
 		}
 	};
 
-	preset.into_iter().filter(|ref attr| match (&attr.drivetype, &drivetype) {
+	#[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
+	preset.into_iter().filter(|attr| match (&attr.drivetype, &drivetype) {
 		// this attribute is not type-specific
 		(&None, _) => true,
 		// drive type match
@@ -171,7 +172,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		let re = Regex::new(format!("(?-u)^{}$", entry.model).as_str()).unwrap();
 		if !re.is_match(id.model.as_bytes()) { continue }
 
-		if entry.firmware.len() > 0 {
+		if ! entry.firmware.is_empty() {
 			let re = Regex::new(format!("^(?-u){}$", entry.firmware).as_str()).unwrap();
 			if !re.is_match(id.firmware.as_bytes()) { continue }
 		}
@@ -179,8 +180,8 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		// > The table will be searched from the start to end or until the first match
 		return Match {
 			family: Some(&entry.family),
-			warning: if entry.warning.len() > 0 { Some(&entry.warning) } else { None },
-			presets: filter_presets(&id, vendor_attribute::merge(&vec![
+			warning: if ! entry.warning.is_empty() { Some(&entry.warning) } else { None },
+			presets: filter_presets(id, vendor_attribute::merge(vec![
 				presets::parse(&default.presets),
 				presets::parse(&entry.presets),
 				Some(extra_attributes),
@@ -191,7 +192,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 	Match {
 		family: None,
 		warning: None,
-		presets: filter_presets(&id, vendor_attribute::merge(&vec![
+		presets: filter_presets(id, vendor_attribute::merge(vec![
 			presets::parse(&default.presets),
 			Some(extra_attributes),
 		])),

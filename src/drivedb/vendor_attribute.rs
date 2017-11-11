@@ -50,8 +50,8 @@ pub struct Attribute {
 	pub drivetype: Option<Type>,
 }
 
-fn not_comma(c: u8) -> bool { c == ',' as u8 }
-fn not_comma_nor_colon(c: u8) -> bool { c == ',' as u8 || c == ':' as u8 }
+fn not_comma(c: u8) -> bool { c == b',' }
+fn not_comma_nor_colon(c: u8) -> bool { c == b',' || c == b':' }
 
 // `opt!()` is used with `complete!()` here because the former returns `Incomplete` untouched, thus making attributes not ending with otherwise optional ',(HDD|SSD)' `Incomplete` as well.
 named!(parse_standard <Attribute>, do_parse!(
@@ -98,7 +98,7 @@ named!(parse_standard <Attribute>, do_parse!(
 			Some((name, drive_type)) => (Some(name), drive_type),
 			None => (None, None),
 		};
-		let default_byte_order = match format.as_ref() {
+		let default_byte_order = match format {
 			// default byte orders, from ata_get_attr_raw_value, atacmds.cpp
 			"raw64" | "hex64" => "543210wv",
 			"raw56" | "hex56" | "raw24/raw32" | "msec24hour32" => "r543210",
@@ -170,10 +170,10 @@ pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 			Some(ref mut old) => {
 				old.format = new.format.clone();
 				old.byte_order = new.byte_order.clone();
-				if let Some(_) = new.name {
+				if new.name.is_some() {
 					old.name = new.name.clone();
 				}
-				if let Some(_) = new.drivetype {
+				if new.drivetype.is_some() {
 					old.drivetype = new.drivetype.clone();
 				}
 			},
@@ -184,10 +184,10 @@ pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 }
 
 /// Concatenates lists of attribute presets.
-pub fn merge(presets: &Vec<Option<Vec<Attribute>>>) -> Vec<Attribute> {
+pub fn merge(presets: Vec<Option<Vec<Attribute>>>) -> Vec<Attribute> {
 	let mut output = Vec::<Attribute>::new();
 	for preset in presets {
-		if let Some(ref dpresets) = *preset {
+		if let Some(ref dpresets) = preset {
 			output.extend(dpresets.iter().cloned());
 		}
 	}

@@ -1,7 +1,7 @@
 use super::vendor_attribute;
 use super::vendor_attribute::Attribute;
 
-pub fn parse(line: &String) -> Option<Vec<Attribute>> {
+pub fn parse(line: &str) -> Option<Vec<Attribute>> {
 	// using clap here would be an overkill
 	let mut args = line.split_whitespace().into_iter();
 	let mut output = Vec::<Attribute>::new();
