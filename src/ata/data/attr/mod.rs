@@ -3,7 +3,8 @@ pub mod raw;
 use std::collections::HashMap;
 use drivedb;
 
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serializable", derive(Serialize))]
 pub struct SmartAttribute {
 	pub id: u8,
 

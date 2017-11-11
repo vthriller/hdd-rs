@@ -34,7 +34,8 @@ fn read_string(arr: &Vec<u16>, start: usize, fin: usize) -> String {
 	String::from(output.trim())
 }
 
-#[derive(PartialEq, Eq, Serialize, Debug)]
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serializable", derive(Serialize))]
 pub enum Ternary {
 	Unsupported, Disabled, Enabled
 }
@@ -49,12 +50,14 @@ impl fmt::Display for Ternary {
 	}
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serializable", derive(Serialize))]
 pub enum RPM {
 	Unknown, NonRotating, RPM(u16)
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serializable", derive(Serialize))]
 pub struct IdCommands {
 	pub device_reset: bool,
 	pub write_buffer: bool,
@@ -70,7 +73,8 @@ pub struct IdCommands {
 	pub read_write_dma_ext_gpl: bool,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serializable", derive(Serialize))]
 pub struct Id {
 	pub is_ata: bool, // probably redundant
 	pub incomplete: bool, // content of words other that 0 or 2 might be invalid

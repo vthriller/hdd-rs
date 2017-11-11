@@ -12,7 +12,8 @@ fn read(data: &[u8], bits: usize) -> u64 {
 	out
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serializable", derive(Serialize))]
 pub enum Raw {
 	Raw8(Vec<u8>),
 	Raw16(Vec<u16>),

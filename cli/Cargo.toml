@@ -8,7 +8,7 @@ clap = ">=0.6.6"
 serde_json = "0.9"
 separator = "0.3.1"
 number_prefix = "0.2.7"
-hdd = { path = ".." }
+hdd = { path = "..", features = ["serializable"] }
 
 [[bin]]
 name = "hdd"

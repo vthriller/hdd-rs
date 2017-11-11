@@ -1,4 +1,5 @@
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serializable", derive(Serialize))]
 pub struct Inquiry {
 	connected: Option<bool>,
 	device_type: String, // TODO enum?

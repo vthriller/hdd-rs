@@ -12,11 +12,16 @@ members = ["cli", "sample-scsi"]
 
 [dependencies]
 libc = "0.2"
-serde = "0.9"
-serde_derive = "0.9"
 nom = "^2.2"
 regex = "0.2"
 byteorder = "1"
+
+serde = { version = "0.9", optional = true }
+serde_derive = { version = "0.9", optional = true }
+
+[features]
+default = []
+serializable = ["serde", "serde_derive"]
 
 [target.'cfg(target_os = "freebsd")'.build-dependencies]
 bindgen = "0.26.3"

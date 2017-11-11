@@ -18,9 +18,10 @@ For more, dive into documentation for the module you're interested in.
 
 #![warn(missing_debug_implementations)]
 
-// error[E0468]: an `extern crate` loading macros must be at the crate root
+#[cfg(feature = "serializable")]
 #[macro_use]
 extern crate serde_derive;
+
 #[macro_use]
 extern crate nom;
 extern crate regex;
