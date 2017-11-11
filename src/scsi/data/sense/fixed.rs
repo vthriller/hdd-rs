@@ -40,7 +40,7 @@ pub fn parse(data: &[u8]) -> Option<FixedData> {
 	if data.len() < 18 {
 		return None;
 	}
-	if data[0] & 0b10000000 != 0 {
+	if data[0] & 0b1000_0000 != 0 {
 		return Some(FixedData::Invalid(data));
 	}
 
@@ -48,9 +48,9 @@ pub fn parse(data: &[u8]) -> Option<FixedData> {
 	let len = (data[7] + 8) as usize;
 
 	Some(FixedData::Valid {
-		file_mark: data[2] & 0b10000000 != 0,
-		eom: data[2] & 0b01000000 != 0,
-		incorrect_length: data[2] & 0b00100000 != 0,
+		file_mark: data[2] & 0b1000_0000 != 0,
+		eom: data[2] & 0b0100_0000 != 0,
+		incorrect_length: data[2] & 0b0010_0000 != 0,
 		key: data[2] & 0b1111,
 
 		info: copy_from_slice_4(&data[3..7]),

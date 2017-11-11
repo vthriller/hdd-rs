@@ -58,7 +58,7 @@ pub fn parse(data: &[u8]) -> Vec<Descriptor> {
 
 		let proto = {
 			use self::Protocol::*;
-			if id[1] & 0b10000000 == 0 {
+			if id[1] & 0b1000_0000 == 0 {
 				None // Protocol Identifier Valid bit is not set, Protocol Identifier must be ignored
 			} else {
 				match id[0] >> 4 {

@@ -134,7 +134,7 @@ pub trait SCSIDevice {
 			// 0b1: T_DIR; transfer from ATA device
 			// 0b1: BYT_BLOK; T_LENGTH is in blocks, not in bytes
 			// 0b01: T_LENGTH itself
-			0b00101101,
+			0b0010_1101,
 			0, regs.features,
 			0, regs.sector_count,
 			0, regs.sector,

@@ -349,7 +349,7 @@ pub trait Pages: SCSIDevice + Sized {
 					15 => InProgress,
 					x => Reserved(x),
 				},
-				code: (param.value[0] & 0b11100000) >> 5,
+				code: (param.value[0] & 0b1110_0000) >> 5,
 				number: param.value[1],
 				power_on_hours: (&param.value[2..4]).read_u16::<BigEndian>().unwrap(),
 				first_failure_lba: (&param.value[4..12]).read_u64::<BigEndian>().unwrap(),

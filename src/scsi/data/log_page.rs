@@ -100,11 +100,11 @@ impl Page {
 			params.push(Parameter {
 				code: code,
 
-				update_disabled: control & 0b10000000 != 0,
-				target_save: control & 0b100000 != 0,
+				update_disabled: control & 0b1000_0000 != 0,
+				target_save: control & 0b10_0000 != 0,
 				threshold_comparison: {
 					use self::Condition::*;
-					match (control & 0b10000 != 0, (control & 0b1100) >> 2) {
+					match (control & 0b1_0000 != 0, (control & 0b1100) >> 2) {
 						(false, _) => Never,
 						(true, 0b00) => Always,
 						(true, 0b01) => Eq,
@@ -145,9 +145,9 @@ pub fn parse(data: &[u8]) -> Option<Page> {
 	}
 
 	Some(Page {
-		saved: data[0] & 0b10000000 == 0,
-		page: data[0] & 0b111111,
-		subpage: match (data[0] & 0b1000000 != 0, data[1]) {
+		saved: data[0] & 0b1000_0000 == 0,
+		page: data[0] & 0b11_1111,
+		subpage: match (data[0] & 0b100_0000 != 0, data[1]) {
 			(false, 0) => None,
 			// we're not expecting subpage != 0 if SPF bit is unset
 			(false, _) => { return None },

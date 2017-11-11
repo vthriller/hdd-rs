@@ -31,7 +31,7 @@ fn is_set(x: u8, bit: usize) -> bool {
 
 pub fn parse_inquiry(data: &Vec<u8>) -> Inquiry {
 	Inquiry {
-		connected: match (data[0] & 0b11100000) >> 5 { // Peripheral Qualifier
+		connected: match (data[0] & 0b1110_0000) >> 5 { // Peripheral Qualifier
 			0b000 => Some(true),
 			0b001 => Some(false),
 			// 010 is reserved
@@ -39,7 +39,7 @@ pub fn parse_inquiry(data: &Vec<u8>) -> Inquiry {
 			// 100..111 is vendor specific
 			_ => None,
 		},
-		device_type: match data[0] & 0b00011111 {
+		device_type: match data[0] & 0b0001_1111 {
 			0x00 => "SBC-2", // Direct access block device (e.g., magnetic disk)
 			0x01 => "SSC-2", // Sequential-access device (e.g., magnetic tape)
 			0x02 => "SSC", // Printer device
@@ -80,7 +80,7 @@ pub fn parse_inquiry(data: &Vec<u8>) -> Inquiry {
 
 		scc: is_set(data[5], 7), // storage array controller component support
 		acc: is_set(data[5], 6), // device contains an access controls coordinator
-		// TODO? (data[5] & 0b00110000) Target Port Group Support
+		// TODO? (data[5] & 0b0011_0000) Target Port Group Support
 		tpc: is_set(data[5], 3), // support for 3rd-party copy commands
 		protection: is_set(data[5], 0),
 

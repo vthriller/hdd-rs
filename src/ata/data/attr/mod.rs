@@ -70,7 +70,7 @@ pub fn parse_smart_values(data: &Vec<u8>, raw_thresh: &Vec<u8>, dbentry: &Option
 			error_rate:      flags & (1<<3) != 0,
 			event_count:     flags & (1<<4) != 0,
 			self_preserving: flags & (1<<5) != 0,
-			flags:           flags & (!0b111111),
+			flags:           flags & (!0b11_1111),
 
 			value: if !is_in_raw('v') {
 				Some(data[offset + 3])
