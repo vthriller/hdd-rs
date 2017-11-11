@@ -78,7 +78,7 @@ type F<T: Misc + ?Sized> = fn(&T, &ArgMatches);
 
 fn main() {
 	let args = App::new("hdd")
-		.about("yet another S.M.A.R.T. querying tool")
+		.about("yet another disk querying tool")
 		.version(crate_version!())
 		.setting(AppSettings::SubcommandRequired)
 		.subcommand(health::subcommand())

@@ -18,9 +18,9 @@ Build sample tool:
 
 ```sh
 git clone https://github.com/vthriller/hdd-rs.git
-cd smart-rs/cli
+cd hdd-rs/cli
 cargo build --release
-sudo ./target/release/hdd /dev/sda attrs --json
+sudo ../target/release/hdd /dev/sda attrs --json
 ```
 
 Put this into your `Cargo.toml` to start using this crate:
