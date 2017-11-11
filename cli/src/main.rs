@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "cargo-clippy", allow(print_with_newline))]
+
 extern crate hdd;
 
 use hdd::Device;
@@ -41,7 +43,7 @@ pub fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
 				"/usr/share/smartmontools/drivedb.h",
 			].iter()
 			.map(|f| drivedb::load(f).ok()) // .ok(): what's the point in collecting all these "no such file or directory" errors?
-			.find(|ref db| db.is_some())
+			.find(|db| db.is_some())
 			.unwrap_or(None)
 	};
 	if drivedb.is_none() {
@@ -121,7 +123,7 @@ fn main() {
 	};
 
 	match dtype {
-		Type::ATA => subcommand_ata(&dev as &ATADevice, &sargs),
+		Type::ATA => subcommand_ata(&dev as &ATADevice, sargs),
 		Type::SCSI => subcommand_scsi(&dev as &SCSIDevice, sargs),
 	};
 }

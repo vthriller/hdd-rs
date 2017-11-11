@@ -17,10 +17,8 @@ use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 use super::{open_drivedb, arg_json, arg_drivedb};
 
 fn bool_to_sup(b: bool) -> &'static str {
-	match b {
-		false => "not supported",
-		true  => "supported",
-	}
+	if b { "supported" }
+	else { "not supported" }
 }
 
 fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
@@ -39,7 +37,7 @@ fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 	print!("Serial:   {}\n", id.serial);
 	// TODO: id.wwn_supported is cool, but actual WWN ID is better
 
-	if let &Some(ref dbentry) = dbentry {
+	if let Some(ref dbentry) = *dbentry {
 		if let Some(family) = dbentry.family {
 			print!("Model family according to drive database:\n  {}\n", family);
 		} else {
@@ -109,7 +107,7 @@ pub fn info<T: Misc + ?Sized>(
 	let drivedb = open_drivedb(args.value_of("drivedb"));
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
 		&id,
-		&drivedb,
+		drivedb,
 		// no need to parse custom vendor attributes,
 		// we're only using drivedb for the family and the warning here
 		vec![],

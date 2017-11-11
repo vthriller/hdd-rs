@@ -21,8 +21,8 @@ fn bool_to_flag(b: bool, c: char) -> char {
 }
 
 // XXX only `pretty_attributes` clearly shows failing/failed attributes
-fn print_attributes(values: &Vec<attr::SmartAttribute>) {
-	if values.len() == 0 {
+fn print_attributes(values: Vec<attr::SmartAttribute>) {
+	if values.is_empty() {
 		print!("No S.M.A.R.T. attributes found.\n");
 		return;
 	}
@@ -98,7 +98,7 @@ pub fn attrs<T: Misc + ?Sized>(
 	let drivedb = open_drivedb(args.value_of("drivedb"));
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
 		&id,
-		&drivedb,
+		drivedb,
 		user_attributes,
 	));
 
@@ -110,7 +110,7 @@ pub fn attrs<T: Misc + ?Sized>(
 		if use_json {
 			print!("{}\n", serde_json::to_string(&values.to_json().unwrap()).unwrap());
 		} else {
-			print_attributes(&values);
+			print_attributes(values);
 		}
 	});
 }

@@ -1,8 +1,10 @@
+#![cfg_attr(feature = "cargo-clippy", allow(print_with_newline))]
+
 extern crate hdd;
 use hdd::Device;
 use hdd::scsi::SCSIDevice;
 use hdd::scsi::pages::{Pages, page_name};
-use hdd::scsi::data::{inquiry, log_page};
+use hdd::scsi::data::inquiry;
 use hdd::scsi::data::vpd::device_id;
 
 #[macro_use]
@@ -14,6 +16,7 @@ use separator::Separatable;
 extern crate number_prefix;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
+#[cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
 fn print_hex(data: &[u8]) {
 	for i in 0..data.len() {
 		if i % 16 == 0 { print!("\n"); }
@@ -106,7 +109,7 @@ fn main() {
 		}
 	}
 
-	dev.supported_pages().map(|pages| {
+	if let Ok(pages) = dev.supported_pages() {
 		for p in pages {
 			if p == 00 { continue; }
 
@@ -118,10 +121,10 @@ fn main() {
 				0x05 => print!("{:#?}\n", dev.verify_error_counters()),
 				0x06 => print!("{:?}\n", dev.non_medium_error_count()),
 				0x0d => {
-					dev.temperature().map(|(temp, ref_temp)| {
+					if let Ok((temp, ref_temp)) = dev.temperature() {
 						print!("Temperature: {:?} °C\n", temp);
 						print!("Reference temperature: {:?} °C\n", ref_temp);
-					});
+					};
 				},
 				0x0e => print!("{:#?}\n", dev.dates_and_cycle_counters()),
 				0x10 => print!("{:#?}\n", dev.self_test_results()),
@@ -129,7 +132,7 @@ fn main() {
 				_ => (),
 			}
 		}
-	});
+	};
 
 	/*
 	// TODO tell whether subpages are supported at all
