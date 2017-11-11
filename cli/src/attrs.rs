@@ -57,12 +57,13 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 		);
 	}
 	// based on the output of 'smartctl -A -f brief' (part of 'smartctl -x')
-	print!("                             │││││└─ K auto-keep\n");
-	print!("                             ││││└── C event count\n");
-	print!("                             │││└─── R error rate\n");
-	print!("                             ││└──── S speed/performance\n");
-	print!("                             │└───── O updated during off-line testing\n");
-	print!("                             └────── P prefailure warning\n");
+	print!("                             ││││││\n");
+	print!("                             │││││K auto-keep\n");
+	print!("                             ││││C event count\n");
+	print!("                             │││R error rate\n");
+	print!("                             ││S speed/performance\n");
+	print!("                             │O updated during off-line testing\n");
+	print!("                             P prefailure warning\n");
 }
 
 pub fn subcommand() -> App<'static, 'static> {
