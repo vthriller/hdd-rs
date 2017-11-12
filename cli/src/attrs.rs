@@ -158,6 +158,9 @@ pub fn subcommand() -> App<'static, 'static> {
 		)
 }
 
+enum Format { Plain, JSON, Prometheus }
+use self::Format::*;
+
 pub fn attrs<T: Misc + ?Sized>(
 	path: &str,
 	dev: &T,
@@ -182,9 +185,12 @@ pub fn attrs<T: Misc + ?Sized>(
 	));
 
 	let format = match args.value_of("format") {
-		Some(x) => x,
-		None if args.is_present("json") => "json",
-		None => "plain",
+		Some("plain") => Plain,
+		Some("json") => JSON,
+		Some("prometheus") => Prometheus,
+		None if args.is_present("json") => JSON,
+		None => Plain,
+		_ => unreachable!(),
 	};
 
 	// for --format=prometheus (TODO? don't compose if other format is used)
@@ -200,33 +206,31 @@ pub fn attrs<T: Misc + ?Sized>(
 
 	use id::Ternary::*;
 	match (format, id.smart) {
-		("plain", Unsupported) | ("json", Unsupported) =>
+		(Plain, Unsupported) | (JSON, Unsupported) =>
 			eprint!("S.M.A.R.T. is not supported, cannot show attributes\n"),
-		("prometheus", Unsupported) =>
+		(Prometheus, Unsupported) =>
 			print!("{}\n", format_prom("smart_enabled", &labels, NAN)),
 
-		("plain", Disabled) | ("json", Disabled) =>
+		(Plain, Disabled) | (JSON, Disabled) =>
 			eprint!("S.M.A.R.T. is disabled, cannot show attributes\n"),
-		("prometheus", Disabled) =>
+		(Prometheus, Disabled) =>
 			print!("{}\n", format_prom("smart_enabled", &labels, 0)),
 
 		(format, Enabled) => {
 			let values = dev.get_smart_attributes(&dbentry).unwrap();
 
 			match format {
-				"plain" => print_attributes(values),
-				"json" => print!("{}\n",
+				Plain => print_attributes(values),
+				JSON => print!("{}\n",
 					serde_json::to_string(
 						&values.to_json().unwrap()
 					).unwrap()
 				),
-				"prometheus" => {
+				Prometheus => {
 					print!("{}\n", format_prom("smart_enabled", &labels, 1));
 					print_prometheus_values(&labels, values);
 				},
-				_ => unreachable!(),
 			}
 		},
-		_ => unreachable!(),
 	}
 }
