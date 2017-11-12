@@ -187,45 +187,44 @@ pub fn attrs<T: Misc + ?Sized>(
 		None => "plain",
 	};
 
-	use id::Ternary::*;
-	let values = if id.smart == Enabled {
-		Some(dev.get_smart_attributes(&dbentry).unwrap())
-	} else {
-		None
+	// for --format=prometheus (TODO? don't compose if other format is used)
+	let mut labels = HashMap::new();
+	labels.insert("dev", path.to_string());
+	labels.insert("model", id.model.clone());
+	labels.insert("serial", id.serial.clone());
+	if let Some(ref entry) = dbentry {
+		if let Some(family) = entry.family {
+			labels.insert("family", family.clone());
+		}
 	};
 
+	use id::Ternary::*;
 	match (format, id.smart) {
 		("plain", Unsupported) | ("json", Unsupported) =>
 			eprint!("S.M.A.R.T. is not supported, cannot show attributes\n"),
+		("prometheus", Unsupported) =>
+			print!("{}\n", format_prom("smart_enabled", &labels, NAN)),
+
 		("plain", Disabled) | ("json", Disabled) =>
 			eprint!("S.M.A.R.T. is disabled, cannot show attributes\n"),
-		("plain", Enabled) =>
-			print_attributes(values.unwrap()),
-		("json", Enabled) =>
-			print!("{}\n",
-				serde_json::to_string(
-					&values.unwrap()
-						.to_json().unwrap()
-				).unwrap()
-			),
-		("prometheus", x) => {
-			let mut labels = HashMap::new();
-			labels.insert("dev", path.to_string());
-			labels.insert("model", id.model.clone());
-			labels.insert("serial", id.serial.clone());
-			if let Some(ref entry) = dbentry {
-				if let Some(family) = entry.family {
-					labels.insert("family", family.clone());
-				}
-			};
+		("prometheus", Disabled) =>
+			print!("{}\n", format_prom("smart_enabled", &labels, 0)),
 
-			match x {
-				Unsupported => print!("{}\n", format_prom("smart_enabled", &labels, NAN)),
-				Disabled => print!("{}\n", format_prom("smart_enabled", &labels, 0)),
-				Enabled => {
+		(format, Enabled) => {
+			let values = dev.get_smart_attributes(&dbentry).unwrap();
+
+			match format {
+				"plain" => print_attributes(values),
+				"json" => print!("{}\n",
+					serde_json::to_string(
+						&values.to_json().unwrap()
+					).unwrap()
+				),
+				"prometheus" => {
 					print!("{}\n", format_prom("smart_enabled", &labels, 1));
-					print_prometheus_values(&labels, values.unwrap());
+					print_prometheus_values(&labels, values);
 				},
+				_ => unreachable!(),
 			}
 		},
 		_ => unreachable!(),
