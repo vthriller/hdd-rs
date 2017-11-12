@@ -1,5 +1,18 @@
 #![cfg_attr(feature = "cargo-clippy", allow(print_with_newline))]
 
+#![warn(
+	missing_debug_implementations,
+	// TODO?..
+	//missing_docs,
+	//missing_copy_implementations,
+	trivial_casts,
+	trivial_numeric_casts,
+	unsafe_code,
+	unstable_features,
+	unused_import_braces,
+	unused_qualifications,
+)]
+
 extern crate hdd;
 use hdd::Device;
 use hdd::scsi::SCSIDevice;

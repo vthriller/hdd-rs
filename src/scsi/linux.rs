@@ -52,11 +52,11 @@ struct sg_io_hdr {
 }
 
 impl SCSIDevice for Device {
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: u8, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), Error> {
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
-		let mut sense = vec![0; sense_len as usize];
-		let mut data = vec![0; data_len as usize];
+		let mut sense = vec![0; sense_len];
+		let mut data = vec![0; data_len];
 
 		let hdr = sg_io_hdr {
 			interface_id:	'S' as c_int,

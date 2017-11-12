@@ -25,7 +25,7 @@ use Direction;
 
 pub trait SCSIDevice {
 	/// Executes `cmd` and returns tuple of `(sense, data)`.
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: u8, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), Error>;
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), Error>;
 
 	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		// TODO as u16 argument, not const

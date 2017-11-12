@@ -32,7 +32,7 @@ impl error::Error for Error {
 }
 
 /// HDD or SSD
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Type { HDD, SSD }
 
 /// SMART attribute description
@@ -174,7 +174,7 @@ pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 					old.name = new.name.clone();
 				}
 				if new.drivetype.is_some() {
-					old.drivetype = new.drivetype.clone();
+					old.drivetype = new.drivetype;
 				}
 			},
 		}

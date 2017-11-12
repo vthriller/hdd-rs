@@ -27,7 +27,7 @@ When devices server should establish a unit attention condition (SAM-4).
 
 Makes no sense for parameters of format other than `Format::BoundedCounter`.
 */
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Condition {
 	/// Values are never compared.
 	Never,
@@ -41,7 +41,7 @@ pub enum Condition {
 	Gt,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Format { BoundedCounter, UnboundedCounter, ASCIIList, BinaryList }
 
 #[derive(Debug)]

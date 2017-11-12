@@ -1,5 +1,18 @@
 #![cfg_attr(feature = "cargo-clippy", allow(print_with_newline))]
 
+#![warn(
+	missing_debug_implementations,
+	// TODO?..
+	//missing_docs,
+	//missing_copy_implementations,
+	trivial_casts,
+	trivial_numeric_casts,
+	unsafe_code,
+	unstable_features,
+	unused_import_braces,
+	unused_qualifications,
+)]
+
 extern crate hdd;
 
 use hdd::Device;
@@ -115,7 +128,7 @@ fn main() {
 	};
 
 	// cannot have single `subcommand`: it must be of type `F<_>`, and you can't call `F<A>` and pass it `dev as &B` then
-	let (subcommand_ata, subcommand_scsi, sargs): (F<_>, F<_>, _) = match args.subcommand() {
+	let (subcommand_ata, subcommand_scsi, sargs): (F<ATADevice>, F<SCSIDevice>, _) = match args.subcommand() {
 		("info", Some(args)) => (info::info, info::info, args),
 		("health", Some(args)) => (health::health, health::health, args),
 		("attrs", Some(args)) => (attrs::attrs, attrs::attrs, args),
@@ -123,7 +136,7 @@ fn main() {
 	};
 
 	match dtype {
-		Type::ATA => subcommand_ata(&dev as &ATADevice, sargs),
-		Type::SCSI => subcommand_scsi(&dev as &SCSIDevice, sargs),
+		Type::ATA => subcommand_ata(&dev, sargs),
+		Type::SCSI => subcommand_scsi(&dev, sargs),
 	};
 }
