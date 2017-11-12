@@ -34,7 +34,7 @@ fn read_string(arr: &Vec<u16>, start: usize, fin: usize) -> String {
 	String::from(output.trim())
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 #[cfg_attr(feature = "serializable", derive(Serialize))]
 pub enum Ternary {
 	Unsupported, Disabled, Enabled

@@ -1,7 +1,6 @@
 use hdd::ata::misc::Misc;
 
 use hdd::ata::data::attr;
-use hdd::ata::data::id::Id;
 use hdd::ata::data::attr::raw::Raw;
 use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
@@ -21,7 +20,7 @@ use std::string::ToString;
 
 use std::f64::NAN;
 
-use super::{open_drivedb, when_smart_enabled, arg_drivedb};
+use super::{open_drivedb, arg_drivedb};
 
 fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
@@ -99,17 +98,7 @@ fn format_prom<T: ToString>(key: &str, labels: &HashMap<&str, String>, value: T)
 	line
 }
 
-fn print_prometheus(dev: String, id: &Id, dbentry: &Option<drivedb::Match>, values: Vec<attr::SmartAttribute>) {
-	let mut labels = HashMap::new();
-	labels.insert("dev", dev);
-	labels.insert("model", id.model.clone());
-	labels.insert("serial", id.serial.clone());
-	if let Some(ref entry) = *dbentry {
-		if let Some(family) = entry.family {
-			labels.insert("family", family.clone());
-		}
-	};
-
+fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::SmartAttribute>) {
 	for val in values {
 		let mut labels = labels.clone();
 		labels.insert("id", val.id.to_string());
@@ -198,21 +187,47 @@ pub fn attrs<T: Misc + ?Sized>(
 		None => "plain",
 	};
 
-	when_smart_enabled(&id.smart, "attributes", || {
-		let values = dev.get_smart_attributes(&dbentry).unwrap();
+	use id::Ternary::*;
+	let values = if id.smart == Enabled {
+		Some(dev.get_smart_attributes(&dbentry).unwrap())
+	} else {
+		None
+	};
 
-		match format {
-			"plain" => print_attributes(values),
-			"json" => print!("{}\n",
-				serde_json::to_string(&values.to_json().unwrap()).unwrap()
+	match (format, id.smart) {
+		("plain", Unsupported) | ("json", Unsupported) =>
+			eprint!("S.M.A.R.T. is not supported, cannot show attributes\n"),
+		("plain", Disabled) | ("json", Disabled) =>
+			eprint!("S.M.A.R.T. is disabled, cannot show attributes\n"),
+		("plain", Enabled) =>
+			print_attributes(values.unwrap()),
+		("json", Enabled) =>
+			print!("{}\n",
+				serde_json::to_string(
+					&values.unwrap()
+						.to_json().unwrap()
+				).unwrap()
 			),
-			"prometheus" => print_prometheus(
-				path.to_string(),
-				&id,
-				&dbentry,
-				values,
-			),
-			_ => unreachable!(),
-		}
-	});
+		("prometheus", x) => {
+			let mut labels = HashMap::new();
+			labels.insert("dev", path.to_string());
+			labels.insert("model", id.model.clone());
+			labels.insert("serial", id.serial.clone());
+			if let Some(ref entry) = dbentry {
+				if let Some(family) = entry.family {
+					labels.insert("family", family.clone());
+				}
+			};
+
+			match x {
+				Unsupported => print!("{}\n", format_prom("smart_enabled", &labels, NAN)),
+				Disabled => print!("{}\n", format_prom("smart_enabled", &labels, 0)),
+				Enabled => {
+					print!("{}\n", format_prom("smart_enabled", &labels, 1));
+					print_prometheus_values(&labels, values.unwrap());
+				},
+			}
+		},
+		_ => unreachable!(),
+	}
 }
