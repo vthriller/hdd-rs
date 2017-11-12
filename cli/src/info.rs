@@ -99,6 +99,7 @@ pub fn subcommand() -> App<'static, 'static> {
 }
 
 pub fn info<T: Misc + ?Sized>(
+	_: &str,
 	dev: &T,
 	args: &ArgMatches,
 ) {

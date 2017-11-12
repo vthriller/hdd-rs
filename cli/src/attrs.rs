@@ -1,6 +1,8 @@
 use hdd::ata::misc::Misc;
 
 use hdd::ata::data::attr;
+use hdd::ata::data::id::Id;
+use hdd::ata::data::attr::raw::Raw;
 use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
 
@@ -14,7 +16,12 @@ use clap::{
 use serde_json;
 use serde_json::value::ToJson;
 
-use super::{open_drivedb, when_smart_enabled, arg_json, arg_drivedb};
+use std::collections::HashMap;
+use std::string::ToString;
+
+use std::f64::NAN;
+
+use super::{open_drivedb, when_smart_enabled, arg_drivedb};
 
 fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
@@ -66,10 +73,91 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 	print!("                             P prefailure warning\n");
 }
 
+fn escape(s: &String) -> String {
+	s.chars()
+		.flat_map(|c| c.escape_default())
+		.collect()
+}
+
+fn format_prom<T: ToString>(key: &str, labels: &HashMap<&str, String>, value: T) -> String {
+	let mut line = String::from(key);
+
+	if ! labels.is_empty() {
+		line.push('{');
+		let mut labels = labels.into_iter();
+		if let Some((k, v)) = labels.next() {
+			line.push_str(&format!("{}=\"{}\"", k, escape(v)));
+		}
+		for (k, v) in labels {
+			line.push_str(", ");
+			line.push_str(&format!("{}=\"{}\"", k, escape(v)));
+		}
+		line.push('}');
+	};
+	line.push(' ');
+	line.push_str(&value.to_string());
+	line
+}
+
+fn print_prometheus(dev: String, id: &Id, dbentry: &Option<drivedb::Match>, values: Vec<attr::SmartAttribute>) {
+	let mut labels = HashMap::new();
+	labels.insert("dev", dev);
+	labels.insert("model", id.model.clone());
+	labels.insert("serial", id.serial.clone());
+	if let Some(ref entry) = *dbentry {
+		if let Some(family) = entry.family {
+			labels.insert("family", family.clone());
+		}
+	};
+
+	for val in values {
+		let mut labels = labels.clone();
+		labels.insert("id", val.id.to_string());
+		labels.insert("name", val.name.unwrap_or("?".to_string()));
+		labels.insert("pre_fail", val.pre_fail.to_string());
+
+		val.value.map(|v| print!("{}\n", format_prom("smart_value", &labels, v)));
+		val.worst.map(|v| print!("{}\n", format_prom("smart_worst", &labels, v)));
+		val.thresh.map(|v| print!("{}\n", format_prom("smart_thresh", &labels, v)));
+		print!("{}\n", format_prom("smart_raw", &labels, {
+			use self::Raw::*;
+			match val.raw {
+				// TODO what should we do with these vecs from Raw{8,16}?
+				Raw8(_) => NAN,
+				Raw16(_) => NAN,
+				Raw64(x) => x as f64,
+				// TODO show opt value somehow?
+				Raw16opt16(x, _) => x as f64,
+				Raw16avg16 { value, .. } => value as f64,
+				Raw24opt8(x, _) => x as f64,
+				// TODO show div value somehow?
+				Raw24div(x, _) => x as f64,
+				Minutes(x) => x as f64,
+				Seconds(x) => x as f64,
+				HoursMilliseconds(h, ms) => (h as f64) * 3600. + (ms as f64) / 1000.,
+				Celsius(x) => x as f64,
+				// if you're exporting this into your monitoring system you already do not care about min and max that this drive reports
+				CelsiusMinMax { current, .. } => current as f64,
+			}
+		}));
+	}
+}
+
 pub fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("attrs")
 		.about("Prints a list of S.M.A.R.T. attributes")
-		.arg(arg_json())
+		.arg(Arg::with_name("format")
+			.long("format")
+			.takes_value(true)
+			.possible_values(&["plain", "json", "prometheus"])
+			.help("format to export data in")
+		)
+		.arg(Arg::with_name("json")
+			.long("json")
+			// for consistency with other subcommands
+			.help("alias for --format=json")
+			.overrides_with("format")
+		)
 		.arg(arg_drivedb())
 		.arg(Arg::with_name("vendorattribute")
 			.multiple(true)
@@ -82,6 +170,7 @@ pub fn subcommand() -> App<'static, 'static> {
 }
 
 pub fn attrs<T: Misc + ?Sized>(
+	path: &str,
 	dev: &T,
 	args: &ArgMatches,
 ) {
@@ -103,15 +192,27 @@ pub fn attrs<T: Misc + ?Sized>(
 		user_attributes,
 	));
 
-	let use_json = args.is_present("json");
+	let format = match args.value_of("format") {
+		Some(x) => x,
+		None if args.is_present("json") => "json",
+		None => "plain",
+	};
 
 	when_smart_enabled(&id.smart, "attributes", || {
 		let values = dev.get_smart_attributes(&dbentry).unwrap();
 
-		if use_json {
-			print!("{}\n", serde_json::to_string(&values.to_json().unwrap()).unwrap());
-		} else {
-			print_attributes(values);
+		match format {
+			"plain" => print_attributes(values),
+			"json" => print!("{}\n",
+				serde_json::to_string(&values.to_json().unwrap()).unwrap()
+			),
+			"prometheus" => print_prometheus(
+				path.to_string(),
+				&id,
+				&dbentry,
+				values,
+			),
+			_ => unreachable!(),
 		}
 	});
 }

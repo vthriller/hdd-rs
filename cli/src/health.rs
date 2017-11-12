@@ -18,6 +18,7 @@ pub fn subcommand() -> App<'static, 'static> {
 }
 
 pub fn health<T: Misc + ?Sized>(
+	_: &str,
 	dev: &T,
 	args: &ArgMatches,
 ) {

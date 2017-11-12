@@ -89,7 +89,7 @@ pub fn arg_drivedb() -> Arg {
 			.help("path to drivedb file") // unlike smartctl, does not support '+FILE'
 }
 
-type F<T: Misc + ?Sized> = fn(&T, &ArgMatches);
+type F<T: Misc + ?Sized> = fn(&str, &T, &ArgMatches);
 
 fn main() {
 	let args = App::new("hdd")
@@ -113,9 +113,8 @@ fn main() {
 		)
 		.get_matches();
 
-	let dev = Device::open(
-		args.value_of("device").unwrap()
-	).unwrap();
+	let path = args.value_of("device").unwrap();
+	let dev = Device::open(path).unwrap();
 
 	let dtype = match args.value_of("type") {
 		Some("ata") if cfg!(target_os = "linux") => unreachable!(),
@@ -136,7 +135,7 @@ fn main() {
 	};
 
 	match dtype {
-		Type::ATA => subcommand_ata(&dev, sargs),
-		Type::SCSI => subcommand_scsi(&dev, sargs),
+		Type::ATA => subcommand_ata(path, &dev, sargs),
+		Type::SCSI => subcommand_scsi(path, &dev, sargs),
 	};
 }
