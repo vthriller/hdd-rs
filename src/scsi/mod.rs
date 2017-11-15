@@ -152,24 +152,42 @@ pub trait SCSIDevice {
 		let descriptors = match sense::parse(&sense) {
 			// current sense in the descriptor format
 			Some((true, sense::Sense::Descriptor(sense::DescriptorData {
-				descriptors, ..
+				descriptors,
+				// Recovered Error / ATA PASS THROUGH INFORMATION AVAILABLE
+				key: 0x01, asc: 0x00, ascq: 0x1D,
+				..
 			}))) => {
 				descriptors
 			},
+
 			Some((true, sense::Sense::Fixed(sense::FixedData::Valid {
-				// INVALID COMMAND OPERATION CODE
-				asc: 0x20, ascq: 0x00,
-				key, ..
-			})))
-			// XXX cannot match `foo as bar` right in the pattern :-(
-			if key == sense::key::SenseKey::IllegalRequest as u8
-			=> {
+				// Illegal Request / INVALID COMMAND OPERATION CODE
+				key: 0x05, asc: 0x20, ascq: 0x00, ..
+			}))) => {
 				return Err(Error::new(ErrorKind::Other, "ATA is not supported"));
 			},
-			Some((true, _)) => {
+
+			Some((true, sense::Sense::Fixed(sense::FixedData::Valid {
+				key, asc, ascq, ..
+			})))
+			| Some((true, sense::Sense::Descriptor(sense::DescriptorData {
+				key, asc, ascq, ..
+			})))
+			=> {
+				return Err(Error::new(ErrorKind::Other, format!(
+					"unexpected sense: {:?} ({})",
+					sense::key::SenseKey::from(key),
+					sense::key::decode_asc(asc, ascq)
+						.map(|x| x.to_string())
+						.unwrap_or_else(|| format!("unknown: {:02x} {:02x}", asc, ascq)),
+				)));
+			},
+
+			Some((true, sense::Sense::Fixed(sense::FixedData::Invalid(_)))) => {
 				return Err(Error::new(ErrorKind::Other, "invalid sense"));
 			},
-			_ => {
+
+			Some((false, _)) | None => {
 				return Err(Error::new(ErrorKind::Other, "no (current) sense"));
 			},
 		};
