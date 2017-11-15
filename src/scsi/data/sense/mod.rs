@@ -1,6 +1,8 @@
 mod fixed;
 pub use self::fixed::FixedData;
 
+pub mod key;
+
 mod descriptor;
 pub use self::descriptor::{Descriptor, DescriptorData};
 

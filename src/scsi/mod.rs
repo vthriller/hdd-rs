@@ -147,6 +147,8 @@ pub trait SCSIDevice {
 
 		let (sense, data) = self.do_cmd(&ata_cmd, Direction::From, 32, 512)?;
 
+		// FIXME this block is full of super-awkward patterns
+		// TODO proper errors
 		let descriptors = match sense::parse(&sense) {
 			// current sense in the descriptor format
 			Some((true, sense::Sense::Descriptor(sense::DescriptorData {
@@ -154,9 +156,21 @@ pub trait SCSIDevice {
 			}))) => {
 				descriptors
 			},
+			Some((true, sense::Sense::Fixed(sense::FixedData::Valid {
+				// INVALID COMMAND OPERATION CODE
+				asc: 0x20, ascq: 0x00,
+				key, ..
+			})))
+			// XXX cannot match `foo as bar` right in the pattern :-(
+			if key == sense::key::SenseKey::IllegalRequest as u8
+			=> {
+				return Err(Error::new(ErrorKind::Other, "ATA is not supported"));
+			},
+			Some((true, _)) => {
+				return Err(Error::new(ErrorKind::Other, "invalid sense"));
+			},
 			_ => {
-				// TODO proper error
-				return Err(Error::new(ErrorKind::Other, "no (valid) sense descriptors found"));
+				return Err(Error::new(ErrorKind::Other, "no (current) sense"));
 			},
 		};
 
