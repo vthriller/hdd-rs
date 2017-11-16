@@ -16,7 +16,7 @@ mod linux;
 #[cfg(target_os = "freebsd")]
 mod freebsd;
 
-use std::io::{Error, ErrorKind};
+use std::io;
 use ata;
 use byteorder::{ReadBytesExt, BigEndian};
 use self::data::sense;
@@ -25,9 +25,9 @@ use Direction;
 
 pub trait SCSIDevice {
 	/// Executes `cmd` and returns tuple of `(sense, data)`.
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), Error>;
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
 
-	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
+	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -44,7 +44,7 @@ pub trait SCSIDevice {
 	}
 
 	/// returns tuple of (sense, logical block address, block length in bytes)
-	fn read_capacity_10(&self, lba: Option<u32>) -> Result<(Vec<u8>, u32, u32), Error> {
+	fn read_capacity_10(&self, lba: Option<u32>) -> Result<(Vec<u8>, u32, u32), io::Error> {
 		// pmi is partial medium indicator
 		let (pmi, lba) = match lba {
 			Some(lba) => (true, lba),
@@ -86,7 +86,7 @@ pub trait SCSIDevice {
 	- `page`, `subpage`: log page to return parameters from
 	- `param_ptr`: limit list of return values to parameters starting with id `param_ptr`
 	*/
-	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, Vec<u8>), Error> {
+	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -115,7 +115,7 @@ pub trait SCSIDevice {
 		self.do_cmd(&cmd, Direction::From, 32, alloc)
 	}
 
-	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), Error> {
+	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), io::Error> {
 		// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 		let extend = 0; // TODO
 		let protocol = match dir {
@@ -164,7 +164,7 @@ pub trait SCSIDevice {
 				// Illegal Request / INVALID COMMAND OPERATION CODE
 				key: 0x05, asc: 0x20, ascq: 0x00, ..
 			}))) => {
-				return Err(Error::new(ErrorKind::Other, "ATA is not supported"));
+				return Err(io::Error::new(io::ErrorKind::Other, "ATA is not supported"));
 			},
 
 			Some((true, sense::Sense::Fixed(sense::FixedData::Valid {
@@ -174,7 +174,7 @@ pub trait SCSIDevice {
 				key, asc, ascq, ..
 			})))
 			=> {
-				return Err(Error::new(ErrorKind::Other, format!(
+				return Err(io::Error::new(io::ErrorKind::Other, format!(
 					"unexpected sense: {:?} ({})",
 					sense::key::SenseKey::from(key),
 					sense::key::decode_asc(asc, ascq)
@@ -184,11 +184,11 @@ pub trait SCSIDevice {
 			},
 
 			Some((true, sense::Sense::Fixed(sense::FixedData::Invalid(_)))) => {
-				return Err(Error::new(ErrorKind::Other, "invalid sense"));
+				return Err(io::Error::new(io::ErrorKind::Other, "invalid sense"));
 			},
 
 			Some((false, _)) | None => {
-				return Err(Error::new(ErrorKind::Other, "no (current) sense"));
+				return Err(io::Error::new(io::ErrorKind::Other, "no (current) sense"));
 			},
 		};
 
@@ -214,6 +214,6 @@ pub trait SCSIDevice {
 		}
 
 		// TODO proper error
-		return Err(Error::new(ErrorKind::Other, "no (valid) sense descriptors found"));
+		return Err(io::Error::new(io::ErrorKind::Other, "no (valid) sense descriptors found"));
 	}
 }

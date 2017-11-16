@@ -10,7 +10,7 @@ pub mod data;
 pub mod misc;
 
 use Direction;
-use std::io::Error;
+use std::io;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
@@ -53,7 +53,7 @@ pub struct RegistersWrite {
 }
 
 pub trait ATADevice {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error>;
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
 }
 
 /*
@@ -72,7 +72,7 @@ use Device;
 #[cfg(target_os = "linux")]
 #[allow(unused_variables)]
 impl ATADevice for Device {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
 		unimplemented!()
 	}
 }

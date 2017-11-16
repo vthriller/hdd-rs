@@ -8,7 +8,7 @@ use std::ptr;
 use self::libc::c_ulong;
 
 use std::os::unix::io::AsRawFd;
-use std::io::Error;
+use std::io;
 
 use Direction;
 use Device;
@@ -52,7 +52,7 @@ struct sg_io_hdr {
 }
 
 impl SCSIDevice for Device {
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), Error> {
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len];
@@ -98,7 +98,7 @@ impl SCSIDevice for Device {
 
 		unsafe {
 			if ioctl(self.file.as_raw_fd(), SG_IO, &hdr) == -1 {
-				return Err(Error::last_os_error());
+				return Err(io::Error::last_os_error());
 			}
 		}
 

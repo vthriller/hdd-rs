@@ -2,7 +2,7 @@ use cam::bindings;
 
 use std::ffi::CStr;
 use std::error;
-use std::io::{Error, ErrorKind};
+use std::io;
 use std::fmt;
 
 extern crate libc;
@@ -37,8 +37,8 @@ impl error::Error for CAMError {
 }
 
 // FIXME proper error types
-impl From<CAMError> for Error {
+impl From<CAMError> for io::Error {
 	fn from(err: CAMError) -> Self {
-		Error::new(ErrorKind::Other, err)
+		io::Error::new(io::ErrorKind::Other, err)
 	}
 }

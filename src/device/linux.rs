@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::Error;
+use std::io;
 
 /// See [parent module docs](../index.html)
 #[derive(Debug)]
@@ -8,7 +8,7 @@ pub struct Device {
 }
 
 impl Device {
-	pub fn open(path: &str) -> Result<Self, Error> {
+	pub fn open(path: &str) -> Result<Self, io::Error> {
 		Ok(Device {
 			file: File::open(path)?,
 		})

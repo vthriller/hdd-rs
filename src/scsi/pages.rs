@@ -27,7 +27,7 @@ extern crate byteorder;
 use byteorder::{ReadBytesExt, BigEndian};
 
 use std::collections::HashMap;
-use std::io::{Error, ErrorKind};
+use std::io;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ErrorCounter {
@@ -121,7 +121,7 @@ pub fn page_name(page: u8) -> &'static str {
 	}
 }
 
-fn get_page<T: SCSIDevice>(dev: &T, page: u8) -> Result<log_page::Page, Error> {
+fn get_page<T: SCSIDevice>(dev: &T, page: u8) -> Result<log_page::Page, io::Error> {
 	let (_sense, data) = dev.log_sense(
 		false, // changed
 		false, // save_params
@@ -132,12 +132,12 @@ fn get_page<T: SCSIDevice>(dev: &T, page: u8) -> Result<log_page::Page, Error> {
 	)?;
 
 	log_page::parse(&data)
-		.ok_or(Error::new(ErrorKind::Other, "Unable to parse log page data"))
+		.ok_or(io::Error::new(io::ErrorKind::Other, "Unable to parse log page data"))
 }
 
-fn get_params<T: SCSIDevice>(dev: &T, page: u8) -> Result<Vec<log_page::Parameter>, Error> {
+fn get_params<T: SCSIDevice>(dev: &T, page: u8) -> Result<Vec<log_page::Parameter>, io::Error> {
 	let page = get_page(dev, page)?;
-	page.parse_params().ok_or(Error::new(ErrorKind::Other, "Unable to parse log page params"))
+	page.parse_params().ok_or(io::Error::new(io::ErrorKind::Other, "Unable to parse log page params"))
 }
 
 // TODO proper errors
@@ -149,7 +149,7 @@ See [module documentation](index.html) for example.
 */
 pub trait Pages: SCSIDevice + Sized {
 	// TODO? use this in a constructor of a new type to prevent user from issuing LOG SENSE against unsupported log pages
-	fn supported_pages(&self) -> Result<Vec<u8>, Error> {
+	fn supported_pages(&self) -> Result<Vec<u8>, io::Error> {
 		let page = get_page(self, 0x00)?;
 		Ok(page.data.to_vec())
 	}
@@ -164,7 +164,7 @@ pub trait Pages: SCSIDevice + Sized {
 	* [read_reverse_error_counters](#method.read_reverse_error_counters)
 	* [verify_error_counters](#method.verify_error_counters)
 	*/
-	fn error_counters(&self, page: u8) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	fn error_counters(&self, page: u8) -> Result<HashMap<ErrorCounter, u64>, io::Error> {
 		let params = get_params(self, page)?;
 
 		let counters = params.iter().map(|param| {
@@ -194,20 +194,20 @@ pub trait Pages: SCSIDevice + Sized {
 		Ok(counters)
 	}
 
-	fn write_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	fn write_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, io::Error> {
 		self.error_counters(0x02)
 	}
-	fn read_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	fn read_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, io::Error> {
 		self.error_counters(0x03)
 	}
-	fn read_reverse_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	fn read_reverse_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, io::Error> {
 		self.error_counters(0x04)
 	}
-	fn verify_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	fn verify_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, io::Error> {
 		self.error_counters(0x05)
 	}
 
-	fn non_medium_error_count(&self) -> Result<u64, Error> {
+	fn non_medium_error_count(&self) -> Result<u64, io::Error> {
 		let params = get_params(self, 0x06)?;
 
 		for param in params {
@@ -218,7 +218,7 @@ pub trait Pages: SCSIDevice + Sized {
 			return Ok((&param.value[..]).read_uint::<BigEndian>(param.value.len()).unwrap());
 		}
 
-		Err(Error::new(ErrorKind::Other, "Cannot find valid param for this log page"))
+		Err(io::Error::new(io::ErrorKind::Other, "Cannot find valid param for this log page"))
 	}
 
 	/**
@@ -227,7 +227,7 @@ pub trait Pages: SCSIDevice + Sized {
 	* `temp`: current temperature, °C,
 	* `ref_temp`: reference temperature, °C; maximum temperature at which device is capable of operating continuously without degrading
 	*/
-	fn temperature(&self) -> Result<(Option<u8>, Option<u8>), Error> {
+	fn temperature(&self) -> Result<(Option<u8>, Option<u8>), io::Error> {
 		let params = get_params(self, 0x0d)?;
 
 		let mut temp = None;
@@ -254,7 +254,7 @@ pub trait Pages: SCSIDevice + Sized {
 	}
 
 	/// In SPC-4, this is called Start-Stop Cycle Counter
-	fn dates_and_cycle_counters(&self) -> Result<DatesAndCycleCounters, Error> {
+	fn dates_and_cycle_counters(&self) -> Result<DatesAndCycleCounters, io::Error> {
 		let params = get_params(self, 0x0e)?;
 
 		let mut result = DatesAndCycleCounters {
@@ -327,7 +327,7 @@ pub trait Pages: SCSIDevice + Sized {
 		Ok(result)
 	}
 
-	fn self_test_results(&self) -> Result<Vec<SelfTest>, Error> {
+	fn self_test_results(&self) -> Result<Vec<SelfTest>, io::Error> {
 		let params = get_params(self, 0x10)?;
 
 		let self_tests = params.iter().map(|param| {
@@ -366,7 +366,7 @@ pub trait Pages: SCSIDevice + Sized {
 		Ok(self_tests)
 	}
 
-	fn informational_exceptions(&self) -> Result<Vec<InformationalException>, Error> {
+	fn informational_exceptions(&self) -> Result<Vec<InformationalException>, io::Error> {
 		let params = get_params(self, 0x2f)?;
 
 		let exceptions = params.iter().map(|param| {

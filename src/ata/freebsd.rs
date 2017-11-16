@@ -8,10 +8,10 @@ use ata::ATADevice;
 use Direction;
 use Device;
 
-use std::io::Error;
+use std::io;
 
 impl ATADevice for Device {
-	fn ata_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), Error> {
+	fn ata_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), io::Error> {
 		let timeout = 10; // in seconds; TODO configurable
 
 		let mut data: [u8; 512] = [0; 512];
