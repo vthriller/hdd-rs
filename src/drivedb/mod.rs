@@ -45,41 +45,25 @@ use std::io;
 
 use nom;
 
-use std::{error, fmt, convert};
-
 use ata::data::id;
 
 use regex::bytes::Regex;
 
+quick_error! {
 #[derive(Debug)]
-pub enum Error {
-	IO(io::Error),
-	Parse, // TODO? Parse(nom::verbose_errors::Err) if dependencies.nom.features = ["verbose-errors"]
-}
-impl fmt::Display for Error {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match *self {
-			Error::IO(ref err) => write!(f, "IO error: {}", err),
-			Error::Parse => write!(f, "Parse error"),
+	pub enum Error {
+		IO(err: io::Error) {
+			from()
+			display("IO error: {}", err)
+			description(err.description())
+			cause(err)
+		}
+		Parse {
+			// TODO? Parse(nom::verbose_errors::Err) if dependencies.nom.features = ["verbose-errors"]
+			display("Unable to parse the drivedb")
+			description("malformed database")
 		}
 	}
-}
-impl error::Error for Error {
-	fn description(&self) -> &str {
-		match *self {
-			Error::IO(ref err) => err.description(),
-			Error::Parse => "malformed database",
-		}
-	}
-	fn cause(&self) -> Option<&error::Error> {
-		match *self {
-			Error::IO(ref err) => Some(err),
-			Error::Parse => None,
-		}
-	}
-}
-impl convert::From<io::Error> for Error {
-	fn from(err: io::Error) -> Error { Error::IO(err) }
 }
 
 // TODO load_compiled, with pre-compiled headers and pre-parsed presets,

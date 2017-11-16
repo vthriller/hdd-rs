@@ -37,6 +37,9 @@ For more, dive into documentation for the module you're interested in.
 extern crate serde_derive;
 
 #[macro_use]
+extern crate quick_error;
+
+#[macro_use]
 extern crate nom;
 extern crate regex;
 extern crate byteorder;

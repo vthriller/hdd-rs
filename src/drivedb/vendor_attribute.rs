@@ -13,21 +13,13 @@ use std::str;
 use nom;
 use nom::digit;
 
-use std::{error, fmt};
-
-#[derive(Debug)]
-pub struct Error {}
-impl fmt::Display for Error {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "Parse error")
-	}
-}
-impl error::Error for Error {
-	fn description(&self) -> &str {
-		"parse error"
-	}
-	fn cause(&self) -> Option<&error::Error> {
-		None
+quick_error! {
+	#[derive(Debug)]
+	pub enum Error {
+		Parse {
+			// TODO? Parse(nom::verbose_errors::Err) if dependencies.nom.features = ["verbose-errors"]
+			display("Unable to parse vendor attribute")
+		}
 	}
 }
 
@@ -143,8 +135,8 @@ pub fn parse(s: &str) -> Result<Attribute, Error> {
 	// FIXME strings to bytes to strings again… sounds really stupid
 	match parse_standard(s.as_bytes()) {
 		nom::IResult::Done(_, attr) => Ok(attr),
-		nom::IResult::Error(_) => Err(Error {}), // TODO?
-		nom::IResult::Incomplete(_) => Err(Error {}), // TODO?
+		nom::IResult::Error(_) => Err(Error::Parse), // TODO?
+		nom::IResult::Incomplete(_) => Err(Error::Parse), // TODO?
 	}
 }
 
