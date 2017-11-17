@@ -35,22 +35,38 @@ match id.smart {
 use Direction;
 
 use ata::{ATADevice, RegistersRead, RegistersWrite, Command, SMARTFeature};
-use scsi::SCSIDevice;
+use scsi::{SCSIDevice, ATAError};
 
 use ata::data::{id, health, attr};
 use drivedb;
 
 use std::io;
 
+quick_error! {
+	#[derive(Debug)]
+	pub enum Error {
+		IO(err: io::Error) {
+			from()
+			//from(ATAError::IO(err): ATAError) -> (err)
+			display("IO error: {}", err)
+			description(err.description())
+			cause(err)
+		}
+		SCSI(err: ATAError) {
+			from()
+			display("{}", err)
+		}
+	}
+}
+
 /// See [module documentation](index.html).
-// TODO proper errors
 pub trait Misc {
 	/// This function is used to issue any ATA command to the device.
 	// FIXME? put this into {SCSI,ATA}Device under some consistent name
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error>;
 
 	/// Issues IDENTIFY DEVICE command, returning a wide range of data, from model name to status of various features.
-	fn get_device_id(&self) -> Result<id::Id, io::Error> {
+	fn get_device_id(&self) -> Result<id::Id, Error> {
 		let (_, data) = self.ata_do(Direction::From, &RegistersWrite {
 			command: Command::Identify as u8,
 			sector: 1,
@@ -65,7 +81,7 @@ pub trait Misc {
 	}
 
 	/// Issues SMART RETURN STATUS command, returns `Some(false)` if device can no longer be considered reliable.
-	fn get_smart_health(&self) -> Result<Option<bool>, io::Error> {
+	fn get_smart_health(&self) -> Result<Option<bool>, Error> {
 		let (regs, _) = self.ata_do(Direction::None, &RegistersWrite {
 			command: Command::SMART as u8,
 			features: SMARTFeature::ReturnStatus as u8,
@@ -79,7 +95,7 @@ pub trait Misc {
 	}
 
 	/// Issues SMART READ DATA and SMART READ THRESHOLDS commands, then renders their answers using optional [drivedb](../../drivedb/index.html) entry.
-	fn get_smart_attributes(&self, dbentry: &Option<drivedb::Match>) -> Result<Vec<attr::SmartAttribute>, io::Error> {
+	fn get_smart_attributes(&self, dbentry: &Option<drivedb::Match>) -> Result<Vec<attr::SmartAttribute>, Error> {
 		let (_, data) = self.ata_do(Direction::From, &RegistersWrite {
 			command: Command::SMART as u8,
 			sector: 0,
@@ -104,13 +120,13 @@ pub trait Misc {
 }
 
 impl Misc for ATADevice {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
-		ATADevice::ata_do(self, dir, regs)
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+		Ok(ATADevice::ata_do(self, dir, regs)?)
 	}
 }
 
 impl Misc for SCSIDevice {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
-		self.ata_pass_through_16(dir, regs)
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+		Ok(self.ata_pass_through_16(dir, regs)?)
 	}
 }

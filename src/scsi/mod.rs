@@ -23,11 +23,54 @@ use self::data::sense;
 
 use Direction;
 
+quick_error! {
+	#[derive(Debug)]
+	pub enum Error {
+		IO(err: io::Error) {
+			from()
+			display("IO error: {}", err)
+			description(err.description())
+			cause(err)
+		}
+		// XXX make sure only non-deferred senses are used here
+		// XXX it makes no sense (sorry!) to put informational senses here (i.e. sense::SenseKey::{Ok, Recovered, Completed})
+		Sense(key: sense::key::SenseKey, asc: u8, ascq: u8) { // XXX do we need additional sense data? descriptors? flags? probably not
+			// no from() here, as SCSI sense is also used for informational purposes
+			description("SCSI error")
+			display("SCSI error: {:?} ({})",
+				key,
+				sense::key::decode_asc(*asc, *ascq)
+					.map(|x| x.to_string())
+					.unwrap_or_else(|| format!("unknown additional sense code: {:02x} {:02x}", asc, ascq)))
+		}
+		// this is for Sense::Fixed(FixedData::Invalid(_))
+		// pun definitely intented at this point
+		Nonsense {}
+	}
+}
+
+// FIXME naming: this isn't about ATA-level error, this is error related to ATA PASS-THROUGH command
+quick_error! {
+	#[derive(Debug)]
+	pub enum ATAError {
+		SCSI(err: Error) {
+			from()
+			from(err: io::Error) -> (Error::IO(err))
+			display("{}", err)
+		}
+		/// Device does not support ATA PASS-THROUGH command
+		NotSupported {}
+		// no non-deferred sense is available, or there's no descriptors for ATA registers to be found
+		NoRegisters {}
+	}
+}
+
+// TODO look for non-empty autosense and turn it into errors where appropriate
 pub trait SCSIDevice {
 	/// Executes `cmd` and returns tuple of `(sense, data)`.
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
 
-	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -40,11 +83,11 @@ pub trait SCSIDevice {
 			0, // control (XXX what's that?!)
 		];
 
-		self.do_cmd(&cmd, Direction::From, 32, alloc)
+		Ok(self.do_cmd(&cmd, Direction::From, 32, alloc)?)
 	}
 
 	/// returns tuple of (sense, logical block address, block length in bytes)
-	fn read_capacity_10(&self, lba: Option<u32>) -> Result<(Vec<u8>, u32, u32), io::Error> {
+	fn read_capacity_10(&self, lba: Option<u32>) -> Result<(Vec<u8>, u32, u32), Error> {
 		// pmi is partial medium indicator
 		let (pmi, lba) = match lba {
 			Some(lba) => (true, lba),
@@ -86,7 +129,7 @@ pub trait SCSIDevice {
 	- `page`, `subpage`: log page to return parameters from
 	- `param_ptr`: limit list of return values to parameters starting with id `param_ptr`
 	*/
-	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -112,10 +155,10 @@ pub trait SCSIDevice {
 			0, // control (XXX what's that?!)
 		];
 
-		self.do_cmd(&cmd, Direction::From, 32, alloc)
+		Ok(self.do_cmd(&cmd, Direction::From, 32, alloc)?)
 	}
 
-	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), io::Error> {
+	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), ATAError> {
 		// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 		let extend = 0; // TODO
 		let protocol = match dir {
@@ -148,7 +191,6 @@ pub trait SCSIDevice {
 		let (sense, data) = self.do_cmd(&ata_cmd, Direction::From, 32, 512)?;
 
 		// FIXME this block is full of super-awkward patterns
-		// TODO proper errors
 		let descriptors = match sense::parse(&sense) {
 			// current sense in the descriptor format
 			Some((true, sense::Sense::Descriptor(sense::DescriptorData {
@@ -164,7 +206,7 @@ pub trait SCSIDevice {
 				// Illegal Request / INVALID COMMAND OPERATION CODE
 				key: 0x05, asc: 0x20, ascq: 0x00, ..
 			}))) => {
-				return Err(io::Error::new(io::ErrorKind::Other, "ATA is not supported"));
+				return Err(ATAError::NotSupported);
 			},
 
 			Some((true, sense::Sense::Fixed(sense::FixedData::Valid {
@@ -174,21 +216,18 @@ pub trait SCSIDevice {
 				key, asc, ascq, ..
 			})))
 			=> {
-				return Err(io::Error::new(io::ErrorKind::Other, format!(
-					"unexpected sense: {:?} ({})",
-					sense::key::SenseKey::from(key),
-					sense::key::decode_asc(asc, ascq)
-						.map(|x| x.to_string())
-						.unwrap_or_else(|| format!("unknown: {:02x} {:02x}", asc, ascq)),
-				)));
+				// unexpected sense
+				return Err(Error::Sense(sense::key::SenseKey::from(key), asc, ascq))?;
 			},
 
 			Some((true, sense::Sense::Fixed(sense::FixedData::Invalid(_)))) => {
-				return Err(io::Error::new(io::ErrorKind::Other, "invalid sense"));
+				// invalid sense
+				return Err(Error::Nonsense)?;
 			},
 
 			Some((false, _)) | None => {
-				return Err(io::Error::new(io::ErrorKind::Other, "no (current) sense"));
+				// no (current) sense
+				return Err(ATAError::NoRegisters);
 			},
 		};
 
@@ -213,7 +252,6 @@ pub trait SCSIDevice {
 			}, data))
 		}
 
-		// TODO proper error
-		return Err(io::Error::new(io::ErrorKind::Other, "no (valid) sense descriptors found"));
+		return Err(ATAError::NoRegisters);
 	}
 }
