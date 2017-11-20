@@ -34,6 +34,7 @@ match id.smart {
 
 use Direction;
 
+use Device;
 use ata::{ATADevice, RegistersRead, RegistersWrite, Command, SMARTFeature};
 use scsi::{SCSIDevice, ATAError};
 
@@ -61,9 +62,8 @@ quick_error! {
 
 /// See [module documentation](index.html).
 pub trait Misc {
-	/// This function is used to issue any ATA command to the device.
-	// FIXME? put this into {SCSI,ATA}Device under some consistent name
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error>;
+	// XXX DRY
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
 
 	/// Issues IDENTIFY DEVICE command, returning a wide range of data, from model name to status of various features.
 	fn get_device_id(&self) -> Result<id::Id, Error> {
@@ -119,14 +119,15 @@ pub trait Misc {
 	}
 }
 
-impl Misc for ATADevice {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
-		Ok(ATADevice::ata_do(self, dir, regs)?)
+impl Misc for ATADevice<Device> {
+	// XXX DRY
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
+		Self::ata_do(self, dir, regs)
 	}
 }
-
-impl Misc for SCSIDevice {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
-		Ok(self.ata_pass_through_16(dir, regs)?)
+impl Misc for ATADevice<SCSIDevice> {
+	// XXX DRY
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
+		Self::ata_do(self, dir, regs)
 	}
 }
