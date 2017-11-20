@@ -127,7 +127,7 @@ fn main() {
 	};
 
 	// cannot have single `subcommand`: it must be of type `F<_>`, and you can't call `F<A>` and pass it `dev as &B` then
-	let (subcommand_ata, subcommand_scsi, sargs): (F<ATADevice>, F<SCSIDevice>, _) = match args.subcommand() {
+	let (subcommand_ata, subcommand_scsi, sargs): (F<ATADevice<Device>>, F<ATADevice<SCSIDevice>>, _) = match args.subcommand() {
 		("info", Some(args)) => (info::info, info::info, args),
 		("health", Some(args)) => (health::health, health::health, args),
 		("attrs", Some(args)) => (attrs::attrs, attrs::attrs, args),
@@ -135,7 +135,7 @@ fn main() {
 	};
 
 	match dtype {
-		Type::ATA => subcommand_ata(path, &dev, sargs),
-		Type::SCSI => subcommand_scsi(path, &SCSIDevice::new(dev), sargs),
+		Type::ATA => subcommand_ata(path, &ATADevice::new(dev), sargs),
+		Type::SCSI => subcommand_scsi(path, &ATADevice::new(SCSIDevice::new(dev)), sargs),
 	};
 }

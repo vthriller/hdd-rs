@@ -10,8 +10,8 @@ use Device;
 
 use std::io;
 
-impl ATADevice for Device {
-	fn ata_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), io::Error> {
+impl ATADevice<Device> {
+	pub fn ata_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), io::Error> {
 		let timeout = 10; // in seconds; TODO configurable
 
 		let mut data: [u8; 512] = [0; 512];
@@ -55,7 +55,7 @@ impl ATADevice for Device {
 			h.flags |= ccb_flags::CAM_DEV_QFRZDIS as u32;
 		}
 
-		self.dev.send_ccb(&ccb)?;
+		self.device.dev.send_ccb(&ccb)?;
 
 		if ccb.get_status() != (cam_status::CAM_REQ_CMP as u32) {
 			Err(CAMError::current())?

@@ -1,7 +1,7 @@
 /*!
 All things ATA.
 
-* Import [`ATADevice`](trait.ATADevice.html) to start sending ATA commands to the [`Device`](../device/index.html).
+* Import [`ATADevice`](struct.ATADevice.html) to start sending ATA commands to the [`Device`](../device/index.html) or [`SCSIDevice`](../scsi/index.html).
 * Use [`data` module](data/index.html) to parse various low-level structures found in ATA command replies.
 * Import traits from porcelain modules (currently that's just [`misc`](misc/index.html)) to do typical tasks without needing to compose commands and parse responses yourself.
 */
@@ -10,6 +10,7 @@ pub mod data;
 pub mod misc;
 
 use Direction;
+use scsi::{SCSIDevice, SCSICommon};
 use std::io;
 
 #[derive(Debug, Clone, Copy)]
@@ -52,8 +53,19 @@ pub struct RegistersWrite {
 	pub command: u8,
 }
 
-pub trait ATADevice {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
+#[derive(Debug)]
+pub struct ATADevice<T> {
+	device: T,
+}
+
+impl<T> ATADevice<T> {
+	pub fn new(device: T) -> Self {
+		Self { device }
+	}
+
+	/* implemented in `mod {linux,freebsd}`
+	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
+	*/
 }
 
 /*
@@ -71,8 +83,8 @@ use Device;
 
 #[cfg(target_os = "linux")]
 #[allow(unused_variables)]
-impl ATADevice for Device {
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
+impl ATADevice<Device> {
+	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
 		unimplemented!()
 	}
 }
@@ -81,3 +93,12 @@ impl ATADevice for Device {
 mod freebsd;
 #[cfg(target_os = "freebsd")]
 pub use self::freebsd::*;
+
+impl ATADevice<SCSIDevice> {
+	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
+		self.device.ata_pass_through_16(dir, regs).map_err(
+			// FIXME proper errors
+			|err| io::Error::new(io::ErrorKind::Other, err)
+		)
+	}
+}
