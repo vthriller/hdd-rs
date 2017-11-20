@@ -1,7 +1,7 @@
 /*!
 All things SCSI.
 
-* Import [`SCSIDevice`](trait.SCSIDevice.html) to start sending SCSI commands to the [`Device`](../device/index.html).
+* Use [`struct SCSIDevice`](struct.SCSIDevice.html) + [`trait SCSICommon`](trait.SCSICommon.html) to start sending SCSI commands to the [`Device`](../device/index.html).
 * Use [`data` module](data/index.html) to parse various low-level structures found in SCSI command replies.
 * Import traits from porcelain modules (like [`pages`](pages/index.html)) to do typical tasks without needing to compose commands and parse responses yourself.
   * You can also import modules from [`ata`](../ata/index.html) to issue ATA commands using ATA PASS-THROUGH.
@@ -22,6 +22,7 @@ use byteorder::{ReadBytesExt, BigEndian};
 use self::data::sense;
 
 use Direction;
+use Device;
 
 quick_error! {
 	#[derive(Debug)]
@@ -65,9 +66,25 @@ quick_error! {
 	}
 }
 
-// TODO look for non-empty autosense and turn it into errors where appropriate
-pub trait SCSIDevice {
+#[derive(Debug)]
+pub struct SCSIDevice {
+	device: Device,
+}
+
+impl SCSIDevice {
+	pub fn new(device: Device) -> Self {
+		Self { device }
+	}
+
+	/* implemented in `mod {linux,freebsd}`
 	/// Executes `cmd` and returns tuple of `(sense, data)`.
+	pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
+	*/
+}
+
+// TODO look for non-empty autosense and turn it into errors where appropriate
+pub trait SCSICommon {
+	// XXX DRY
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
 
 	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
@@ -253,5 +270,12 @@ pub trait SCSIDevice {
 		}
 
 		return Err(ATAError::NoRegisters);
+	}
+}
+
+impl SCSICommon for SCSIDevice {
+	// XXX DRY
+	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+		Self::do_cmd(self, cmd, dir, sense_len, data_len)
 	}
 }

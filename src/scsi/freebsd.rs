@@ -4,13 +4,13 @@ use self::libc::c_void;
 use cam::*;
 
 use Direction;
-use Device;
 use scsi::SCSIDevice;
 
 use std::io;
 
-impl SCSIDevice for Device {
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize)-> Result<(Vec<u8>, Vec<u8>), io::Error> {
+impl SCSIDevice {
+	/// Executes `cmd` and returns tuple of `(sense, data)`.
+	pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize)-> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len];
@@ -18,7 +18,9 @@ impl SCSIDevice for Device {
 
 		let timeout = 10; // in seconds; TODO configurable
 
-		let ccb: CCB = CCB::new(&self.dev);
+		let dev = &self.device.dev;
+
+		let ccb: CCB = CCB::new(dev);
 
 		unsafe {
 			let csio = ccb.csio();
@@ -54,7 +56,7 @@ impl SCSIDevice for Device {
 			csio.cdb_len = cmd.len() as u8; // TODO check
 		}
 
-		self.dev.send_ccb(&ccb)?;
+		dev.send_ccb(&ccb)?;
 
 		let status = ccb.get_status();
 		if !(status == cam_status::CAM_REQ_CMP as u32 || status == cam_status::CAM_SCSI_STATUS_ERROR as u32) {

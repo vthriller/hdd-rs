@@ -1,7 +1,7 @@
 /*!
 Functions implementing typical ATA commands.
 
-The trait from this module can also be used with [SCSI devices](../../scsi/trait.SCSIDevice.html) that implement ATA PASS-THROUGH command.
+The trait from this module can also be used with [SCSI devices](../../scsi/struct.SCSIDevice.html) that implement ATA PASS-THROUGH command.
 
 ## Example
 
@@ -35,7 +35,7 @@ match id.smart {
 use Direction;
 
 use ata::{ATADevice, RegistersRead, RegistersWrite, Command, SMARTFeature};
-use scsi::{SCSIDevice, ATAError};
+use scsi::{SCSIDevice, SCSICommon, ATAError};
 
 use ata::data::{id, health, attr};
 use drivedb;

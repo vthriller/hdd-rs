@@ -136,6 +136,6 @@ fn main() {
 
 	match dtype {
 		Type::ATA => subcommand_ata(path, &dev, sargs),
-		Type::SCSI => subcommand_scsi(path, &dev, sargs),
+		Type::SCSI => subcommand_scsi(path, &SCSIDevice::new(dev), sargs),
 	};
 }
