@@ -22,6 +22,7 @@ use byteorder::{ReadBytesExt, BigEndian};
 use self::data::sense;
 
 use Direction;
+use Device;
 
 quick_error! {
 	#[derive(Debug)]
@@ -65,12 +66,21 @@ quick_error! {
 	}
 }
 
-// TODO look for non-empty autosense and turn it into errors where appropriate
-pub trait SCSIDevice {
-	/// Executes `cmd` and returns tuple of `(sense, data)`.
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
+#[derive(Debug)]
+pub struct SCSIDevice {
+	device: Device,
+}
 
-	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
+// TODO look for non-empty autosense and turn it into errors where appropriate
+impl SCSIDevice {
+	pub fn new(device: Device) -> Self {
+		Self { device }
+	}
+
+	/// Executes `cmd` and returns tuple of `(sense, data)`.
+	//pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
+
+	pub fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -87,7 +97,7 @@ pub trait SCSIDevice {
 	}
 
 	/// returns tuple of (sense, logical block address, block length in bytes)
-	fn read_capacity_10(&self, lba: Option<u32>) -> Result<(Vec<u8>, u32, u32), Error> {
+	pub fn read_capacity_10(&self, lba: Option<u32>) -> Result<(Vec<u8>, u32, u32), Error> {
 		// pmi is partial medium indicator
 		let (pmi, lba) = match lba {
 			Some(lba) => (true, lba),
@@ -129,7 +139,7 @@ pub trait SCSIDevice {
 	- `page`, `subpage`: log page to return parameters from
 	- `param_ptr`: limit list of return values to parameters starting with id `param_ptr`
 	*/
-	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, Vec<u8>), Error> {
+	pub fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -158,7 +168,7 @@ pub trait SCSIDevice {
 		Ok(self.do_cmd(&cmd, Direction::From, 32, alloc)?)
 	}
 
-	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), ATAError> {
+	pub fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), ATAError> {
 		// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 		let extend = 0; // TODO
 		let protocol = match dir {

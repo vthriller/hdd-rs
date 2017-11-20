@@ -19,7 +19,6 @@ if pages.contains(0x03) {
 ```
 */
 
-use Device;
 use scsi;
 use scsi::SCSIDevice;
 use scsi::data::log_page;
@@ -135,7 +134,7 @@ quick_error! {
 	}
 }
 
-fn get_page<T: SCSIDevice>(dev: &T, page: u8) -> Result<log_page::Page, Error> {
+fn get_page(dev: &SCSIDevice, page: u8) -> Result<log_page::Page, Error> {
 	let (_sense, data) = dev.log_sense(
 		false, // changed
 		false, // save_params
@@ -148,7 +147,7 @@ fn get_page<T: SCSIDevice>(dev: &T, page: u8) -> Result<log_page::Page, Error> {
 	log_page::parse(&data).ok_or(Error::InvalidData("parse log page data"))
 }
 
-fn get_params<T: SCSIDevice>(dev: &T, page: u8) -> Result<Vec<log_page::Parameter>, Error> {
+fn get_params(dev: &SCSIDevice, page: u8) -> Result<Vec<log_page::Parameter>, Error> {
 	let page = get_page(dev, page)?;
 	page.parse_params().ok_or(Error::InvalidData("parse log page params"))
 }
@@ -159,9 +158,9 @@ Methods in this trait issue LOG SENSE command against the device and return inte
 
 See [module documentation](index.html) for example.
 */
-pub trait Pages: SCSIDevice + Sized {
+impl SCSIDevice {
 	// TODO? use this in a constructor of a new type to prevent user from issuing LOG SENSE against unsupported log pages
-	fn supported_pages(&self) -> Result<Vec<u8>, Error> {
+	pub fn supported_pages(&self) -> Result<Vec<u8>, Error> {
 		let page = get_page(self, 0x00)?;
 		Ok(page.data.to_vec())
 	}
@@ -176,7 +175,7 @@ pub trait Pages: SCSIDevice + Sized {
 	* [read_reverse_error_counters](#method.read_reverse_error_counters)
 	* [verify_error_counters](#method.verify_error_counters)
 	*/
-	fn error_counters(&self, page: u8) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn error_counters(&self, page: u8) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		let params = get_params(self, page)?;
 
 		let counters = params.iter().map(|param| {
@@ -206,20 +205,20 @@ pub trait Pages: SCSIDevice + Sized {
 		Ok(counters)
 	}
 
-	fn write_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn write_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x02)
 	}
-	fn read_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn read_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x03)
 	}
-	fn read_reverse_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn read_reverse_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x04)
 	}
-	fn verify_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn verify_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x05)
 	}
 
-	fn non_medium_error_count(&self) -> Result<u64, Error> {
+	pub fn non_medium_error_count(&self) -> Result<u64, Error> {
 		let params = get_params(self, 0x06)?;
 
 		for param in params {
@@ -239,7 +238,7 @@ pub trait Pages: SCSIDevice + Sized {
 	* `temp`: current temperature, °C,
 	* `ref_temp`: reference temperature, °C; maximum temperature at which device is capable of operating continuously without degrading
 	*/
-	fn temperature(&self) -> Result<(Option<u8>, Option<u8>), Error> {
+	pub fn temperature(&self) -> Result<(Option<u8>, Option<u8>), Error> {
 		let params = get_params(self, 0x0d)?;
 
 		let mut temp = None;
@@ -266,7 +265,7 @@ pub trait Pages: SCSIDevice + Sized {
 	}
 
 	/// In SPC-4, this is called Start-Stop Cycle Counter
-	fn dates_and_cycle_counters(&self) -> Result<DatesAndCycleCounters, Error> {
+	pub fn dates_and_cycle_counters(&self) -> Result<DatesAndCycleCounters, Error> {
 		let params = get_params(self, 0x0e)?;
 
 		let mut result = DatesAndCycleCounters {
@@ -339,7 +338,7 @@ pub trait Pages: SCSIDevice + Sized {
 		Ok(result)
 	}
 
-	fn self_test_results(&self) -> Result<Vec<SelfTest>, Error> {
+	pub fn self_test_results(&self) -> Result<Vec<SelfTest>, Error> {
 		let params = get_params(self, 0x10)?;
 
 		let self_tests = params.iter().map(|param| {
@@ -378,7 +377,7 @@ pub trait Pages: SCSIDevice + Sized {
 		Ok(self_tests)
 	}
 
-	fn informational_exceptions(&self) -> Result<Vec<InformationalException>, Error> {
+	pub fn informational_exceptions(&self) -> Result<Vec<InformationalException>, Error> {
 		let params = get_params(self, 0x2f)?;
 
 		let exceptions = params.iter().map(|param| {
@@ -403,5 +402,3 @@ pub trait Pages: SCSIDevice + Sized {
 		Ok(exceptions)
 	}
 }
-
-impl Pages for Device {}

@@ -16,7 +16,7 @@
 extern crate hdd;
 use hdd::Device;
 use hdd::scsi::SCSIDevice;
-use hdd::scsi::pages::{Pages, page_name};
+use hdd::scsi::pages::page_name;
 use hdd::scsi::data::inquiry;
 use hdd::scsi::data::vpd::device_id;
 
@@ -38,7 +38,7 @@ fn print_hex(data: &[u8]) {
 	print!("\n");
 }
 
-fn query(what: &str, dev: &Device, vpd: bool, page: u8, verbose: bool) -> Vec<u8> {
+fn query(what: &str, dev: &SCSIDevice, vpd: bool, page: u8, verbose: bool) -> Vec<u8> {
 	print!("=== {} ===\n", what);
 	let (sense, data) = dev.scsi_inquiry(vpd, page).unwrap();
 
@@ -68,9 +68,9 @@ fn main() {
 		)
 		.get_matches();
 
-	let dev = Device::open(
+	let dev = SCSIDevice::new(Device::open(
 		args.value_of("device").unwrap()
-	).unwrap();
+	).unwrap());
 	let verbose = args.is_present("verbose");
 
 	let (_, lba, block_size) = dev.read_capacity_10(None).unwrap();
