@@ -1,28 +1,28 @@
 #[derive(Debug)]
 #[cfg_attr(feature = "serializable", derive(Serialize))]
 pub struct Inquiry {
-	connected: Option<bool>,
-	device_type: String, // TODO enum?
+	pub connected: Option<bool>,
+	pub device_type: String, // TODO enum?
 
-	removable: bool,
+	pub removable: bool,
 
-	naca_bit: bool, /// Normal ACA bit support, see SAM-3
-	hier_addressing: bool,
+	pub naca_bit: bool, /// Normal ACA bit support, see SAM-3
+	pub hier_addressing: bool,
 
-	scc:  bool,
-	acc:  bool,
-	tpc:  bool,
-	protection:  bool,
+	pub scc:  bool,
+	pub acc:  bool,
+	pub tpc:  bool,
+	pub protection:  bool,
 
-	enclosure_services: bool,
-	multiport: bool,
-	media_changer: bool,
-	linked_cmds: bool,
+	pub enclosure_services: bool,
+	pub multiport: bool,
+	pub media_changer: bool,
+	pub linked_cmds: bool,
 
-	vendor_id: String,
-	product_id: String,
-	product_rev: String,
-	drive_serial: String,
+	pub vendor_id: String,
+	pub product_id: String,
+	pub product_rev: String,
+	pub drive_serial: String,
 }
 
 fn is_set(x: u8, bit: usize) -> bool {
