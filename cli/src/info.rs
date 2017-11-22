@@ -1,6 +1,8 @@
-use hdd::ata::misc::Misc;
+use hdd::ata::misc::{Misc, Error};
 use hdd::ata::data::id;
 use hdd::drivedb;
+use hdd::scsi::{ATAError, SCSICommon};
+use hdd::scsi::data::inquiry;
 
 use clap::{
 	ArgMatches,
@@ -21,7 +23,7 @@ fn bool_to_sup(b: bool) -> &'static str {
 	else { "not supported" }
 }
 
-fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
+fn print_ata_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 	if id.incomplete { print!("WARNING: device reports information it provides is incomplete\n\n"); }
 
 	// XXX id.is_ata is deemed redundant and is skipped
@@ -91,6 +93,14 @@ fn print_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 	print!("\n");
 }
 
+fn print_scsi_id(inquiry: &inquiry::Inquiry) {
+	print!("Vendor:   {}\n", inquiry.vendor_id);
+	print!("Model:    {}\n", inquiry.product_id);
+	print!("Firmware: {}\n", inquiry.product_rev);
+
+	// TODO other inquiry fields, capacity, …
+}
+
 pub fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("info")
 		.about("Prints a basic information about the device")
@@ -103,11 +113,34 @@ pub fn info(
 	dev: &DeviceArgument,
 	args: &ArgMatches,
 ) {
-	let id = match *dev {
-		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
-		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
-		DeviceArgument::SCSI(_) => unimplemented!(),
+	let ata_id = match *dev {
+		DeviceArgument::ATA(ref dev) => Some(dev.get_device_id()),
+		DeviceArgument::SAT(ref dev) => Some(dev.get_device_id()),
+		DeviceArgument::SCSI(_) => None,
 	};
+	let ata_id = match ata_id {
+		Some(Ok(id)) => Some(id),
+		Some(Err(Error::SCSI(ATAError::NotSupported))) => {
+			// <this is fine.jpg>
+			eprint!("Not an ATA device");
+			None
+		},
+		Some(e) => {
+			e.unwrap(); // TODO abort gracefully
+			None
+		},
+		None => None,
+	};
+
+	let use_json = args.is_present("json");
+
+	if let DeviceArgument::SCSI(ref dev) = *dev {
+		let (_sense, data) = dev.scsi_inquiry(false, 0).unwrap();
+
+		print_scsi_id(&inquiry::parse_inquiry(&data));
+	}
+
+	if let Some(id) = ata_id {
 
 	let drivedb = open_drivedb(args.value_of("drivedb"));
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
@@ -117,8 +150,6 @@ pub fn info(
 		// we're only using drivedb for the family and the warning here
 		vec![],
 	));
-
-	let use_json = args.is_present("json");
 
 	if use_json {
 		let mut info = id.to_json().unwrap();
@@ -134,6 +165,8 @@ pub fn info(
 
 		print!("{}\n", serde_json::to_string(&info).unwrap());
 	} else {
-		print_id(&id, &dbentry);
+		print_ata_id(&id, &dbentry);
+	}
+
 	}
 }
