@@ -122,8 +122,7 @@ fn main() {
 		else if cfg!(target_os = "freebsd") { "ata" }
 		else { unimplemented!() }
 	) {
-		"ata" if cfg!(target_os = "linux") => unreachable!(),
-		"ata" if cfg!(target_os = "freebsd") => Type::ATA,
+		"ata" => Type::ATA,
 		"sat" => Type::SCSI,
 		_ => unreachable!(),
 	};
