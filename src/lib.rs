@@ -32,6 +32,27 @@ For more, dive into documentation for the module you're interested in.
 	unused_qualifications,
 )]
 
+/* XXX
+This lint is here mainly to prevent trait gate method hack from becoming recursive. E.g.:
+
+```
+impl Foo<Bar> {
+	pub fn foo() {}
+}
+
+impl Foo<Baz> {
+	pub fn foo() {}
+}
+
+impl<T> Whatever for Foo<T> {
+	fn foo() { Self::foo() }
+}
+```
+
+If `Foo<X>::foo()` is gone for some reason (usually during refactoring), `Whatever::foo()` will start calling itself, which is definitely not what we want, so this should be a hard error.
+*/
+#![deny(unconditional_recursion)]
+
 #[cfg(feature = "serializable")]
 #[macro_use]
 extern crate serde_derive;
