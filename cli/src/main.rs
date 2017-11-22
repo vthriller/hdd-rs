@@ -116,13 +116,15 @@ fn main() {
 	let path = args.value_of("device").unwrap();
 	let dev = Device::open(path).unwrap();
 
-	let dtype = match args.value_of("type") {
-		Some("ata") if cfg!(target_os = "linux") => unreachable!(),
-		Some("ata") if cfg!(target_os = "freebsd") => Type::ATA,
-		Some("sat") => Type::SCSI,
+	let dtype = match args.value_of("type").unwrap_or_else(||
 		// defaults
-		None if cfg!(target_os = "linux") => Type::SCSI,
-		None if cfg!(target_os = "freebsd") => Type::ATA,
+		if cfg!(target_os = "linux") { "sat" }
+		else if cfg!(target_os = "freebsd") { "ata" }
+		else { unimplemented!() }
+	) {
+		"ata" if cfg!(target_os = "linux") => unreachable!(),
+		"ata" if cfg!(target_os = "freebsd") => Type::ATA,
+		"sat" => Type::SCSI,
 		_ => unreachable!(),
 	};
 
