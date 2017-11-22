@@ -9,7 +9,7 @@ use clap::{
 use serde_json;
 use serde_json::value::ToJson;
 
-use super::{when_smart_enabled, arg_json};
+use super::{DeviceArgument, when_smart_enabled, arg_json};
 
 pub fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("health")
@@ -17,17 +17,23 @@ pub fn subcommand() -> App<'static, 'static> {
 		.arg(arg_json())
 }
 
-pub fn health<T: Misc + ?Sized>(
+pub fn health(
 	_: &str,
-	dev: &T,
+	dev: &DeviceArgument,
 	args: &ArgMatches,
 ) {
-	let id = dev.get_device_id().unwrap();
+	let id = match *dev {
+		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
+		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
+	};
 
 	let use_json = args.is_present("json");
 
 	when_smart_enabled(&id.smart, "health status", || {
-		let status = dev.get_smart_health().unwrap();
+		let status = match *dev {
+			DeviceArgument::ATA(ref dev) => dev.get_smart_health().unwrap(),
+			DeviceArgument::SAT(ref dev) => dev.get_smart_health().unwrap(),
+		};
 
 		if use_json {
 			print!("{}\n", serde_json::to_string(&status.to_json().unwrap()).unwrap());

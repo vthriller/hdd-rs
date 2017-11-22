@@ -18,7 +18,6 @@ extern crate hdd;
 use hdd::Device;
 use hdd::scsi::SCSIDevice;
 use hdd::ata::ATADevice;
-use hdd::ata::misc::Misc;
 
 use hdd::ata::data::id;
 use hdd::drivedb;
@@ -75,6 +74,12 @@ arg_enum! {
 	enum Type { ATA, SAT }
 }
 
+#[derive(Debug)]
+pub enum DeviceArgument {
+	ATA(ATADevice<Device>),
+	SAT(ATADevice<SCSIDevice>),
+}
+
 type Arg = clap::Arg<'static, 'static>;
 pub fn arg_json() -> Arg {
 	Arg::with_name("json")
@@ -90,7 +95,7 @@ pub fn arg_drivedb() -> Arg {
 			.help("path to drivedb file") // unlike smartctl, does not support '+FILE'
 }
 
-type F<T: Misc + ?Sized> = fn(&str, &T, &ArgMatches);
+type F = fn(&str, &DeviceArgument, &ArgMatches);
 
 fn main() {
 	/*
@@ -141,18 +146,18 @@ fn main() {
 		else { unimplemented!() }
 	).parse::<Type>().unwrap();
 
-	// cannot have single `subcommand`: it must be of type `F<_>`, and you can't call `F<A>` and pass it `dev as &B` then
 	#[allow(unused_variables)] // ignore subcommand_ata if cfg!(target_os = "linux")
-	let (subcommand_ata, subcommand_scsi, sargs): (F<ATADevice<Device>>, F<ATADevice<SCSIDevice>>, _) = match args.subcommand() {
-		("info", Some(args)) => (info::info, info::info, args),
-		("health", Some(args)) => (health::health, health::health, args),
-		("attrs", Some(args)) => (attrs::attrs, attrs::attrs, args),
+	let (subcommand, sargs): (F, _) = match args.subcommand() {
+		("info", Some(args)) => (info::info, args),
+		("health", Some(args)) => (health::health, args),
+		("attrs", Some(args)) => (attrs::attrs, args),
 		_ => unreachable!(),
 	};
 
-	match dtype {
+	let dev = match dtype {
 		#[cfg(target_os = "freebsd")]
-		Type::ATA => subcommand_ata(path, &ATADevice::new(dev), sargs),
-		Type::SAT => subcommand_scsi(path, &ATADevice::new(SCSIDevice::new(dev)), sargs),
+		Type::ATA => DeviceArgument::ATA(ATADevice::new(dev)),
+		Type::SAT => DeviceArgument::SAT(ATADevice::new(SCSIDevice::new(dev))),
 	};
+	subcommand(path, &dev, sargs)
 }

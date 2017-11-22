@@ -14,7 +14,7 @@ use serde_json::value::ToJson;
 use separator::Separatable;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
-use super::{open_drivedb, arg_json, arg_drivedb};
+use super::{DeviceArgument, open_drivedb, arg_json, arg_drivedb};
 
 fn bool_to_sup(b: bool) -> &'static str {
 	if b { "supported" }
@@ -98,12 +98,15 @@ pub fn subcommand() -> App<'static, 'static> {
 		.arg(arg_drivedb())
 }
 
-pub fn info<T: Misc + ?Sized>(
+pub fn info(
 	_: &str,
-	dev: &T,
+	dev: &DeviceArgument,
 	args: &ArgMatches,
 ) {
-	let id = dev.get_device_id().unwrap();
+	let id = match *dev {
+		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
+		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
+	};
 
 	let drivedb = open_drivedb(args.value_of("drivedb"));
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(

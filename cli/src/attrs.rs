@@ -20,7 +20,7 @@ use std::string::ToString;
 
 use std::f64::NAN;
 
-use super::{open_drivedb, arg_drivedb};
+use super::{DeviceArgument, open_drivedb, arg_drivedb};
 
 fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
@@ -161,12 +161,15 @@ pub fn subcommand() -> App<'static, 'static> {
 enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
-pub fn attrs<T: Misc + ?Sized>(
+pub fn attrs(
 	path: &str,
-	dev: &T,
+	dev: &DeviceArgument,
 	args: &ArgMatches,
 ) {
-	let id = dev.get_device_id().unwrap();
+	let id = match *dev {
+		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
+		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
+	};
 
 	let user_attributes = args.values_of("vendorattribute")
 		.map(|attrs| attrs.collect())
@@ -217,7 +220,10 @@ pub fn attrs<T: Misc + ?Sized>(
 			print!("{}\n", format_prom("smart_enabled", &labels, 0)),
 
 		(format, Enabled) => {
-			let values = dev.get_smart_attributes(&dbentry).unwrap();
+			let values = match *dev {
+				DeviceArgument::ATA(ref dev) => dev.get_smart_attributes(&dbentry).unwrap(),
+				DeviceArgument::SAT(ref dev) => dev.get_smart_attributes(&dbentry).unwrap(),
+			};
 
 			match format {
 				Plain => print_attributes(values),
