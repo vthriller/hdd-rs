@@ -58,14 +58,16 @@ pub struct ATADevice<T> {
 	device: T,
 }
 
+/* implemented in `mod {linux,freebsd}`
 impl<T> ATADevice<T> {
-	pub fn new(device: T) -> Self {
+	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
+}
+*/
+
+impl<T> ATADevice<SCSIDevice<T>> {
+	pub fn from_scsi(device: SCSIDevice<T>) -> Self {
 		Self { device }
 	}
-
-	/* implemented in `mod {linux,freebsd}`
-	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
-	*/
 }
 
 /*
@@ -79,11 +81,15 @@ One might notice there's no linux support here. There's a couple of reasons for 
 // XXX REMOVE THIS LINUX STUB
 
 #[cfg(target_os = "linux")]
-use Device;
+use std::fs::File;
 
 #[cfg(target_os = "linux")]
 #[allow(unused_variables)]
-impl ATADevice<Device> {
+impl ATADevice<File> {
+	pub fn open(path: &str) -> Result<Self, io::Error> {
+		unimplemented!()
+	}
+
 	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
 		unimplemented!()
 	}
@@ -94,7 +100,7 @@ mod freebsd;
 #[cfg(target_os = "freebsd")]
 pub use self::freebsd::*;
 
-impl ATADevice<SCSIDevice> {
+impl<T> ATADevice<SCSIDevice<T>> {
 	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
 		self.device.ata_pass_through_16(dir, regs).map_err(
 			// FIXME proper errors

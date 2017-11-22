@@ -22,7 +22,6 @@ use byteorder::{ReadBytesExt, BigEndian};
 use self::data::sense;
 
 use Direction;
-use Device;
 
 quick_error! {
 	#[derive(Debug)]
@@ -67,20 +66,16 @@ quick_error! {
 }
 
 #[derive(Debug)]
-pub struct SCSIDevice {
-	device: Device,
+pub struct SCSIDevice<T> {
+	device: T,
 }
 
+/* implemented in `mod {linux,freebsd}`
 impl SCSIDevice {
-	pub fn new(device: Device) -> Self {
-		Self { device }
-	}
-
-	/* implemented in `mod {linux,freebsd}`
 	/// Executes `cmd` and returns tuple of `(sense, data)`.
 	pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
-	*/
 }
+*/
 
 // TODO look for non-empty autosense and turn it into errors where appropriate
 pub trait SCSICommon {
@@ -273,7 +268,7 @@ pub trait SCSICommon {
 	}
 }
 
-impl SCSICommon for SCSIDevice {
+impl<T> SCSICommon for SCSIDevice<T> {
 	// XXX DRY
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		Self::do_cmd(self, cmd, dir, sense_len, data_len)

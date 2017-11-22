@@ -32,7 +32,6 @@ match id.smart {
 
 use Direction;
 
-use Device;
 use ata::{ATADevice, RegistersRead, RegistersWrite, Command, SMARTFeature};
 use scsi::{SCSIDevice, ATAError};
 
@@ -40,6 +39,8 @@ use ata::data::{id, health, attr};
 use drivedb;
 
 use std::io;
+
+use std::fs::File;
 
 quick_error! {
 	#[derive(Debug)]
@@ -117,13 +118,13 @@ pub trait Misc {
 	}
 }
 
-impl Misc for ATADevice<Device> {
+impl Misc for ATADevice<File> {
 	// XXX DRY
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
 		Self::ata_do(self, dir, regs)
 	}
 }
-impl Misc for ATADevice<SCSIDevice> {
+impl<T> Misc for ATADevice<SCSIDevice<T>> {
 	// XXX DRY
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
 		Self::ata_do(self, dir, regs)

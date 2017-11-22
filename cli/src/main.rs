@@ -15,7 +15,6 @@
 
 extern crate hdd;
 
-use hdd::Device;
 use hdd::scsi::SCSIDevice;
 use hdd::ata::ATADevice;
 use hdd::ata::misc::Misc;
@@ -114,7 +113,6 @@ fn main() {
 		.get_matches();
 
 	let path = args.value_of("device").unwrap();
-	let dev = Device::open(path).unwrap();
 
 	let dtype = match args.value_of("type") {
 		Some("ata") if cfg!(target_os = "linux") => unreachable!(),
@@ -127,7 +125,7 @@ fn main() {
 	};
 
 	// cannot have single `subcommand`: it must be of type `F<_>`, and you can't call `F<A>` and pass it `dev as &B` then
-	let (subcommand_ata, subcommand_scsi, sargs): (F<ATADevice<Device>>, F<ATADevice<SCSIDevice>>, _) = match args.subcommand() {
+	let (subcommand_ata, subcommand_scsi, sargs): (F<ATADevice<_>>, F<ATADevice<_>>, _) = match args.subcommand() {
 		("info", Some(args)) => (info::info, info::info, args),
 		("health", Some(args)) => (health::health, health::health, args),
 		("attrs", Some(args)) => (attrs::attrs, attrs::attrs, args),
@@ -135,7 +133,7 @@ fn main() {
 	};
 
 	match dtype {
-		Type::ATA => subcommand_ata(path, &ATADevice::new(dev), sargs),
-		Type::SCSI => subcommand_scsi(path, &ATADevice::new(SCSIDevice::new(dev)), sargs),
+		Type::ATA => subcommand_ata(path, &ATADevice::open(path).unwrap(), sargs),
+		Type::SCSI => subcommand_scsi(path, &ATADevice::from_scsi(SCSIDevice::open(path).unwrap()), sargs),
 	};
 }

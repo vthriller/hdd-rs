@@ -7,6 +7,7 @@ use std::ptr;
 #[cfg(not(any(target_env = "musl")))]
 use self::libc::c_ulong;
 
+use std::fs::File;
 use std::os::unix::io::AsRawFd;
 use std::io;
 
@@ -50,7 +51,13 @@ struct sg_io_hdr {
 	info:	c_uint,	// [o] auxiliary information
 }
 
-impl SCSIDevice {
+impl SCSIDevice<File> {
+	pub fn open(path: &str) -> Result<Self, io::Error> {
+		Ok(Self {
+			device: File::open(path)?,
+		})
+	}
+
 	/// Executes `cmd` and returns tuple of `(sense, data)`.
 	pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
@@ -97,7 +104,7 @@ impl SCSIDevice {
 		};
 
 		unsafe {
-			if ioctl(self.device.file.as_raw_fd(), SG_IO, &hdr) == -1 {
+			if ioctl(self.device.as_raw_fd(), SG_IO, &hdr) == -1 {
 				return Err(io::Error::last_os_error());
 			}
 		}

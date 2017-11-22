@@ -14,7 +14,6 @@
 )]
 
 extern crate hdd;
-use hdd::Device;
 use hdd::scsi::{SCSIDevice, SCSICommon};
 use hdd::scsi::pages::{Pages, page_name};
 use hdd::scsi::data::inquiry;
@@ -68,9 +67,9 @@ fn main() {
 		)
 		.get_matches();
 
-	let dev = SCSIDevice::new(Device::open(
+	let dev = SCSIDevice::open(
 		args.value_of("device").unwrap()
-	).unwrap());
+	).unwrap();
 	let verbose = args.is_present("verbose");
 
 	let (_, lba, block_size) = dev.read_capacity_10(None).unwrap();

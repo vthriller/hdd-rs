@@ -403,4 +403,4 @@ pub trait Pages: SCSICommon + Sized {
 	}
 }
 
-impl Pages for SCSIDevice {}
+impl<T> Pages for SCSIDevice<T> {}
