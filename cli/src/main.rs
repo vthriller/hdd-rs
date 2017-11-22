@@ -65,14 +65,15 @@ pub fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
 	drivedb
 }
 
-#[inline]
 #[cfg(target_os = "linux")]
-fn types() -> [&'static str; 1] { ["sat"] }
-#[inline]
-#[cfg(target_os = "freebsd")]
-fn types() -> [&'static str; 2] { ["ata", "sat"] }
+arg_enum! {
+	enum Type { SAT }
+}
 
-enum Type { ATA, SCSI }
+#[cfg(target_os = "freebsd")]
+arg_enum! {
+	enum Type { ATA, SAT }
+}
 
 type Arg = clap::Arg<'static, 'static>;
 pub fn arg_json() -> Arg {
@@ -92,6 +93,23 @@ pub fn arg_drivedb() -> Arg {
 type F<T: Misc + ?Sized> = fn(&str, &T, &ArgMatches);
 
 fn main() {
+	/*
+	XXX this bit of clap.rs lets me down
+	we want to allow users to type in types in lower case, but .possible_values() would not allow that unless we pass it modified list of values
+	so why do we do it here and not in-place?
+	- to_ascii_lowercase() returns `String`s, but .possible_values() only accepts `&str`s, so someone needs to own them. Sigh.
+	- the result looks somewhat clunky.
+
+	see also https://github.com/kbknapp/clap-rs/issues/891
+	*/
+	let type_variants: Vec<_> = Type::variants().iter()
+		.map(|s| std::ascii::AsciiExt::to_ascii_lowercase(s.to_owned()))
+		.collect();
+	// previous we'll never need original values, so shadow them with the references
+	let type_variants: Vec<_> = type_variants.iter()
+		.map(|s| &**s)
+		.collect();
+
 	let args = App::new("hdd")
 		.about("yet another disk querying tool")
 		.version(crate_version!())
@@ -103,7 +121,7 @@ fn main() {
 			.short("d") // smartctl-like
 			.long("device") // smartctl-like
 			.takes_value(true)
-			.possible_values(&types())
+			.possible_values(type_variants.as_slice())
 			.help("device type")
 		)
 		.arg(Arg::with_name("device")
@@ -116,18 +134,15 @@ fn main() {
 	let path = args.value_of("device").unwrap();
 	let dev = Device::open(path).unwrap();
 
-	let dtype = match args.value_of("type").unwrap_or_else(||
+	let dtype = args.value_of("type").unwrap_or_else(||
 		// defaults
 		if cfg!(target_os = "linux") { "sat" }
 		else if cfg!(target_os = "freebsd") { "ata" }
 		else { unimplemented!() }
-	) {
-		"ata" => Type::ATA,
-		"sat" => Type::SCSI,
-		_ => unreachable!(),
-	};
+	).parse::<Type>().unwrap();
 
 	// cannot have single `subcommand`: it must be of type `F<_>`, and you can't call `F<A>` and pass it `dev as &B` then
+	#[allow(unused_variables)] // ignore subcommand_ata if cfg!(target_os = "linux")
 	let (subcommand_ata, subcommand_scsi, sargs): (F<ATADevice<Device>>, F<ATADevice<SCSIDevice>>, _) = match args.subcommand() {
 		("info", Some(args)) => (info::info, info::info, args),
 		("health", Some(args)) => (health::health, health::health, args),
@@ -136,7 +151,8 @@ fn main() {
 	};
 
 	match dtype {
+		#[cfg(target_os = "freebsd")]
 		Type::ATA => subcommand_ata(path, &ATADevice::new(dev), sargs),
-		Type::SCSI => subcommand_scsi(path, &ATADevice::new(SCSIDevice::new(dev)), sargs),
+		Type::SAT => subcommand_scsi(path, &ATADevice::new(SCSIDevice::new(dev)), sargs),
 	};
 }
