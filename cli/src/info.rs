@@ -106,6 +106,7 @@ pub fn info(
 	let id = match *dev {
 		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
 		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
+		DeviceArgument::SCSI(_) => unimplemented!(),
 	};
 
 	let drivedb = open_drivedb(args.value_of("drivedb"));

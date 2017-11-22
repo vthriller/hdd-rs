@@ -66,18 +66,19 @@ pub fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
 
 #[cfg(target_os = "linux")]
 arg_enum! {
-	enum Type { SAT }
+	enum Type { SAT, SCSI }
 }
 
 #[cfg(target_os = "freebsd")]
 arg_enum! {
-	enum Type { ATA, SAT }
+	enum Type { ATA, SAT, SCSI }
 }
 
 #[derive(Debug)]
 pub enum DeviceArgument {
 	ATA(ATADevice<Device>),
 	SAT(ATADevice<SCSIDevice>),
+	SCSI(SCSIDevice),
 }
 
 type Arg = clap::Arg<'static, 'static>;
@@ -158,6 +159,7 @@ fn main() {
 		#[cfg(target_os = "freebsd")]
 		Type::ATA => DeviceArgument::ATA(ATADevice::new(dev)),
 		Type::SAT => DeviceArgument::SAT(ATADevice::new(SCSIDevice::new(dev))),
+		Type::SCSI => DeviceArgument::SCSI(SCSIDevice::new(dev)),
 	};
 	subcommand(path, &dev, sargs)
 }

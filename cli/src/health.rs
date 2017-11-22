@@ -25,6 +25,7 @@ pub fn health(
 	let id = match *dev {
 		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
 		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
+		DeviceArgument::SCSI(_) => unimplemented!(),
 	};
 
 	let use_json = args.is_present("json");
@@ -33,6 +34,7 @@ pub fn health(
 		let status = match *dev {
 			DeviceArgument::ATA(ref dev) => dev.get_smart_health().unwrap(),
 			DeviceArgument::SAT(ref dev) => dev.get_smart_health().unwrap(),
+			DeviceArgument::SCSI(_) => unimplemented!(),
 		};
 
 		if use_json {

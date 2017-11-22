@@ -169,6 +169,7 @@ pub fn attrs(
 	let id = match *dev {
 		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
 		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
+		DeviceArgument::SCSI(_) => unimplemented!(),
 	};
 
 	let user_attributes = args.values_of("vendorattribute")
@@ -223,6 +224,7 @@ pub fn attrs(
 			let values = match *dev {
 				DeviceArgument::ATA(ref dev) => dev.get_smart_attributes(&dbentry).unwrap(),
 				DeviceArgument::SAT(ref dev) => dev.get_smart_attributes(&dbentry).unwrap(),
+				DeviceArgument::SCSI(_) => unimplemented!(),
 			};
 
 			match format {
