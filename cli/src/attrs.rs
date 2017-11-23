@@ -161,15 +161,11 @@ pub fn subcommand() -> App<'static, 'static> {
 enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
-pub fn attrs(
-	path: &str,
-	dev: &DeviceArgument,
-	args: &ArgMatches,
-) {
+pub fn attrs_ata(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
 	let id = match *dev {
 		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
 		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
-		DeviceArgument::SCSI(_) => unimplemented!(),
+		DeviceArgument::SCSI(_) => unreachable!(),
 	};
 
 	let user_attributes = args.values_of("vendorattribute")
@@ -224,7 +220,7 @@ pub fn attrs(
 			let values = match *dev {
 				DeviceArgument::ATA(ref dev) => dev.get_smart_attributes(&dbentry).unwrap(),
 				DeviceArgument::SAT(ref dev) => dev.get_smart_attributes(&dbentry).unwrap(),
-				DeviceArgument::SCSI(_) => unimplemented!(),
+				DeviceArgument::SCSI(_) => unreachable!(),
 			};
 
 			match format {
@@ -241,4 +237,16 @@ pub fn attrs(
 			}
 		},
 	}
+}
+
+pub fn attrs(
+	path: &str,
+	dev: &DeviceArgument,
+	args: &ArgMatches,
+) {
+	use DeviceArgument::*;
+	match dev {
+		dev @ &ATA(_) | dev @ &SAT(_) => attrs_ata(path, dev, args),
+		&SCSI(_) => unimplemented!(),
+	};
 }
