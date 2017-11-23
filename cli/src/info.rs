@@ -136,8 +136,14 @@ pub fn info(
 
 	if let DeviceArgument::SCSI(ref dev) = *dev {
 		let (_sense, data) = dev.scsi_inquiry(false, 0).unwrap();
+		let inquiry = inquiry::parse_inquiry(&data);
 
-		print_scsi_id(&inquiry::parse_inquiry(&data));
+		if use_json {
+			let info = inquiry.to_json().unwrap();
+			print!("{}\n", serde_json::to_string(&info).unwrap());
+		} else {
+			print_scsi_id(&inquiry);
+		}
 	}
 
 	if let Some(id) = ata_id {
