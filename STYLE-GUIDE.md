@@ -20,3 +20,4 @@
     	id::RPM::Unknown => None,
     };
     ```
+* If for some reason you need to reindent large block of code (e.g. introducing `if … {}` block around it), do it in a separate commit. That way you'll keep commit diffs semantically clean.
