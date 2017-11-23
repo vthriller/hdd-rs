@@ -147,32 +147,30 @@ pub fn info(
 	}
 
 	if let Some(id) = ata_id {
+		let drivedb = open_drivedb(args.value_of("drivedb"));
+		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
+			&id,
+			drivedb,
+			// no need to parse custom vendor attributes,
+			// we're only using drivedb for the family and the warning here
+			vec![],
+		));
 
-	let drivedb = open_drivedb(args.value_of("drivedb"));
-	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
-		&id,
-		drivedb,
-		// no need to parse custom vendor attributes,
-		// we're only using drivedb for the family and the warning here
-		vec![],
-	));
+		if use_json {
+			let mut info = id.to_json().unwrap();
 
-	if use_json {
-		let mut info = id.to_json().unwrap();
-
-		if let Some(ref dbentry) = dbentry {
-			if let Some(family) = dbentry.family {
-				info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
+			if let Some(ref dbentry) = dbentry {
+				if let Some(family) = dbentry.family {
+					info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
+				}
+				if let Some(warning) = dbentry.warning {
+					info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
+				}
 			}
-			if let Some(warning) = dbentry.warning {
-				info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
-			}
+
+			print!("{}\n", serde_json::to_string(&info).unwrap());
+		} else {
+			print_ata_id(&id, &dbentry);
 		}
-
-		print!("{}\n", serde_json::to_string(&info).unwrap());
-	} else {
-		print_ata_id(&id, &dbentry);
-	}
-
 	}
 }
