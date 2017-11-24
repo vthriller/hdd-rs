@@ -30,19 +30,19 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ErrorCounter {
-	/// Errors corrected without substantial delay
+	/// Errors corrected without substantial delay; smartctl name: Errors Corrected by ECC (fast)
 	CorrectedNoDelay,
-	/// Errors corrected with possible delays
+	/// Errors corrected with possible delays; smartctl name: Errors Corrected by ECC (delayed)
 	CorrectedDelay,
-	/// Total (e.g., rewrites or rereads)
+	/// Total (e.g., rewrites or rereads); smartctl name: Errors Corrected by rereads/rewrites
 	Total, // XXX total what?
-	/// Total errors corrected
+	/// Total errors corrected; smartctl name: Total errors corrected
 	ErrorsCorrected,
-	/// Total times correction algorithm processed
+	/// Total times correction algorithm processed; smartctl name: Correction algorithm invocations
 	CRCProcessed,
-	/// Total bytes processed
+	/// Total bytes processed; smartctl name: Bytes processed
 	BytesProcessed,
-	/// Total uncorrected errors
+	/// Total uncorrected errors; smartctl name: Total uncorrected errors
 	Uncorrected,
 	VendorSpecific(u16),
 	Reserved(u16),
