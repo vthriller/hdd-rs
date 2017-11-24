@@ -5,6 +5,8 @@ use hdd::ata::data::attr::raw::Raw;
 use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
 
+use hdd::scsi::pages::{Pages, ErrorCounter};
+
 use clap::{
 	Arg,
 	ArgMatches,
@@ -239,6 +241,92 @@ pub fn attrs_ata(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
 	}
 }
 
+fn print_prom_scsi_error_counters(counters: &HashMap<ErrorCounter, u64>, action: &str) {
+	let mut labels = HashMap::new();
+	labels.insert("action", action.to_string());
+
+	use self::ErrorCounter::*;
+	for (k, v) in counters {
+		match *k {
+			CorrectedNoDelay => {
+				let mut labels = labels.clone();
+				labels.insert("with_delay", "1".to_string());
+				print!("{}\n", format_prom("scsi_crc_corrected", &labels, v));
+			},
+			CorrectedDelay => {
+				let mut labels = labels.clone();
+				labels.insert("with_delay", "0".to_string());
+				print!("{}\n", format_prom("scsi_crc_corrected", &labels, v));
+			},
+
+			ErrorsCorrected => {
+				let mut labels = labels.clone();
+				labels.insert("corrected", "1".to_string());
+				print!("{}\n", format_prom("scsi_total_errors", &labels, v));
+			},
+			Uncorrected => {
+				let mut labels = labels.clone();
+				labels.insert("corrected", "0".to_string());
+				print!("{}\n", format_prom("scsi_total_errors", &labels, v));
+			},
+
+			Total => { // XXX better name for this enum variant
+				print!("{}\n", format_prom("scsi_repeated_actions", &labels, v));
+			},
+			CRCProcessed => {
+				print!("{}\n", format_prom("scsi_crc_invocations", &labels, v));
+			},
+			BytesProcessed => {
+				print!("{}\n", format_prom("scsi_bytes_processed", &labels, v));
+			},
+
+			VendorSpecific(n) | Reserved(n) => {
+				let mut labels = labels.clone();
+				labels.insert("id", format!("{}", n));
+				print!("{}\n", format_prom("scsi_unknown_error_counter", &labels, v));
+			},
+		}
+	}
+}
+
+// TODO other formats
+// TODO prometheus: device id labels, just like in attrs_ata
+fn attrs_scsi(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
+	let dev = match *dev {
+		DeviceArgument::ATA(_) | DeviceArgument::SAT(_) => unreachable!(),
+		DeviceArgument::SCSI(ref dev) => dev,
+	};
+
+	let pages = match dev.supported_pages() {
+		Ok(pages) => pages,
+		Err(_) => return, // TODO
+	};
+
+	// XXX should check if page is supported in `trait Pages` methods themselves, not here
+
+	// TODO Err() returned by dev.*_error_counters()
+	if pages.contains(&0x02) {
+		if let Ok(counters) = dev.write_error_counters() {
+			print_prom_scsi_error_counters(&counters, "write")
+		}
+	}
+	if pages.contains(&0x03) {
+		if let Ok(counters) = dev.read_error_counters() {
+			print_prom_scsi_error_counters(&counters, "read")
+		}
+	}
+	if pages.contains(&0x04) {
+		if let Ok(counters) = dev.read_reverse_error_counters() {
+			print_prom_scsi_error_counters(&counters, "read-reverse")
+		}
+	}
+	if pages.contains(&0x05) {
+		if let Ok(counters) = dev.verify_error_counters() {
+			print_prom_scsi_error_counters(&counters, "verify")
+		}
+	}
+}
+
 pub fn attrs(
 	path: &str,
 	dev: &DeviceArgument,
@@ -247,6 +335,6 @@ pub fn attrs(
 	use DeviceArgument::*;
 	match dev {
 		dev @ &ATA(_) | dev @ &SAT(_) => attrs_ata(path, dev, args),
-		&SCSI(_) => unimplemented!(),
+		dev @ &SCSI(_) => attrs_scsi(path, dev, args),
 	};
 }
