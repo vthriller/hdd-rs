@@ -1,4 +1,5 @@
-use cam::{CAMDevice, CAMError};
+use cam::CAMDevice;
+use std::io;
 
 /// See [parent module docs](../index.html)
 #[derive(Debug)]
@@ -7,7 +8,7 @@ pub struct Device {
 }
 
 impl Device {
-	pub fn open(path: &str) -> Result<Self, CAMError> {
+	pub fn open(path: &str) -> Result<Self, io::Error> {
 		Ok(Device {
 			dev: CAMDevice::open(path)?,
 		})
