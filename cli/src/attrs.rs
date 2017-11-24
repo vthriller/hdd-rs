@@ -160,6 +160,7 @@ pub fn subcommand() -> App<'static, 'static> {
 		)
 }
 
+#[derive(PartialEq)]
 enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
@@ -398,6 +399,8 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 		Err(_) => return, // TODO
 	};
 
+	let mut json = serde_json::Map::new();
+
 	// XXX should check if page is supported in `trait Pages` methods themselves, not here
 
 	// TODO Err() returned by dev.*_error_counters()
@@ -422,16 +425,37 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 			print_human_scsi_error_counters(&table);
 		},
 		JSON => {
-                        let mut json = serde_json::Map::new();
-
 			for (name, counters) in error_counters {
 				if let Some(counters) = counters {
 					json.insert(name.to_string(), scsi_error_counters_json(&counters));
 				}
 			}
-
-                        print!("{}\n", serde_json::to_string(&json).unwrap());
 		},
+	}
+
+	// Non-medium errors
+
+	if pages.contains(&0x06) {
+		// also TODO Err()
+		if let Ok(x) = dev.non_medium_error_count() {
+			match format {
+				Prometheus => {
+					let mut labels = HashMap::new();
+					labels.insert("dev", path.to_string());
+					print!("{}\n", format_prom("scsi_non_medium_errors", &labels, x));
+				},
+				Plain => {
+					print!("\nNon-medium errors: {}\n", x);
+				},
+				JSON => {
+					json.insert("non-medium-errors".to_string(), x.to_json().unwrap());
+				},
+			}
+		}
+	}
+
+	if format == JSON {
+		print!("{}\n", serde_json::to_string(&json).unwrap());
 	}
 }
 
