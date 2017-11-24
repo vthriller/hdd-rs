@@ -163,7 +163,7 @@ pub fn subcommand() -> App<'static, 'static> {
 enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
-pub fn attrs_ata(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
+fn attrs_ata(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
 	let id = match *dev {
 		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
 		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
