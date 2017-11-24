@@ -281,17 +281,50 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 	}
 	print!("\n");
 
-	let fixed = vec![
-		(CorrectedNoDelay, "CRC corrected (instant)"),
-		(CorrectedDelay, "CRC corrected (delayed)"),
-		(Total, "Corrected (rereads, rewrites)"),
-		(ErrorsCorrected, "Total errors (corrected)"),
-		(Uncorrected, "Total errors (uncorrected)"),
-		(CRCProcessed, "Total CRC invocations"),
-		(BytesProcessed, "Bytes processed"),
+	let mut rows = vec![
+		// FIXME no pattern matching involved, thus we might miss new ErrorCounter variants here
+		(CorrectedNoDelay, "CRC corrected (instant)".to_string()),
+		(CorrectedDelay, "CRC corrected (delayed)".to_string()),
+		(Total, "Corrected (rereads, rewrites)".to_string()),
+		(ErrorsCorrected, "Total errors (corrected)".to_string()),
+		(Uncorrected, "Total errors (uncorrected)".to_string()),
+		(CRCProcessed, "Total CRC invocations".to_string()),
+		(BytesProcessed, "Bytes processed".to_string()),
 	];
 
-	for (key, name) in fixed {
+	// FIXME this whole thing about unexpected keys is fragile AF, mainly because of all the unreachable!()s
+
+	let mut unexpected = vec![];
+	for &(_, ref values) in counters.iter() {
+		for (key, _) in values {
+			match *key {
+				key @ VendorSpecific(_) | key @ Reserved(_) =>
+					unexpected.push(key),
+				_ => (),
+			}
+		}
+	}
+	unexpected.sort_unstable_by(|a, b| {
+		use std::cmp::Ordering::*;
+		match (*a, *b) {
+			(VendorSpecific(a), VendorSpecific(b)) => a.cmp(&b),
+			(      Reserved(a),       Reserved(b)) => a.cmp(&b),
+			(VendorSpecific(_),       Reserved(_)) => Greater,
+			(      Reserved(_), VendorSpecific(_)) => Less,
+			_ => unreachable!(),
+		}
+	});
+	unexpected.dedup();
+
+	for key in unexpected {
+		match key {
+			VendorSpecific(n) => rows.push((key, format!("vendor-specific (0x{:02x})", n))),
+			Reserved(n)       => rows.push((key, format!("reserved (0x{:02x})", n))),
+			_ => unreachable!(),
+		}
+	}
+
+	for (key, name) in rows {
 		print!("{}", name);
 		for &(_, ref values) in counters.iter() {
 			print!("\t{}", values.get(&key)

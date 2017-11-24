@@ -28,7 +28,7 @@ use byteorder::{ReadBytesExt, BigEndian};
 
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ErrorCounter {
 	/// Errors corrected without substantial delay; smartctl name: Errors Corrected by ECC (fast)
 	CorrectedNoDelay,
