@@ -163,23 +163,13 @@ pub fn subcommand() -> App<'static, 'static> {
 enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
-fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, args: &ArgMatches) {
+fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<Vec<drivedb::Entry>>, user_attributes: Vec<drivedb::Attribute>) {
 	let id = match *dev {
 		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
 		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
 		DeviceArgument::SCSI(_) => unreachable!(),
 	};
 
-	let user_attributes = args.values_of("vendorattribute")
-		.map(|attrs| attrs.collect())
-		.unwrap_or(vec![])
-		.into_iter()
-		.map(|attr| vendor_attribute::parse(attr).ok()) // TODO Err(_)
-		.filter(|x| x.is_some())
-		.map(|x| x.unwrap())
-		.collect();
-
-	let drivedb = open_drivedb(args.value_of("drivedb"));
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
 		&id,
 		drivedb,
@@ -317,7 +307,7 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 
 // TODO other formats
 // TODO prometheus: device id labels, just like in attrs_ata
-fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format, args: &ArgMatches) {
+fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	let dev = match *dev {
 		DeviceArgument::ATA(_) | DeviceArgument::SAT(_) => unreachable!(),
 		DeviceArgument::SCSI(ref dev) => dev,
@@ -371,9 +361,19 @@ pub fn attrs(
 		_ => unreachable!(),
 	};
 
+	let user_attributes = args.values_of("vendorattribute")
+		.map(|attrs| attrs.collect())
+		.unwrap_or(vec![])
+		.into_iter()
+		.map(|attr| vendor_attribute::parse(attr).ok()) // TODO Err(_)
+		.filter(|x| x.is_some())
+		.map(|x| x.unwrap())
+		.collect();
+	let drivedb = open_drivedb(args.value_of("drivedb"));
+
 	use DeviceArgument::*;
 	match dev {
-		dev @ &ATA(_) | dev @ &SAT(_) => attrs_ata(path, dev, format, args),
-		dev @ &SCSI(_) => attrs_scsi(path, dev, format, args),
+		dev @ &ATA(_) | dev @ &SAT(_) => attrs_ata(path, dev, format, drivedb, user_attributes),
+		dev @ &SCSI(_) => attrs_scsi(path, dev, format),
 	};
 }
