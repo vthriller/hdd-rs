@@ -60,7 +60,7 @@ impl SCSIDevice {
 
 		let status = ccb.get_status();
 		if !(status == cam_status::CAM_REQ_CMP as u32 || status == cam_status::CAM_SCSI_STATUS_ERROR as u32) {
-			Err(CAMError::current())?;
+			Err(error::from_status(dev, &ccb))?
 		}
 
 		// TODO ccb.csio.scsi_status

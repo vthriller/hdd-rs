@@ -31,4 +31,3 @@ pub use self::device::*;
 pub mod ccb;
 pub use self::ccb::*;
 pub mod error;
-pub use self::error::*;
