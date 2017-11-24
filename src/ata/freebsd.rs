@@ -58,7 +58,7 @@ impl ATADevice<Device> {
 		self.device.dev.send_ccb(&ccb)?;
 
 		if ccb.get_status() != (cam_status::CAM_REQ_CMP as u32) {
-			Err(CAMError::current())?
+			Err(CAMError::from_status(&self.device.dev, &ccb))?
 		}
 
 		let ataio = unsafe { ccb.ataio() };

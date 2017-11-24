@@ -1,4 +1,6 @@
 use cam::bindings;
+use cam::device::CAMDevice;
+use cam::ccb::CCB;
 
 use std::ffi::CStr;
 use std::error;
@@ -24,6 +26,21 @@ impl CAMError {
 			).to_string_lossy().into_owned()
 		}
 	) }
+	pub fn from_status(dev: &CAMDevice, ccb: &CCB) -> Self {
+		// the same comments about with_capacity() as in scsi/linux's SCSIDevice::do_cmd() apply here
+		let mut s = vec![0; 512];
+
+		unsafe {
+			let err = bindings::cam_error_string(
+				dev.0, ccb.0,
+				s.as_mut_ptr(), s.capacity() as i32,
+				bindings::cam_error_string_flags::CAM_ESF_ALL,
+				bindings::cam_error_proto_flags::CAM_EPF_ALL,
+			);
+
+			CAMError(CStr::from_ptr(err).to_string_lossy().into_owned())
+		}
+	}
 }
 impl fmt::Display for CAMError {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
