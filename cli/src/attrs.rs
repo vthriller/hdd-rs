@@ -400,41 +400,33 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	// XXX should check if page is supported in `trait Pages` methods themselves, not here
 
 	// TODO Err() returned by dev.*_error_counters()
-	let cnt_err_write    = if pages.contains(&0x02) { dev.write_error_counters().ok()        } else { None };
-	let cnt_err_read     = if pages.contains(&0x03) { dev.read_error_counters().ok()         } else { None };
-	let cnt_err_read_rev = if pages.contains(&0x04) { dev.read_reverse_error_counters().ok() } else { None };
-	let cnt_err_verify   = if pages.contains(&0x05) { dev.verify_error_counters().ok()       } else { None };
+	let error_counters = vec![
+		("write",        if pages.contains(&0x02) { dev.write_error_counters().ok()        } else { None }),
+		("read",         if pages.contains(&0x03) { dev.read_error_counters().ok()         } else { None }),
+		("read-reverse", if pages.contains(&0x04) { dev.read_reverse_error_counters().ok() } else { None }),
+		("verify",       if pages.contains(&0x05) { dev.verify_error_counters().ok()       } else { None }),
+	];
 
 	match format {
 		Prometheus => {
-			cnt_err_write.map(|counters| print_prom_scsi_error_counters(&counters, "write"));
-			cnt_err_read.map(|counters| print_prom_scsi_error_counters(&counters, "read"));
-			cnt_err_read_rev.map(|counters| print_prom_scsi_error_counters(&counters, "read-reverse"));
-			cnt_err_verify.map(|counters| print_prom_scsi_error_counters(&counters, "verify"));
+			for (name, counters) in error_counters {
+				counters.map(|counters| print_prom_scsi_error_counters(&counters, name));
+			}
 		},
 		Plain => {
 			let mut table = vec![];
-			cnt_err_write.map(|counters| table.push(("write", counters)));
-			cnt_err_read.map(|counters| table.push(("read", counters)));
-			cnt_err_read_rev.map(|counters| table.push(("read-reverse", counters)));
-			cnt_err_verify.map(|counters| table.push(("verify", counters)));
-
+			for (name, counters) in error_counters {
+				counters.map(|counters| table.push((name, counters)));
+			}
 			print_human_scsi_error_counters(&table);
 		},
 		JSON => {
                         let mut json = serde_json::Map::new();
 
-			if let Some(counters) = cnt_err_write {
-				json.insert("write".to_string(), scsi_error_counters_json(&counters));
-			}
-			if let Some(counters) = cnt_err_read {
-				json.insert("read".to_string(), scsi_error_counters_json(&counters));
-			}
-			if let Some(counters) = cnt_err_read_rev {
-				json.insert("read-reverse".to_string(), scsi_error_counters_json(&counters));
-			}
-			if let Some(counters) = cnt_err_verify {
-				json.insert("verify".to_string(), scsi_error_counters_json(&counters));
+			for (name, counters) in error_counters {
+				if let Some(counters) = counters {
+					json.insert(name.to_string(), scsi_error_counters_json(&counters));
+				}
 			}
 
                         print!("{}\n", serde_json::to_string(&json).unwrap());
