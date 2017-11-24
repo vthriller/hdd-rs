@@ -270,6 +270,51 @@ fn print_prom_scsi_error_counters(counters: &HashMap<ErrorCounter, u64>, action:
 	}
 }
 
+fn scsi_error_counters_json(counters: &HashMap<ErrorCounter, u64>) -> serde_json::Value {
+	let mut json = serde_json::Map::new();
+
+	use self::ErrorCounter::*;
+	for (&k, &v) in counters {
+		let v = v.to_json().unwrap();
+		match k {
+			// TODO? submaps for CRC, totals
+
+			CorrectedNoDelay => {
+				json.insert("crc-corrected-instant".to_string(), v);
+			},
+			CorrectedDelay => {
+				json.insert("crc-corrected-delay".to_string(), v);
+			},
+
+			ErrorsCorrected => {
+				json.insert("total-corrected".to_string(), v);
+			},
+			Uncorrected => {
+				json.insert("total-uncorrected".to_string(), v);
+			},
+
+			Total => {
+				json.insert("corrected-repeated-actions".to_string(), v);
+			},
+			CRCProcessed => {
+				json.insert("crc-processed".to_string(), v);
+			},
+			BytesProcessed => {
+				json.insert("bytes-processed".to_string(), v);
+			},
+
+			VendorSpecific(n) => {
+				json.insert(format!("vendor-specific-{}", n), v);
+			},
+			Reserved(n) => {
+				json.insert(format!("reserved-{}", n), v);
+			},
+		}
+	}
+
+	json.to_json().unwrap()
+}
+
 // FIXME nice table formatting; for now, use `| column -ts$'\t'`
 fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u64>)>) {
 	use self::ErrorCounter::*;
@@ -376,7 +421,24 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 
 			print_human_scsi_error_counters(&table);
 		},
-		_ => unimplemented!(),
+		JSON => {
+                        let mut json = serde_json::Map::new();
+
+			if let Some(counters) = cnt_err_write {
+				json.insert("write".to_string(), scsi_error_counters_json(&counters));
+			}
+			if let Some(counters) = cnt_err_read {
+				json.insert("read".to_string(), scsi_error_counters_json(&counters));
+			}
+			if let Some(counters) = cnt_err_read_rev {
+				json.insert("read-reverse".to_string(), scsi_error_counters_json(&counters));
+			}
+			if let Some(counters) = cnt_err_verify {
+				json.insert("verify".to_string(), scsi_error_counters_json(&counters));
+			}
+
+                        print!("{}\n", serde_json::to_string(&json).unwrap());
+		},
 	}
 }
 
