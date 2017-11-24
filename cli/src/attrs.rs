@@ -289,12 +289,56 @@ fn print_prom_scsi_error_counters(counters: &HashMap<ErrorCounter, u64>, action:
 	}
 }
 
+// FIXME nice table formatting; for now, use `| column -ts$'\t'`
+fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u64>)>) {
+	use self::ErrorCounter::*;
+
+	// header
+	print!(".");
+	for &(action, _) in counters.iter() {
+		print!("\t{}", action);
+	}
+	print!("\n");
+
+	let fixed = vec![
+		(CorrectedNoDelay, "CRC corrected (instant)"),
+		(CorrectedDelay, "CRC corrected (delayed)"),
+		(Total, "Corrected (rereads, rewrites)"),
+		(ErrorsCorrected, "Total errors (corrected)"),
+		(Uncorrected, "Total errors (uncorrected)"),
+		(CRCProcessed, "Total CRC invocations"),
+		(BytesProcessed, "Bytes processed"),
+	];
+
+	for (key, name) in fixed {
+		print!("{}", name);
+		for &(_, ref values) in counters.iter() {
+			print!("\t{}", values.get(&key)
+				.map_or(
+					"-".to_string(),
+					|v| format!("{}", v),
+				)
+			);
+		}
+		print!("\n");
+	}
+}
+
 // TODO other formats
 // TODO prometheus: device id labels, just like in attrs_ata
 fn attrs_scsi(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
 	let dev = match *dev {
 		DeviceArgument::ATA(_) | DeviceArgument::SAT(_) => unreachable!(),
 		DeviceArgument::SCSI(ref dev) => dev,
+	};
+
+	let format = match args.value_of("format") {
+		Some("plain") => Plain,
+		Some("json") => JSON,
+		Some("prometheus") => Prometheus,
+		None if args.is_present("json") => JSON,
+		None => Plain,
+		_ => unreachable!(),
 	};
 
 	let pages = match dev.supported_pages() {
@@ -305,25 +349,28 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
 	// XXX should check if page is supported in `trait Pages` methods themselves, not here
 
 	// TODO Err() returned by dev.*_error_counters()
-	if pages.contains(&0x02) {
-		if let Ok(counters) = dev.write_error_counters() {
-			print_prom_scsi_error_counters(&counters, "write")
-		}
-	}
-	if pages.contains(&0x03) {
-		if let Ok(counters) = dev.read_error_counters() {
-			print_prom_scsi_error_counters(&counters, "read")
-		}
-	}
-	if pages.contains(&0x04) {
-		if let Ok(counters) = dev.read_reverse_error_counters() {
-			print_prom_scsi_error_counters(&counters, "read-reverse")
-		}
-	}
-	if pages.contains(&0x05) {
-		if let Ok(counters) = dev.verify_error_counters() {
-			print_prom_scsi_error_counters(&counters, "verify")
-		}
+	let cnt_err_write    = if pages.contains(&0x02) { dev.write_error_counters().ok()        } else { None };
+	let cnt_err_read     = if pages.contains(&0x03) { dev.read_error_counters().ok()         } else { None };
+	let cnt_err_read_rev = if pages.contains(&0x04) { dev.read_reverse_error_counters().ok() } else { None };
+	let cnt_err_verify   = if pages.contains(&0x05) { dev.verify_error_counters().ok()       } else { None };
+
+	match format {
+		Prometheus => {
+			cnt_err_write.map(|counters| print_prom_scsi_error_counters(&counters, "write"));
+			cnt_err_read.map(|counters| print_prom_scsi_error_counters(&counters, "read"));
+			cnt_err_read_rev.map(|counters| print_prom_scsi_error_counters(&counters, "read-reverse"));
+			cnt_err_verify.map(|counters| print_prom_scsi_error_counters(&counters, "verify"));
+		},
+		Plain => {
+			let mut table = vec![];
+			cnt_err_write.map(|counters| table.push(("write", counters)));
+			cnt_err_read.map(|counters| table.push(("read", counters)));
+			cnt_err_read_rev.map(|counters| table.push(("read-reverse", counters)));
+			cnt_err_verify.map(|counters| table.push(("verify", counters)));
+
+			print_human_scsi_error_counters(&table);
+		},
+		_ => unimplemented!(),
 	}
 }
 
