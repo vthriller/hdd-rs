@@ -7,11 +7,6 @@ use std::io;
 
 extern crate libc;
 
-/* XXX
-> cam_send_ccb() returns a value of -1 if an error occurred, and errno is set to indicate the error.
-
-should we use errno? should we *only* use errno, and not errbuf?
-*/
 /**
 Returns errors reported by some of the functions described in cam(3).
 
@@ -26,8 +21,9 @@ Use this function if the following ones returned NULL:
 
 Use this function if the following ones returned -1:
 
-- cam_send_ccb
 - cam_get_device
+
+**Note:** cam_send_ccb is a simple `return ioctl(…)` function and thus its errors are *not* rendered in `cam_errbuf`.
 */
 pub fn current() -> io::Error { io::Error::new(io::ErrorKind::Other,
 	unsafe {
