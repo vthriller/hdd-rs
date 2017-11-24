@@ -454,6 +454,37 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 		}
 	}
 
+	// Temperature
+
+	if pages.contains(&0x0d) {
+		// also TODO Err()
+		if let Ok((temp, ref_temp)) = dev.temperature() {
+			match format {
+				Prometheus => {
+					let mut labels = HashMap::new();
+					labels.insert("dev", path.to_string());
+					if let Some(t) = temp     { print!("{}\n", format_prom("scsi_temperature", &labels, t)) };
+					if let Some(t) = ref_temp { print!("{}\n", format_prom("scsi_reference_temperature", &labels, t)) };
+				},
+				Plain => {
+					if let Some(t) = temp {
+						print!("\nTemperature: {}°C", t);
+						if let Some(t) = ref_temp {
+							print!(" (max allowed: {}°C)", t);
+						}
+						print!("\n");
+					}
+				},
+				JSON => {
+					let mut tmp = serde_json::Map::new();
+					tmp.insert("current".to_string(), temp.to_json().unwrap());
+					tmp.insert("reference".to_string(), ref_temp.to_json().unwrap());
+					json.insert("temperature".to_string(), tmp.to_json().unwrap());
+				},
+			}
+		}
+	}
+
 	if format == JSON {
 		print!("{}\n", serde_json::to_string(&json).unwrap());
 	}
