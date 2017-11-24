@@ -163,7 +163,7 @@ pub fn subcommand() -> App<'static, 'static> {
 enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
-fn attrs_ata(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
+fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, args: &ArgMatches) {
 	let id = match *dev {
 		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
 		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
@@ -185,15 +185,6 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
 		drivedb,
 		user_attributes,
 	));
-
-	let format = match args.value_of("format") {
-		Some("plain") => Plain,
-		Some("json") => JSON,
-		Some("prometheus") => Prometheus,
-		None if args.is_present("json") => JSON,
-		None => Plain,
-		_ => unreachable!(),
-	};
 
 	// for --format=prometheus (TODO? don't compose if other format is used)
 	let mut labels = HashMap::new();
@@ -326,20 +317,12 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 
 // TODO other formats
 // TODO prometheus: device id labels, just like in attrs_ata
-fn attrs_scsi(path: &str, dev: &DeviceArgument, args: &ArgMatches) {
+fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format, args: &ArgMatches) {
 	let dev = match *dev {
 		DeviceArgument::ATA(_) | DeviceArgument::SAT(_) => unreachable!(),
 		DeviceArgument::SCSI(ref dev) => dev,
 	};
 
-	let format = match args.value_of("format") {
-		Some("plain") => Plain,
-		Some("json") => JSON,
-		Some("prometheus") => Prometheus,
-		None if args.is_present("json") => JSON,
-		None => Plain,
-		_ => unreachable!(),
-	};
 
 	let pages = match dev.supported_pages() {
 		Ok(pages) => pages,
@@ -379,9 +362,18 @@ pub fn attrs(
 	dev: &DeviceArgument,
 	args: &ArgMatches,
 ) {
+	let format = match args.value_of("format") {
+		Some("plain") => Plain,
+		Some("json") => JSON,
+		Some("prometheus") => Prometheus,
+		None if args.is_present("json") => JSON,
+		None => Plain,
+		_ => unreachable!(),
+	};
+
 	use DeviceArgument::*;
 	match dev {
-		dev @ &ATA(_) | dev @ &SAT(_) => attrs_ata(path, dev, args),
-		dev @ &SCSI(_) => attrs_scsi(path, dev, args),
+		dev @ &ATA(_) | dev @ &SAT(_) => attrs_ata(path, dev, format, args),
+		dev @ &SCSI(_) => attrs_scsi(path, dev, format, args),
 	};
 }
