@@ -321,6 +321,9 @@ fn scsi_error_counters_json(counters: &HashMap<ErrorCounter, u64>) -> serde_json
 fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u64>)>) {
 	use self::ErrorCounter::*;
 
+	// no columns to show?
+	if counters.is_empty() { return; }
+
 	// header
 	print!(".");
 	for &(action, _) in counters.iter() {
