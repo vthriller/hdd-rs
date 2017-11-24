@@ -222,8 +222,9 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<V
 	}
 }
 
-fn print_prom_scsi_error_counters(counters: &HashMap<ErrorCounter, u64>, action: &str) {
+fn print_prom_scsi_error_counters(path: &str, counters: &HashMap<ErrorCounter, u64>, action: &str) {
 	let mut labels = HashMap::new();
+	labels.insert("dev", path.to_string());
 	labels.insert("action", action.to_string());
 
 	use self::ErrorCounter::*;
@@ -410,7 +411,7 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	match format {
 		Prometheus => {
 			for (name, counters) in error_counters {
-				counters.map(|counters| print_prom_scsi_error_counters(&counters, name));
+				counters.map(|counters| print_prom_scsi_error_counters(path, &counters, name));
 			}
 		},
 		Plain => {
