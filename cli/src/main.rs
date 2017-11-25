@@ -15,7 +15,7 @@
 
 extern crate hdd;
 
-use hdd::Device;
+use hdd::{device, Device};
 use hdd::scsi::SCSIDevice;
 use hdd::ata::ATADevice;
 
@@ -71,7 +71,8 @@ arg_enum! {
 
 #[cfg(target_os = "freebsd")]
 arg_enum! {
-	enum Type { ATA, SAT, SCSI }
+	#[derive(PartialEq)]
+	enum Type { Auto, ATA, SAT, SCSI }
 }
 
 #[derive(Debug)]
@@ -143,9 +144,18 @@ fn main() {
 	let dtype = args.value_of("type").unwrap_or_else(||
 		// defaults
 		if cfg!(target_os = "linux") { "sat" }
-		else if cfg!(target_os = "freebsd") { "ata" }
+		else if cfg!(target_os = "freebsd") { "auto" }
 		else { unimplemented!() }
 	).parse::<Type>().unwrap();
+
+	#[cfg(target_os = "freebsd")]
+	let dtype = if dtype != Type::Auto { dtype }
+	else {
+		match dev.get_type().unwrap() {
+			device::Type::ATA => Type::ATA,
+			device::Type::SCSI => Type::SCSI,
+		}
+	};
 
 	#[allow(unused_variables)] // ignore subcommand_ata if cfg!(target_os = "linux")
 	let (subcommand, sargs): (F, _) = match args.subcommand() {
@@ -160,6 +170,8 @@ fn main() {
 		Type::ATA => DeviceArgument::ATA(ATADevice::new(dev)),
 		Type::SAT => DeviceArgument::SAT(ATADevice::new(SCSIDevice::new(dev))),
 		Type::SCSI => DeviceArgument::SCSI(SCSIDevice::new(dev)),
+		#[cfg(target_os = "freebsd")]
+		Type::Auto => unreachable!(),
 	};
 	subcommand(path, &dev, sargs)
 }
