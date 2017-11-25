@@ -21,6 +21,7 @@ use hdd::ata::ATADevice;
 
 use hdd::ata::data::id;
 use hdd::drivedb;
+use hdd::ata::misc::Misc;
 
 #[macro_use]
 extern crate clap;
@@ -77,8 +78,8 @@ arg_enum! {
 
 #[derive(Debug)]
 pub enum DeviceArgument {
-	ATA(ATADevice<Device>),
-	SAT(ATADevice<SCSIDevice>),
+	ATA(ATADevice<Device>, id::Id),
+	SAT(ATADevice<SCSIDevice>, id::Id),
 	SCSI(SCSIDevice),
 }
 
@@ -167,8 +168,16 @@ fn main() {
 
 	let dev = match dtype {
 		#[cfg(target_os = "freebsd")]
-		Type::ATA => DeviceArgument::ATA(ATADevice::new(dev)),
-		Type::SAT => DeviceArgument::SAT(ATADevice::new(SCSIDevice::new(dev))),
+		Type::ATA => {
+			let dev = ATADevice::new(dev);
+			let id = dev.get_device_id().unwrap();
+			DeviceArgument::ATA(dev, id)
+		},
+		Type::SAT => {
+			let dev = ATADevice::new(SCSIDevice::new(dev));
+			let id = dev.get_device_id().unwrap();
+			DeviceArgument::SAT(dev, id)
+		},
 		Type::SCSI => DeviceArgument::SCSI(SCSIDevice::new(dev)),
 		#[cfg(target_os = "freebsd")]
 		Type::Auto => unreachable!(),

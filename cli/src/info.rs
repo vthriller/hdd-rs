@@ -1,7 +1,6 @@
-use hdd::ata::misc::{Misc, Error};
 use hdd::ata::data::id;
 use hdd::drivedb;
-use hdd::scsi::{ATAError, SCSICommon};
+use hdd::scsi::SCSICommon;
 use hdd::scsi::data::inquiry;
 
 use clap::{
@@ -114,10 +113,11 @@ pub fn info(
 	args: &ArgMatches,
 ) {
 	let ata_id = match *dev {
-		DeviceArgument::ATA(ref dev) => Some(dev.get_device_id()),
-		DeviceArgument::SAT(ref dev) => Some(dev.get_device_id()),
+		DeviceArgument::ATA(_, ref id) |
+		DeviceArgument::SAT(_, ref id) => Some(id),
 		DeviceArgument::SCSI(_) => None,
 	};
+	/*
 	let ata_id = match ata_id {
 		Some(Ok(id)) => Some(id),
 		Some(Err(Error::SCSI(ATAError::NotSupported))) => {
@@ -131,6 +131,7 @@ pub fn info(
 		},
 		None => None,
 	};
+	*/
 
 	let use_json = args.is_present("json");
 

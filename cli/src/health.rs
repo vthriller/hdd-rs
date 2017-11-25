@@ -23,8 +23,8 @@ pub fn health(
 	args: &ArgMatches,
 ) {
 	let id = match *dev {
-		DeviceArgument::ATA(ref dev) => dev.get_device_id().unwrap(),
-		DeviceArgument::SAT(ref dev) => dev.get_device_id().unwrap(),
+		DeviceArgument::ATA(_, ref id) |
+		DeviceArgument::SAT(_, ref id) => id,
 		DeviceArgument::SCSI(_) => unimplemented!(),
 	};
 
@@ -32,8 +32,8 @@ pub fn health(
 
 	when_smart_enabled(&id.smart, "health status", || {
 		let status = match *dev {
-			DeviceArgument::ATA(ref dev) => dev.get_smart_health().unwrap(),
-			DeviceArgument::SAT(ref dev) => dev.get_smart_health().unwrap(),
+			DeviceArgument::ATA(ref dev, _) => dev.get_smart_health().unwrap(),
+			DeviceArgument::SAT(ref dev, _) => dev.get_smart_health().unwrap(),
 			DeviceArgument::SCSI(_) => unimplemented!(),
 		};
 
