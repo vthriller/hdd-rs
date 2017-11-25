@@ -146,7 +146,6 @@ fn main() {
 		.unwrap_or("auto")
 		.parse::<Type>().unwrap();
 
-	#[allow(unused_variables)] // ignore subcommand_ata if cfg!(target_os = "linux")
 	let (subcommand, sargs): (F, _) = match args.subcommand() {
 		("info", Some(args)) => (info::info, args),
 		("health", Some(args)) => (health::health, args),
