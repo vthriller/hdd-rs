@@ -1,6 +1,6 @@
 [package]
 name = "sample-scsi"
-version = "0.8.0"
+version = "0.9.0"
 authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 
 [dependencies]

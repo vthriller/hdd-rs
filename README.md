@@ -26,7 +26,7 @@ sudo ../target/release/hdd /dev/sda attrs --json
 Put this into your `Cargo.toml` to start using this crate:
 ```toml
 [dependencies]
-hdd = "0.8"
+hdd = "0.9"
 ```
 
 This crate can be build on Rust >= 1.19.
