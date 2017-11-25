@@ -49,6 +49,7 @@ impl CCB {
 	pub unsafe fn ccb_h(&self) -> &mut bindings::ccb_hdr { (*self.0).ccb_h.as_mut() }
 	pub unsafe fn csio(&self) -> &mut bindings::ccb_scsiio { (*self.0).csio.as_mut() }
 	pub unsafe fn ataio(&self) -> &mut bindings::ccb_ataio { (*self.0).ataio.as_mut() }
+	pub unsafe fn cpi(&self) -> &mut bindings::ccb_pathinq { (*self.0).cpi.as_mut() }
 }
 
 impl Drop for CCB {
