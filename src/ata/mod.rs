@@ -10,8 +10,7 @@ pub mod data;
 pub mod misc;
 
 use Direction;
-use scsi::{SCSIDevice, SCSICommon};
-use std::io;
+use scsi::{self, SCSIDevice, SCSICommon};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
@@ -80,6 +79,8 @@ One might notice there's no linux support here. There's a couple of reasons for 
 
 #[cfg(target_os = "linux")]
 use Device;
+#[cfg(target_os = "linux")]
+use std::io;
 
 #[cfg(target_os = "linux")]
 #[allow(unused_variables)]
@@ -95,11 +96,8 @@ mod freebsd;
 pub use self::freebsd::*;
 
 impl ATADevice<SCSIDevice> {
-	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
-		self.device.ata_pass_through_16(dir, regs).map_err(
-			// FIXME proper errors
-			|err| io::Error::new(io::ErrorKind::Other, err)
-		)
+	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), scsi::ATAError> {
+		self.device.ata_pass_through_16(dir, regs)
 	}
 
 	/// Return the wrapped device. Useful in cases when ATA PASS-THROUGH is used to determine whether this is an ATA device or not.

@@ -34,7 +34,7 @@ use Direction;
 
 use Device;
 use ata::{ATADevice, RegistersRead, RegistersWrite, Command, SMARTFeature};
-use scsi::{SCSIDevice, ATAError};
+use scsi::{self, SCSIDevice};
 
 use ata::data::{id, health, attr};
 use drivedb;
@@ -51,7 +51,7 @@ quick_error! {
 			description(err.description())
 			cause(err)
 		}
-		SCSI(err: ATAError) {
+		SCSI(err: scsi::ATAError) {
 			from()
 			display("{}", err)
 		}
@@ -60,8 +60,8 @@ quick_error! {
 
 /// See [module documentation](index.html).
 pub trait Misc {
-	// XXX DRY
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
+	// This one not only invokes ata_do() from `ATADevice<Whatever>`, but also converts into our own error type.
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error>;
 
 	/// Issues IDENTIFY DEVICE command, returning a wide range of data, from model name to status of various features.
 	fn get_device_id(&self) -> Result<id::Id, Error> {
@@ -118,14 +118,12 @@ pub trait Misc {
 }
 
 impl Misc for ATADevice<Device> {
-	// XXX DRY
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
-		Self::ata_do(self, dir, regs)
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+		Ok(Self::ata_do(self, dir, regs)?)
 	}
 }
 impl Misc for ATADevice<SCSIDevice> {
-	// XXX DRY
-	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
-		Self::ata_do(self, dir, regs)
+	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+		Ok(Self::ata_do(self, dir, regs)?)
 	}
 }

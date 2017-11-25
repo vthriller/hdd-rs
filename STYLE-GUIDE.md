@@ -21,3 +21,4 @@
     };
     ```
 * If for some reason you need to reindent large block of code (e.g. introducing `if … {}` block around it), do it in a separate commit. That way you'll keep commit diffs semantically clean.
+* Never import `…::Error` directly, always use external error types with at least one qualifier (e.g. match `Err(io::Error(…))` but not `Err(Error(…))`).

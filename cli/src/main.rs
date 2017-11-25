@@ -21,7 +21,7 @@ use hdd::ata::ATADevice;
 
 use hdd::ata::data::id;
 use hdd::drivedb;
-use hdd::ata::misc::{Misc, Error};
+use hdd::ata::misc::{self, Misc};
 use hdd::scsi::ATAError;
 
 #[macro_use]
@@ -171,7 +171,7 @@ fn main() {
 						Ok(id) =>
 							DeviceArgument::SAT(satdev, id),
 						// nnnnope, plain SCSI
-						Err(Error::SCSI(ATAError::NotSupported)) =>
+						Err(misc::Error::SCSI(ATAError::NotSupported)) =>
 							DeviceArgument::SCSI(satdev.unwrap()),
 						// huh? time to contact Houston
 						e => {
