@@ -101,4 +101,9 @@ impl ATADevice<SCSIDevice> {
 			|err| io::Error::new(io::ErrorKind::Other, err)
 		)
 	}
+
+	/// Return the wrapped device. Useful in cases when ATA PASS-THROUGH is used to determine whether this is an ATA device or not.
+	pub fn unwrap(self) -> SCSIDevice {
+		self.device
+	}
 }

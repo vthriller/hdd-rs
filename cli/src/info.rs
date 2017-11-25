@@ -117,21 +117,6 @@ pub fn info(
 		DeviceArgument::SAT(_, ref id) => Some(id),
 		DeviceArgument::SCSI(_) => None,
 	};
-	/*
-	let ata_id = match ata_id {
-		Some(Ok(id)) => Some(id),
-		Some(Err(Error::SCSI(ATAError::NotSupported))) => {
-			// <this is fine.jpg>
-			eprint!("Not an ATA device");
-			None
-		},
-		Some(e) => {
-			e.unwrap(); // TODO abort gracefully
-			None
-		},
-		None => None,
-	};
-	*/
 
 	let use_json = args.is_present("json");
 

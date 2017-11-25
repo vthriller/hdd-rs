@@ -21,7 +21,8 @@ use hdd::ata::ATADevice;
 
 use hdd::ata::data::id;
 use hdd::drivedb;
-use hdd::ata::misc::Misc;
+use hdd::ata::misc::{Misc, Error};
+use hdd::scsi::ATAError;
 
 #[macro_use]
 extern crate clap;
@@ -67,12 +68,11 @@ pub fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
 
 #[cfg(target_os = "linux")]
 arg_enum! {
-	enum Type { SAT, SCSI }
+	enum Type { Auto, SAT, SCSI }
 }
 
 #[cfg(target_os = "freebsd")]
 arg_enum! {
-	#[derive(PartialEq)]
 	enum Type { Auto, ATA, SAT, SCSI }
 }
 
@@ -142,21 +142,9 @@ fn main() {
 	let path = args.value_of("device").unwrap();
 	let dev = Device::open(path).unwrap();
 
-	let dtype = args.value_of("type").unwrap_or_else(||
-		// defaults
-		if cfg!(target_os = "linux") { "sat" }
-		else if cfg!(target_os = "freebsd") { "auto" }
-		else { unimplemented!() }
-	).parse::<Type>().unwrap();
-
-	#[cfg(target_os = "freebsd")]
-	let dtype = if dtype != Type::Auto { dtype }
-	else {
-		match dev.get_type().unwrap() {
-			device::Type::ATA => Type::ATA,
-			device::Type::SCSI => Type::SCSI,
-		}
-	};
+	let dtype = args.value_of("type")
+		.unwrap_or("auto")
+		.parse::<Type>().unwrap();
 
 	#[allow(unused_variables)] // ignore subcommand_ata if cfg!(target_os = "linux")
 	let (subcommand, sargs): (F, _) = match args.subcommand() {
@@ -166,7 +154,39 @@ fn main() {
 		_ => unreachable!(),
 	};
 
+	/*
+	Why do we issue ATA IDENTIFY DEVICE here?
+	- Device id is what every subcommand uses for one reason or the other, but usually to check whether some feature is supported and enabled.
+	- It allows us to distinguish between pure SCSI devices and ATA devices behind SAT by issuing ATA PASS-THROUGH and checking whether this command is supported.
+	*/
+
 	let dev = match dtype {
+		Type::Auto => {
+			match dev.get_type().unwrap() {
+				device::Type::SCSI => {
+					// check whether devices replies to ATA PASS-THROUGH
+					let satdev = ATADevice::new(SCSIDevice::new(dev));
+					match satdev.get_device_id() {
+						// this is really an ATA device
+						Ok(id) =>
+							DeviceArgument::SAT(satdev, id),
+						// nnnnope, plain SCSI
+						Err(Error::SCSI(ATAError::NotSupported)) =>
+							DeviceArgument::SCSI(satdev.unwrap()),
+						// huh? time to contact Houston
+						e => {
+							e.unwrap(); // TODO abort gracefully
+							unreachable!() // we already panicked
+						},
+					}
+				},
+				device::Type::ATA => {
+					let atadev = ATADevice::new(dev);
+					let id = atadev.get_device_id().unwrap();
+					DeviceArgument::ATA(atadev, id)
+				},
+			}
+		},
 		#[cfg(target_os = "freebsd")]
 		Type::ATA => {
 			let dev = ATADevice::new(dev);
@@ -179,8 +199,7 @@ fn main() {
 			DeviceArgument::SAT(dev, id)
 		},
 		Type::SCSI => DeviceArgument::SCSI(SCSIDevice::new(dev)),
-		#[cfg(target_os = "freebsd")]
-		Type::Auto => unreachable!(),
 	};
+
 	subcommand(path, &dev, sargs)
 }
