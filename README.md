@@ -29,6 +29,8 @@ Put this into your `Cargo.toml` to start using this crate:
 hdd = "0.8"
 ```
 
+This crate can be build on Rust >= 1.19.
+
 ## What's supported?
 
 Platforms and transports:
