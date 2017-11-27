@@ -22,6 +22,8 @@ use std::string::ToString;
 
 use std::f64::NAN;
 
+use number_prefix::{decimal_prefix, binary_prefix, Prefixed, Standalone};
+
 use prettytable;
 use prettytable::Table;
 use prettytable::row::Row;
@@ -397,7 +399,17 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 			row.push(Cell::new(&values.get(&key)
 				.map_or(
 					"-".to_string(),
-					|v| format!("{}", v),
+					if key == BytesProcessed {
+						(|v| match binary_prefix(*v as f32) {
+							Prefixed(p, x) => format!("{:.1} {}B", x, p),
+							Standalone(x)  => format!("{} B", x),
+						}) as fn(&u64) -> String
+					} else {
+						(|v| match decimal_prefix(*v as f32) {
+							Prefixed(p, x) => format!("{:.1}{}", x, p),
+							Standalone(x)  => format!("{}", x),
+						}) as fn(&u64) -> String
+					},
 				)
 			).style_spec("r"));
 		}
