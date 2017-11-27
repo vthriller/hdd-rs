@@ -22,6 +22,11 @@ use std::string::ToString;
 
 use std::f64::NAN;
 
+use prettytable;
+use prettytable::Table;
+use prettytable::row::Row;
+use prettytable::cell::Cell;
+
 use super::{DeviceArgument, open_drivedb, arg_drivedb};
 
 fn bool_to_flag(b: bool, c: char) -> char {
@@ -317,19 +322,27 @@ fn scsi_error_counters_json(counters: &HashMap<ErrorCounter, u64>) -> serde_json
 	json.to_json().unwrap()
 }
 
-// FIXME nice table formatting; for now, use `| column -ts$'\t'`
 fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u64>)>) {
 	use self::ErrorCounter::*;
 
 	// no columns to show?
 	if counters.is_empty() { return; }
 
+	let mut table = Table::new();
+	table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
+
 	// header
-	print!(".");
-	for &(action, _) in counters.iter() {
-		print!("\t{}", action);
+	{
+		let mut row = vec![];
+
+		row.push(Cell::new(""));
+
+		for &(action, _) in counters.iter() {
+			row.push(Cell::new(action).style_spec("r"));
+		}
+
+		table.set_titles(Row::new(row));
 	}
-	print!("\n");
 
 	let mut rows = vec![
 		// FIXME no pattern matching involved, thus we might miss new ErrorCounter variants here
@@ -376,17 +389,23 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 	}
 
 	for (key, name) in rows {
-		print!("{}", name);
+		let mut row = vec![];
+
+		row.push(Cell::new(&name));
+
 		for &(_, ref values) in counters.iter() {
-			print!("\t{}", values.get(&key)
+			row.push(Cell::new(&values.get(&key)
 				.map_or(
 					"-".to_string(),
 					|v| format!("{}", v),
 				)
-			);
+			).style_spec("r"));
 		}
-		print!("\n");
+
+		table.add_row(Row::new(row));
 	}
+
+	table.printstd();
 }
 
 // TODO other formats

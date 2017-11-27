@@ -8,6 +8,7 @@ clap = ">=0.6.6"
 serde_json = "0.9"
 separator = "0.3.1"
 number_prefix = "0.2.7"
+prettytable-rs = "^0.6"
 hdd = { path = "..", features = ["serializable"] }
 
 [[bin]]

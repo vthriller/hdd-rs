@@ -35,6 +35,7 @@ use clap::{
 extern crate serde_json;
 extern crate separator;
 extern crate number_prefix;
+extern crate prettytable;
 
 mod info;
 mod health;
