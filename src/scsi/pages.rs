@@ -137,24 +137,6 @@ quick_error! {
 	}
 }
 
-fn get_page(dev: &SCSICommon, page: u8) -> Result<log_page::Page, Error> {
-	let (_sense, data) = dev.log_sense(
-		false, // changed
-		false, // save_params
-		false, // default
-		false, // threshold
-		page, 0, // page, subpage
-		0, // param_ptr
-	)?;
-
-	log_page::parse(&data).ok_or(Error::InvalidData("parse log page data"))
-}
-
-fn get_params(dev: &SCSICommon, page: u8) -> Result<Vec<log_page::Parameter>, Error> {
-	let page = get_page(dev, page)?;
-	page.parse_params().ok_or(Error::InvalidData("parse log page params"))
-}
-
 /**
 Use this struct to issue LOG SENSE command against the device and return interpreted log page responses.
 
@@ -174,7 +156,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 
 	pub fn supported_pages(&mut self) -> Result<Vec<u8>, Error> {
 		if self.supported_pages == None {
-			let page = get_page(self.device, 0x00)?;
+			let page = self.get_page(0x00)?;
 			self.supported_pages = Some(page.data.to_vec());
 		}
 
@@ -182,12 +164,27 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		Ok(self.supported_pages.as_ref().unwrap().to_vec())
 	}
 
-	fn is_supported(&mut self, page: u8) -> Result<(), Error> {
-		if self.supported_pages()?.contains(&page) {
-			Ok(())
-		} else {
-			Err(Error::NotSupported)
+	fn get_page(&mut self, page: u8) -> Result<log_page::Page, Error> {
+		// this very function is also used by self.supported_pages() so skip that
+		if page != 0x00 && ! self.supported_pages()?.contains(&page) {
+			return Err(Error::NotSupported)
 		}
+
+		let (_sense, data) = self.device.log_sense(
+			false, // changed
+			false, // save_params
+			false, // default
+			false, // threshold
+			page, 0, // page, subpage
+			0, // param_ptr
+		)?;
+
+		log_page::parse(&data).ok_or(Error::InvalidData("parse log page data"))
+	}
+
+	fn get_params(&mut self, page: u8) -> Result<Vec<log_page::Parameter>, Error> {
+		let page = self.get_page(page)?;
+		page.parse_params().ok_or(Error::InvalidData("parse log page params"))
 	}
 
 	/**
@@ -201,9 +198,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	* [verify_error_counters](#method.verify_error_counters)
 	*/
 	pub fn error_counters(&mut self, page: u8) -> Result<HashMap<ErrorCounter, u64>, Error> {
-		self.is_supported(page)?;
-
-		let params = get_params(self.device, page)?;
+		let params = self.get_params(page)?;
 
 		let counters = params.iter().map(|param| {
 			// XXX tell about unexpected params?
@@ -246,9 +241,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	}
 
 	pub fn non_medium_error_count(&mut self) -> Result<u64, Error> {
-		self.is_supported(0x06)?;
-
-		let params = get_params(self.device, 0x06)?;
+		let params = self.get_params(0x06)?;
 
 		for param in params {
 			// XXX tell about unexpected params?
@@ -268,9 +261,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	* `ref_temp`: reference temperature, °C; maximum temperature at which device is capable of operating continuously without degrading
 	*/
 	pub fn temperature(&mut self) -> Result<(Option<u8>, Option<u8>), Error> {
-		self.is_supported(0x0d)?;
-
-		let params = get_params(self.device, 0x0d)?;
+		let params = self.get_params(0x0d)?;
 
 		let mut temp = None;
 		let mut ref_temp = None;
@@ -297,9 +288,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 
 	/// In SPC-4, this is called Start-Stop Cycle Counter
 	pub fn dates_and_cycle_counters(&mut self) -> Result<DatesAndCycleCounters, Error> {
-		self.is_supported(0x0e)?;
-
-		let params = get_params(self.device, 0x0e)?;
+		let params = self.get_params(0x0e)?;
 
 		let mut result = DatesAndCycleCounters {
 			manufacturing_date: None,
@@ -372,9 +361,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	}
 
 	pub fn self_test_results(&mut self) -> Result<Vec<SelfTest>, Error> {
-		self.is_supported(0x10)?;
-
-		let params = get_params(self.device, 0x10)?;
+		let params = self.get_params(0x10)?;
 
 		let self_tests = params.iter().map(|param| {
 			// XXX tell about unexpected params?
@@ -413,9 +400,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	}
 
 	pub fn informational_exceptions(&mut self) -> Result<Vec<InformationalException>, Error> {
-		self.is_supported(0x2f)?;
-
-		let params = get_params(self.device, 0x2f)?;
+		let params = self.get_params(0x2f)?;
 
 		let exceptions = params.iter().map(|param| {
 			// XXX tell about unexpected params?
