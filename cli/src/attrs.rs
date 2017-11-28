@@ -466,104 +466,104 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 
 	// Non-medium errors
 
-		// also TODO Err()
-		if let Ok(x) = pages.non_medium_error_count() {
-			match format {
-				Prometheus => {
-					let mut labels = HashMap::new();
-					labels.insert("dev", path.to_string());
-					print!("{}\n", format_prom("scsi_non_medium_errors", &labels, x));
-				},
-				Plain => {
-					print!("\nNon-medium errors: {}\n", x);
-				},
-				JSON => {
-					json.insert("non-medium-errors".to_string(), x.to_json().unwrap());
-				},
-			}
+	// also TODO Err()
+	if let Ok(x) = pages.non_medium_error_count() {
+		match format {
+			Prometheus => {
+				let mut labels = HashMap::new();
+				labels.insert("dev", path.to_string());
+				print!("{}\n", format_prom("scsi_non_medium_errors", &labels, x));
+			},
+			Plain => {
+				print!("\nNon-medium errors: {}\n", x);
+			},
+			JSON => {
+				json.insert("non-medium-errors".to_string(), x.to_json().unwrap());
+			},
 		}
+	}
 
 	// Temperature
 
-		// also TODO Err()
-		if let Ok((temp, ref_temp)) = pages.temperature() {
-			match format {
-				Prometheus => {
-					let mut labels = HashMap::new();
-					labels.insert("dev", path.to_string());
-					if let Some(t) = temp     { print!("{}\n", format_prom("scsi_temperature", &labels, t)) };
-					if let Some(t) = ref_temp { print!("{}\n", format_prom("scsi_reference_temperature", &labels, t)) };
-				},
-				Plain => {
-					if let Some(t) = temp {
-						print!("\nTemperature: {}°C", t);
-						if let Some(t) = ref_temp {
-							print!(" (max allowed: {}°C)", t);
-						}
-						print!("\n");
+	// also TODO Err()
+	if let Ok((temp, ref_temp)) = pages.temperature() {
+		match format {
+			Prometheus => {
+				let mut labels = HashMap::new();
+				labels.insert("dev", path.to_string());
+				if let Some(t) = temp     { print!("{}\n", format_prom("scsi_temperature", &labels, t)) };
+				if let Some(t) = ref_temp { print!("{}\n", format_prom("scsi_reference_temperature", &labels, t)) };
+			},
+			Plain => {
+				if let Some(t) = temp {
+					print!("\nTemperature: {}°C", t);
+					if let Some(t) = ref_temp {
+						print!(" (max allowed: {}°C)", t);
 					}
-				},
-				JSON => {
-					let mut tmp = serde_json::Map::new();
-					tmp.insert("current".to_string(), temp.to_json().unwrap());
-					tmp.insert("reference".to_string(), ref_temp.to_json().unwrap());
-					json.insert("temperature".to_string(), tmp.to_json().unwrap());
-				},
-			}
+					print!("\n");
+				}
+			},
+			JSON => {
+				let mut tmp = serde_json::Map::new();
+				tmp.insert("current".to_string(), temp.to_json().unwrap());
+				tmp.insert("reference".to_string(), ref_temp.to_json().unwrap());
+				json.insert("temperature".to_string(), tmp.to_json().unwrap());
+			},
 		}
+	}
 
 	// Start-Stop Cycle Counters
 
-		// also TODO Err()
-		// FIXME copy-paste: cycles.{,_lifetime}{start_stop,load_unload}_cycles
-		if let Ok(cycles) = pages.dates_and_cycle_counters() {
-			match format {
-				Prometheus => {
-					let mut labels = HashMap::new();
-					labels.insert("dev", path.to_string());
+	// also TODO Err()
+	// FIXME copy-paste: cycles.{,_lifetime}{start_stop,load_unload}_cycles
+	if let Ok(cycles) = pages.dates_and_cycle_counters() {
+		match format {
+			Prometheus => {
+				let mut labels = HashMap::new();
+				labels.insert("dev", path.to_string());
 
-					labels.insert("action", "start-stop".to_string());
-					if let Some(t) = cycles.start_stop_cycles          { print!("{}\n", format_prom("scsi_cycles", &labels, t)) };
-					if let Some(t) = cycles.lifetime_start_stop_cycles { print!("{}\n", format_prom("scsi_lifetime_cycles", &labels, t)) };
+				labels.insert("action", "start-stop".to_string());
+				if let Some(t) = cycles.start_stop_cycles          { print!("{}\n", format_prom("scsi_cycles", &labels, t)) };
+				if let Some(t) = cycles.lifetime_start_stop_cycles { print!("{}\n", format_prom("scsi_lifetime_cycles", &labels, t)) };
 
-					labels.insert("action", "load-unload".to_string());
-					if let Some(t) = cycles.load_unload_cycles          { print!("{}\n", format_prom("scsi_cycles", &labels, t)) };
-					if let Some(t) = cycles.lifetime_load_unload_cycles { print!("{}\n", format_prom("scsi_lifetime_cycles", &labels, t)) };
-				},
-				Plain => {
+				labels.insert("action", "load-unload".to_string());
+				if let Some(t) = cycles.load_unload_cycles          { print!("{}\n", format_prom("scsi_cycles", &labels, t)) };
+				if let Some(t) = cycles.lifetime_load_unload_cycles { print!("{}\n", format_prom("scsi_lifetime_cycles", &labels, t)) };
+			},
+			Plain => {
+				print!("\n");
+				if let Some(x) = cycles.start_stop_cycles {
+					print!("Start-stop cycles: {}", x);
+					if let Some(x) = cycles.lifetime_start_stop_cycles {
+						print!("/{}", x);
+					}
 					print!("\n");
-					if let Some(x) = cycles.start_stop_cycles {
-						print!("Start-stop cycles: {}", x);
-						if let Some(x) = cycles.lifetime_start_stop_cycles {
-							print!("/{}", x);
-						}
-						print!("\n");
+				}
+				if let Some(x) = cycles.load_unload_cycles {
+					print!("Load-unload cycles: {}", x);
+					if let Some(x) = cycles.lifetime_load_unload_cycles {
+						print!("/{}", x);
 					}
-					if let Some(x) = cycles.load_unload_cycles {
-						print!("Load-unload cycles: {}", x);
-						if let Some(x) = cycles.lifetime_load_unload_cycles {
-							print!("/{}", x);
-						}
-						print!("\n");
-					}
-				},
-				JSON => {
-					let mut tmp = serde_json::Map::new();
+					print!("\n");
+				}
+			},
+			JSON => {
+				let mut tmp = serde_json::Map::new();
 
-					let mut values = serde_json::Map::new();
-					values.insert("current".to_string(), cycles.start_stop_cycles.to_json().unwrap());
-					values.insert("lifetime".to_string(), cycles.lifetime_start_stop_cycles.to_json().unwrap());
-					tmp.insert("start-stop".to_string(), values.to_json().unwrap());
+				let mut values = serde_json::Map::new();
+				values.insert("current".to_string(), cycles.start_stop_cycles.to_json().unwrap());
+				values.insert("lifetime".to_string(), cycles.lifetime_start_stop_cycles.to_json().unwrap());
+				tmp.insert("start-stop".to_string(), values.to_json().unwrap());
 
-					let mut values = serde_json::Map::new();
-					values.insert("current".to_string(), cycles.load_unload_cycles.to_json().unwrap());
-					values.insert("lifetime".to_string(), cycles.lifetime_load_unload_cycles.to_json().unwrap());
-					tmp.insert("load-unload".to_string(), values.to_json().unwrap());
+				let mut values = serde_json::Map::new();
+				values.insert("current".to_string(), cycles.load_unload_cycles.to_json().unwrap());
+				values.insert("lifetime".to_string(), cycles.lifetime_load_unload_cycles.to_json().unwrap());
+				tmp.insert("load-unload".to_string(), values.to_json().unwrap());
 
-					json.insert("cycles".to_string(), tmp.to_json().unwrap());
-				},
-			}
+				json.insert("cycles".to_string(), tmp.to_json().unwrap());
+			},
 		}
+	}
 
 	if format == JSON {
 		print!("{}\n", serde_json::to_string(&json).unwrap());
