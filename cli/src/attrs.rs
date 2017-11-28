@@ -5,7 +5,7 @@ use hdd::ata::data::attr::raw::Raw;
 use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
 
-use hdd::scsi::pages::{Pages, ErrorCounter};
+use hdd::scsi::pages::{SCSIPages, ErrorCounter};
 
 use clap::{
 	Arg,
@@ -428,11 +428,7 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 		DeviceArgument::SCSI(ref dev) => dev,
 	};
 
-
-	let pages = match dev.supported_pages() {
-		Ok(pages) => pages,
-		Err(_) => return, // TODO
-	};
+	let mut pages = SCSIPages::new(dev);
 
 	let mut json = serde_json::Map::new();
 
@@ -440,10 +436,10 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 
 	// TODO Err() returned by dev.*_error_counters()
 	let error_counters = vec![
-		("write",        if pages.contains(&0x02) { dev.write_error_counters().ok()        } else { None }),
-		("read",         if pages.contains(&0x03) { dev.read_error_counters().ok()         } else { None }),
-		("read-reverse", if pages.contains(&0x04) { dev.read_reverse_error_counters().ok() } else { None }),
-		("verify",       if pages.contains(&0x05) { dev.verify_error_counters().ok()       } else { None }),
+		("write",        pages.write_error_counters().ok()),
+		("read",         pages.read_error_counters().ok()),
+		("read-reverse", pages.read_reverse_error_counters().ok()),
+		("verify",       pages.verify_error_counters().ok()),
 	];
 
 	match format {
@@ -470,9 +466,8 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 
 	// Non-medium errors
 
-	if pages.contains(&0x06) {
 		// also TODO Err()
-		if let Ok(x) = dev.non_medium_error_count() {
+		if let Ok(x) = pages.non_medium_error_count() {
 			match format {
 				Prometheus => {
 					let mut labels = HashMap::new();
@@ -487,13 +482,11 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 				},
 			}
 		}
-	}
 
 	// Temperature
 
-	if pages.contains(&0x0d) {
 		// also TODO Err()
-		if let Ok((temp, ref_temp)) = dev.temperature() {
+		if let Ok((temp, ref_temp)) = pages.temperature() {
 			match format {
 				Prometheus => {
 					let mut labels = HashMap::new();
@@ -518,14 +511,12 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 				},
 			}
 		}
-	}
 
 	// Start-Stop Cycle Counters
 
-	if pages.contains(&0x0e) {
 		// also TODO Err()
 		// FIXME copy-paste: cycles.{,_lifetime}{start_stop,load_unload}_cycles
-		if let Ok(cycles) = dev.dates_and_cycle_counters() {
+		if let Ok(cycles) = pages.dates_and_cycle_counters() {
 			match format {
 				Prometheus => {
 					let mut labels = HashMap::new();
@@ -573,7 +564,6 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 				},
 			}
 		}
-	}
 
 	if format == JSON {
 		print!("{}\n", serde_json::to_string(&json).unwrap());

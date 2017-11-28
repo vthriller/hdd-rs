@@ -16,7 +16,7 @@
 extern crate hdd;
 use hdd::Device;
 use hdd::scsi::{SCSIDevice, SCSICommon};
-use hdd::scsi::pages::{Pages, page_name};
+use hdd::scsi::pages::{SCSIPages, page_name};
 use hdd::scsi::data::inquiry;
 use hdd::scsi::data::vpd::device_id;
 
@@ -122,16 +122,17 @@ fn main() {
 		}
 	}
 
-	if let Ok(pages) = dev.supported_pages() {
-		for p in pages {
+	let mut pages = SCSIPages::new(&dev);
+	if let Ok(supported_pages) = pages.supported_pages() {
+		for p in supported_pages {
 			if p == 00 { continue; }
 
 			print!("=== [{:02x}] {} ===\n", p, page_name(p));
 			match p {
 				// already in cli
 				0x02...0x06 | 0x0d | 0x0e => (),
-				0x10 => print!("{:#?}\n", dev.self_test_results()),
-				0x2f => print!("{:#?}\n", dev.informational_exceptions()),
+				0x10 => print!("{:#?}\n", pages.self_test_results()),
+				0x2f => print!("{:#?}\n", pages.informational_exceptions()),
 				_ => (),
 			}
 		}

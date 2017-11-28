@@ -1,6 +1,8 @@
 /*!
 Functions implementing typical log page queries
 
+The reason why this is implemented as a wrapper type instead of a trait is because it needs to cache and keep around the list of log pages that this device supports.
+
 ## Example
 
 ```
@@ -123,6 +125,7 @@ pub fn page_name(page: u8) -> &'static str {
 quick_error! {
 	#[derive(Debug)]
 	pub enum Error {
+		NotSupported {}
 		SCSI(err: scsi::Error) {
 			from()
 			display("{}", err)
@@ -152,17 +155,39 @@ fn get_params(dev: &SCSICommon, page: u8) -> Result<Vec<log_page::Parameter>, Er
 	page.parse_params().ok_or(Error::InvalidData("parse log page params"))
 }
 
-// TODO non-empty autosense errors
 /**
-Methods in this trait issue LOG SENSE command against the device and return interpreted log page responses
+Use this struct to issue LOG SENSE command against the device and return interpreted log page responses.
 
 See [module documentation](index.html) for example.
 */
-pub trait Pages: SCSICommon + Sized {
-	// TODO? use this in a constructor of a new type to prevent user from issuing LOG SENSE against unsupported log pages
-	fn supported_pages(&self) -> Result<Vec<u8>, Error> {
-		let page = get_page(self, 0x00)?;
-		Ok(page.data.to_vec())
+#[derive(Debug)]
+pub struct SCSIPages<'a, T: SCSICommon + 'a> {
+	device: &'a T,
+	supported_pages: Option<Vec<u8>>,
+}
+
+// TODO non-empty autosense errors
+impl<'a> SCSIPages<'a, SCSIDevice> {
+	pub fn new(device: &'a SCSIDevice) -> Self {
+		Self { device, supported_pages: None }
+	}
+
+	pub fn supported_pages(&mut self) -> Result<Vec<u8>, Error> {
+		if self.supported_pages == None {
+			let page = get_page(self.device, 0x00)?;
+			self.supported_pages = Some(page.data.to_vec());
+		}
+
+		// unwrap is safe: list of pages is here, or function already returned after unsuccessful attempt to update this field
+		Ok(self.supported_pages.as_ref().unwrap().to_vec())
+	}
+
+	fn is_supported(&mut self, page: u8) -> Result<(), Error> {
+		if self.supported_pages()?.contains(&page) {
+			Ok(())
+		} else {
+			Err(Error::NotSupported)
+		}
 	}
 
 	/**
@@ -175,8 +200,10 @@ pub trait Pages: SCSICommon + Sized {
 	* [read_reverse_error_counters](#method.read_reverse_error_counters)
 	* [verify_error_counters](#method.verify_error_counters)
 	*/
-	fn error_counters(&self, page: u8) -> Result<HashMap<ErrorCounter, u64>, Error> {
-		let params = get_params(self, page)?;
+	pub fn error_counters(&mut self, page: u8) -> Result<HashMap<ErrorCounter, u64>, Error> {
+		self.is_supported(page)?;
+
+		let params = get_params(self.device, page)?;
 
 		let counters = params.iter().map(|param| {
 			// XXX tell about unexpected params?
@@ -205,21 +232,23 @@ pub trait Pages: SCSICommon + Sized {
 		Ok(counters)
 	}
 
-	fn write_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn write_error_counters(&mut self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x02)
 	}
-	fn read_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn read_error_counters(&mut self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x03)
 	}
-	fn read_reverse_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn read_reverse_error_counters(&mut self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x04)
 	}
-	fn verify_error_counters(&self) -> Result<HashMap<ErrorCounter, u64>, Error> {
+	pub fn verify_error_counters(&mut self) -> Result<HashMap<ErrorCounter, u64>, Error> {
 		self.error_counters(0x05)
 	}
 
-	fn non_medium_error_count(&self) -> Result<u64, Error> {
-		let params = get_params(self, 0x06)?;
+	pub fn non_medium_error_count(&mut self) -> Result<u64, Error> {
+		self.is_supported(0x06)?;
+
+		let params = get_params(self.device, 0x06)?;
 
 		for param in params {
 			// XXX tell about unexpected params?
@@ -238,8 +267,10 @@ pub trait Pages: SCSICommon + Sized {
 	* `temp`: current temperature, °C,
 	* `ref_temp`: reference temperature, °C; maximum temperature at which device is capable of operating continuously without degrading
 	*/
-	fn temperature(&self) -> Result<(Option<u8>, Option<u8>), Error> {
-		let params = get_params(self, 0x0d)?;
+	pub fn temperature(&mut self) -> Result<(Option<u8>, Option<u8>), Error> {
+		self.is_supported(0x0d)?;
+
+		let params = get_params(self.device, 0x0d)?;
 
 		let mut temp = None;
 		let mut ref_temp = None;
@@ -265,8 +296,10 @@ pub trait Pages: SCSICommon + Sized {
 	}
 
 	/// In SPC-4, this is called Start-Stop Cycle Counter
-	fn dates_and_cycle_counters(&self) -> Result<DatesAndCycleCounters, Error> {
-		let params = get_params(self, 0x0e)?;
+	pub fn dates_and_cycle_counters(&mut self) -> Result<DatesAndCycleCounters, Error> {
+		self.is_supported(0x0e)?;
+
+		let params = get_params(self.device, 0x0e)?;
 
 		let mut result = DatesAndCycleCounters {
 			manufacturing_date: None,
@@ -338,8 +371,10 @@ pub trait Pages: SCSICommon + Sized {
 		Ok(result)
 	}
 
-	fn self_test_results(&self) -> Result<Vec<SelfTest>, Error> {
-		let params = get_params(self, 0x10)?;
+	pub fn self_test_results(&mut self) -> Result<Vec<SelfTest>, Error> {
+		self.is_supported(0x10)?;
+
+		let params = get_params(self.device, 0x10)?;
 
 		let self_tests = params.iter().map(|param| {
 			// XXX tell about unexpected params?
@@ -377,8 +412,10 @@ pub trait Pages: SCSICommon + Sized {
 		Ok(self_tests)
 	}
 
-	fn informational_exceptions(&self) -> Result<Vec<InformationalException>, Error> {
-		let params = get_params(self, 0x2f)?;
+	pub fn informational_exceptions(&mut self) -> Result<Vec<InformationalException>, Error> {
+		self.is_supported(0x2f)?;
+
+		let params = get_params(self.device, 0x2f)?;
 
 		let exceptions = params.iter().map(|param| {
 			// XXX tell about unexpected params?
@@ -402,5 +439,3 @@ pub trait Pages: SCSICommon + Sized {
 		Ok(exceptions)
 	}
 }
-
-impl Pages for SCSIDevice {}
