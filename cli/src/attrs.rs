@@ -347,7 +347,6 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 	}
 
 	let mut rows = vec![
-		// FIXME no pattern matching involved, thus we might miss new ErrorCounter variants here
 		(CorrectedNoDelay, "CRC corrected (instant)".to_string()),
 		(CorrectedDelay, "CRC corrected (delayed)".to_string()),
 		(Total, "Corrected (rereads, rewrites)".to_string()),
@@ -363,9 +362,10 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 	for &(_, ref values) in counters.iter() {
 		for (key, _) in values {
 			match *key {
+				CorrectedNoDelay | CorrectedDelay | Total | ErrorsCorrected | Uncorrected | CRCProcessed | BytesProcessed
+					=> (), // skip keys from the `rows` above
 				key @ VendorSpecific(_) | key @ Reserved(_) =>
 					unexpected.push(key),
-				_ => (),
 			}
 		}
 	}
