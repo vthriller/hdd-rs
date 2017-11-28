@@ -128,18 +128,8 @@ fn main() {
 
 			print!("=== [{:02x}] {} ===\n", p, page_name(p));
 			match p {
-				0x02 => print!("{:#?}\n", dev.write_error_counters()),
-				0x03 => print!("{:#?}\n", dev.read_error_counters()),
-				0x04 => print!("{:#?}\n", dev.read_reverse_error_counters()),
-				0x05 => print!("{:#?}\n", dev.verify_error_counters()),
-				0x06 => print!("{:?}\n", dev.non_medium_error_count()),
-				0x0d => {
-					if let Ok((temp, ref_temp)) = dev.temperature() {
-						print!("Temperature: {:?} °C\n", temp);
-						print!("Reference temperature: {:?} °C\n", ref_temp);
-					};
-				},
-				0x0e => print!("{:#?}\n", dev.dates_and_cycle_counters()),
+				// already in cli
+				0x02...0x06 | 0x0d | 0x0e => (),
 				0x10 => print!("{:#?}\n", dev.self_test_results()),
 				0x2f => print!("{:#?}\n", dev.informational_exceptions()),
 				_ => (),
