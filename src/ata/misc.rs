@@ -65,6 +65,8 @@ pub trait Misc {
 
 	/// Issues IDENTIFY DEVICE command, returning a wide range of data, from model name to status of various features.
 	fn get_device_id(&self) -> Result<id::Id, Error> {
+		info!("reading device identification packet");
+
 		let (_, data) = self.ata_do(Direction::From, &RegistersWrite {
 			command: Command::Identify as u8,
 			sector: 1,
@@ -80,6 +82,8 @@ pub trait Misc {
 
 	/// Issues SMART RETURN STATUS command, returns `Some(false)` if device can no longer be considered reliable.
 	fn get_smart_health(&self) -> Result<Option<bool>, Error> {
+		info!("reading SMART status");
+
 		let (regs, _) = self.ata_do(Direction::None, &RegistersWrite {
 			command: Command::SMART as u8,
 			features: SMARTFeature::ReturnStatus as u8,
@@ -94,6 +98,8 @@ pub trait Misc {
 
 	/// Issues SMART READ DATA and SMART READ THRESHOLDS commands, then renders their answers using optional [drivedb](../../drivedb/index.html) entry.
 	fn get_smart_attributes(&self, dbentry: &Option<drivedb::Match>) -> Result<Vec<attr::SmartAttribute>, Error> {
+		info!("reading SMART attributes and thresholds");
+
 		let (_, data) = self.ata_do(Direction::From, &RegistersWrite {
 			command: Command::SMART as u8,
 			sector: 0,
@@ -119,11 +125,15 @@ pub trait Misc {
 
 impl Misc for ATADevice<Device> {
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
+
 		Ok(Self::ata_do(self, dir, regs)?)
 	}
 }
 impl Misc for ATADevice<SCSIDevice> {
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
+
 		Ok(Self::ata_do(self, dir, regs)?)
 	}
 }
