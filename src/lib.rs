@@ -61,6 +61,9 @@ extern crate serde_derive;
 extern crate quick_error;
 
 #[macro_use]
+extern crate log;
+
+#[macro_use]
 extern crate nom;
 extern crate regex;
 extern crate byteorder;

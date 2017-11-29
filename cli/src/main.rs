@@ -37,6 +37,8 @@ extern crate separator;
 extern crate number_prefix;
 extern crate prettytable;
 
+extern crate env_logger;
+
 mod info;
 mod health;
 mod attrs;
@@ -102,6 +104,8 @@ pub fn arg_drivedb() -> Arg {
 type F = fn(&str, &DeviceArgument, &ArgMatches);
 
 fn main() {
+	env_logger::init().unwrap();
+
 	/*
 	XXX this bit of clap.rs lets me down
 	we want to allow users to type in types in lower case, but .possible_values() would not allow that unless we pass it modified list of values

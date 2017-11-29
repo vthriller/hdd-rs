@@ -16,6 +16,7 @@ nom = "^2.2"
 regex = "0.2"
 byteorder = "1"
 quick-error = "1.2"
+log = "0.3"
 
 serde = { version = "0.9", optional = true }
 serde_derive = { version = "0.9", optional = true }

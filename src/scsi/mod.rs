@@ -88,6 +88,8 @@ pub trait SCSICommon {
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
 
 	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
+		info!("issuing INQUIRY: code={:?} vital={:?}", code, vital);
+
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -105,6 +107,8 @@ pub trait SCSICommon {
 
 	/// returns tuple of (sense, logical block address, block length in bytes)
 	fn read_capacity_10(&self, lba: Option<u32>) -> Result<(Vec<u8>, u32, u32), Error> {
+		info!("issuing READ CAPACITY(10): lba={:?}", lba);
+
 		// pmi is partial medium indicator
 		let (pmi, lba) = match lba {
 			Some(lba) => (true, lba),
@@ -147,6 +151,16 @@ pub trait SCSICommon {
 	- `param_ptr`: limit list of return values to parameters starting with id `param_ptr`
 	*/
 	fn log_sense(&self, changed: bool, save_params: bool, default: bool, threshold: bool, page: u8, subpage: u8, param_ptr: u16) -> Result<(Vec<u8>, Vec<u8>), Error> {
+		info!("issuing LOG SENSE: page={page:?} subpage={subpage:?} param_ptr={param_ptr:?} changed={changed:?} save_params={save_params:?} default={default:?} threshold={threshold:?}",
+			changed = changed,
+			save_params = save_params,
+			default = default,
+			threshold = threshold,
+			page = page,
+			subpage = subpage,
+			param_ptr = param_ptr,
+		);
+
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
 
@@ -176,6 +190,8 @@ pub trait SCSICommon {
 	}
 
 	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), ATAError> {
+		info!("issuing ATA PASS-THROUGH (16): dir={:?} regs={:?}", dir, regs);
+
 		// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 		let extend = 0; // TODO
 		let protocol = match dir {
@@ -276,6 +292,8 @@ pub trait SCSICommon {
 impl SCSICommon for SCSIDevice {
 	// XXX DRY
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+		info!("SCSI cmd: dir={:?} cmd={:?}", dir, cmd);
+
 		Self::do_cmd(self, cmd, dir, sense_len, data_len)
 	}
 }
