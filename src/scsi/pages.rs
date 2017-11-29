@@ -156,8 +156,13 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 
 	pub fn supported_pages(&mut self) -> Result<Vec<u8>, Error> {
 		if self.supported_pages == None {
+			info!("querying supported log pages");
+
 			let page = self.get_page(0x00)?;
 			self.supported_pages = Some(page.data.to_vec());
+		} else {
+			// this one repeats way too often
+			//info!("(cached) querying supported log pages");
 		}
 
 		// unwrap is safe: list of pages is here, or function already returned after unsuccessful attempt to update this field
@@ -167,6 +172,9 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	fn get_page(&mut self, page: u8) -> Result<log_page::Page, Error> {
 		// this very function is also used by self.supported_pages() so skip that
 		if page != 0x00 && ! self.supported_pages()?.contains(&page) {
+			// this is a little shortcut function, there is no general need to info!() here (log_sense() would do that for us)
+			// however we want to show whether we aborted early because page is not supported
+			info!("attemted to query unsupported page {}", page);
 			return Err(Error::NotSupported)
 		}
 
@@ -198,6 +206,8 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	* [verify_error_counters](#method.verify_error_counters)
 	*/
 	pub fn error_counters(&mut self, page: u8) -> Result<HashMap<ErrorCounter, u64>, Error> {
+		info!("querying error counters (page {})", page);
+
 		let params = self.get_params(page)?;
 
 		let counters = params.iter().map(|param| {
@@ -241,6 +251,8 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	}
 
 	pub fn non_medium_error_count(&mut self) -> Result<u64, Error> {
+		info!("querying non-medium error counters");
+
 		let params = self.get_params(0x06)?;
 
 		for param in params {
@@ -261,6 +273,8 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	* `ref_temp`: reference temperature, °C; maximum temperature at which device is capable of operating continuously without degrading
 	*/
 	pub fn temperature(&mut self) -> Result<(Option<u8>, Option<u8>), Error> {
+		info!("querying device temperature");
+
 		let params = self.get_params(0x0d)?;
 
 		let mut temp = None;
@@ -288,6 +302,8 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 
 	/// In SPC-4, this is called Start-Stop Cycle Counter
 	pub fn dates_and_cycle_counters(&mut self) -> Result<DatesAndCycleCounters, Error> {
+		info!("querying cycle counters");
+
 		let params = self.get_params(0x0e)?;
 
 		let mut result = DatesAndCycleCounters {
@@ -361,6 +377,8 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	}
 
 	pub fn self_test_results(&mut self) -> Result<Vec<SelfTest>, Error> {
+		info!("querying self-test results");
+
 		let params = self.get_params(0x10)?;
 
 		let self_tests = params.iter().map(|param| {
@@ -400,6 +418,8 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	}
 
 	pub fn informational_exceptions(&mut self) -> Result<Vec<InformationalException>, Error> {
+		info!("querying informational exceptions");
+
 		let params = self.get_params(0x2f)?;
 
 		let exceptions = params.iter().map(|param| {
