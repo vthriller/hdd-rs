@@ -288,37 +288,19 @@ fn scsi_error_counters_json(counters: &HashMap<ErrorCounter, u64>) -> serde_json
 		match k {
 			// TODO? submaps for CRC, totals
 
-			CorrectedNoDelay => {
-				json.insert("crc-corrected-instant".to_string(), v);
-			},
-			CorrectedDelay => {
-				json.insert("crc-corrected-delay".to_string(), v);
-			},
+			CorrectedNoDelay => json.insert("crc-corrected-instant".to_string(), v),
+			CorrectedDelay => json.insert("crc-corrected-delay".to_string(), v),
 
-			ErrorsCorrected => {
-				json.insert("total-corrected".to_string(), v);
-			},
-			Uncorrected => {
-				json.insert("total-uncorrected".to_string(), v);
-			},
+			ErrorsCorrected => json.insert("total-corrected".to_string(), v),
+			Uncorrected => json.insert("total-uncorrected".to_string(), v),
 
-			Total => {
-				json.insert("corrected-repeated-actions".to_string(), v);
-			},
-			CRCProcessed => {
-				json.insert("crc-processed".to_string(), v);
-			},
-			BytesProcessed => {
-				json.insert("bytes-processed".to_string(), v);
-			},
+			Total => json.insert("corrected-repeated-actions".to_string(), v),
+			CRCProcessed => json.insert("crc-processed".to_string(), v),
+			BytesProcessed => json.insert("bytes-processed".to_string(), v),
 
-			VendorSpecific(n) => {
-				json.insert(format!("vendor-specific-{}", n), v);
-			},
-			Reserved(n) => {
-				json.insert(format!("reserved-{}", n), v);
-			},
-		}
+			VendorSpecific(n) => json.insert(format!("vendor-specific-{}", n), v),
+			Reserved(n) => json.insert(format!("reserved-{}", n), v),
+		};
 	}
 
 	json.to_json().unwrap()
