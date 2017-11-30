@@ -144,7 +144,7 @@ fn main() {
 			.short("d")
 			.long("debug")
 			.multiple(true)
-			.help("verbose output: once to log actions, twice to also show raw data buffers")
+			.help("Verbose output: set once to log actions, twice to also show raw data buffers\ncan also be set though env_logger's RUST_LOG env")
 		)
 		.arg(Arg::with_name("device")
 			.help("Device to query")
@@ -153,14 +153,19 @@ fn main() {
 		)
 		.get_matches();
 
-	log.filter(None, {
+	if let Ok(var) = std::env::var("RUST_LOG") {
+		log.parse(&var);
+	}
+	// -d takes precedence over RUST_LOG which some might export globally for some reasons
+	log.filter(Some("hdd"), {
 		use self::LogLevelFilter::*;
 		match args.occurrences_of("debug") {
 			0 => Warn,
 			1 => Info,
 			_ => Debug,
 		}
-	}).init().unwrap();
+	});
+	log.init().unwrap();
 
 	let path = args.value_of("device").unwrap();
 	let dev = Device::open(path).unwrap();
