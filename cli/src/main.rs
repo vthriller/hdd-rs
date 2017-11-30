@@ -131,8 +131,8 @@ fn main() {
 		.subcommand(info::subcommand())
 		.subcommand(attrs::subcommand())
 		.arg(Arg::with_name("type")
-			.short("d") // smartctl-like
-			.long("device") // smartctl-like
+			.short("t")
+			.long("type")
 			.takes_value(true)
 			.possible_values(type_variants.as_slice())
 			.help("device type")
