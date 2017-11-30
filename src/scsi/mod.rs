@@ -294,6 +294,16 @@ impl SCSICommon for SCSIDevice {
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		info!("SCSI cmd: dir={:?} cmd={:?}", dir, cmd);
 
-		Self::do_cmd(self, cmd, dir, sense_len, data_len)
+		let ret = Self::do_cmd(self, cmd, dir, sense_len, data_len);
+		match ret {
+			Ok((ref sense, ref data)) => {
+				debug!("SCSI autosense: {:?}", sense);
+				debug!("SCSI data: {:?}", data);
+			},
+			ref err => {
+				debug!("SCSI err: {:?}", err);
+			}
+		}
+		ret
 	}
 }

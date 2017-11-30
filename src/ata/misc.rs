@@ -127,13 +127,31 @@ impl Misc for ATADevice<Device> {
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
 		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
 
-		Ok(Self::ata_do(self, dir, regs)?)
+		let ret = Self::ata_do(self, dir, regs);
+		match ret {
+			Ok((ref regs, ref data)) => {
+				debug!("cmd reply: regs={:?} data={:?}", regs, data);
+			},
+			ref err => {
+				debug!("cmd error: {:?}", err);
+			},
+		}
+		Ok(ret?)
 	}
 }
 impl Misc for ATADevice<SCSIDevice> {
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
 		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
 
-		Ok(Self::ata_do(self, dir, regs)?)
+		let ret = Self::ata_do(self, dir, regs);
+		match ret {
+			Ok((ref regs, ref data)) => {
+				debug!("cmd reply: regs={:?} data={:?}", regs, data);
+			},
+			ref err => {
+				debug!("cmd error: {:?}", err);
+			},
+		}
+		Ok(ret?)
 	}
 }
