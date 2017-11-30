@@ -37,7 +37,10 @@ extern crate separator;
 extern crate number_prefix;
 extern crate prettytable;
 
+extern crate log;
 extern crate env_logger;
+use log::LogLevelFilter;
+use env_logger::LogBuilder;
 
 mod info;
 mod health;
@@ -104,7 +107,7 @@ pub fn arg_drivedb() -> Arg {
 type F = fn(&str, &DeviceArgument, &ArgMatches);
 
 fn main() {
-	env_logger::init().unwrap();
+	let mut log = LogBuilder::new();
 
 	/*
 	XXX this bit of clap.rs lets me down
@@ -137,12 +140,27 @@ fn main() {
 			.possible_values(type_variants.as_slice())
 			.help("device type")
 		)
+		.arg(Arg::with_name("debug")
+			.short("d")
+			.long("debug")
+			.multiple(true)
+			.help("verbose output: once to log actions, twice to also show raw data buffers")
+		)
 		.arg(Arg::with_name("device")
 			.help("Device to query")
 			.required(true)
 			.index(1)
 		)
 		.get_matches();
+
+	log.filter(None, {
+		use self::LogLevelFilter::*;
+		match args.occurrences_of("debug") {
+			0 => Warn,
+			1 => Info,
+			_ => Debug,
+		}
+	}).init().unwrap();
 
 	let path = args.value_of("device").unwrap();
 	let dev = Device::open(path).unwrap();
