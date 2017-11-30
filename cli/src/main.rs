@@ -121,7 +121,7 @@ fn main() {
 	let type_variants: Vec<_> = Type::variants().iter()
 		.map(|s| std::ascii::AsciiExt::to_ascii_lowercase(s.to_owned()))
 		.collect();
-	// previous we'll never need original values, so shadow them with the references
+	// we'll never need original values, so shadow them with the references
 	let type_variants: Vec<_> = type_variants.iter()
 		.map(|s| &**s)
 		.collect();
