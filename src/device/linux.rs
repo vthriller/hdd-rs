@@ -1,13 +1,14 @@
 use std::fs::File;
 use std::io;
 
-use super::Type;
-
 /// See [parent module docs](../index.html)
 #[derive(Debug)]
 pub struct Device {
 	pub file: File,
 }
+
+#[derive(Debug)]
+pub enum Type { SCSI }
 
 impl Device {
 	pub fn open(path: &str) -> Result<Self, io::Error> {

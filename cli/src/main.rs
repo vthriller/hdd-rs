@@ -207,6 +207,7 @@ fn main() {
 						},
 					}
 				},
+				#[cfg(not(target_os = "linux"))]
 				device::Type::ATA => {
 					let atadev = ATADevice::new(dev);
 					let id = atadev.get_device_id().unwrap();

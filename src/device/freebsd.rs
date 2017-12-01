@@ -2,13 +2,14 @@ use cam::{CAMDevice, CCB, error};
 use cam::bindings::{xpt_opcode, cam_status, cam_proto};
 use std::io;
 
-use super::Type;
-
 /// See [parent module docs](../index.html)
 #[derive(Debug)]
 pub struct Device {
 	pub dev: CAMDevice,
 }
+
+#[derive(Debug)]
+pub enum Type { ATA, SCSI }
 
 impl Device {
 	pub fn open(path: &str) -> Result<Self, io::Error> {

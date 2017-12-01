@@ -8,9 +8,6 @@ This module (and struct it provides) allows opening (`Device::open(&path)`) and 
 See [parent module](../index.html).
 */
 
-#[derive(Debug)]
-pub enum Type { ATA, SCSI }
-
 #[cfg(target_os = "linux")]
 pub mod linux;
 #[cfg(target_os = "linux")]
