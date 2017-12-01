@@ -75,21 +75,6 @@ One might notice there's no linux support here. There's a couple of reasons for 
 - CONFIG_IDE is disabled for a really long time in modern distros, and support for most of HDIO_* ioctls is absent from libata in favour of issuing ATA commangs through SG_IO, which is already covered in scsi module of this crate
 */
 
-// XXX REMOVE THIS LINUX STUB
-
-#[cfg(target_os = "linux")]
-use Device;
-#[cfg(target_os = "linux")]
-use std::io;
-
-#[cfg(target_os = "linux")]
-#[allow(unused_variables)]
-impl ATADevice<Device> {
-	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error> {
-		unimplemented!()
-	}
-}
-
 #[cfg(target_os = "freebsd")]
 mod freebsd;
 #[cfg(target_os = "freebsd")]

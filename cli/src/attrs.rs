@@ -209,7 +209,10 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<V
 
 		(format, Enabled) => {
 			let values = match *dev {
+				#[cfg(not(target_os = "linux"))]
 				DeviceArgument::ATA(ref dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
+				#[cfg(target_os = "linux")]
+				DeviceArgument::ATA(_, _) => unreachable!(),
 				DeviceArgument::SAT(ref dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
 				DeviceArgument::SCSI(_) => unreachable!(),
 			};

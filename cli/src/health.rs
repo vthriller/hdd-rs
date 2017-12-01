@@ -32,7 +32,10 @@ pub fn health(
 
 	when_smart_enabled(&id.smart, "health status", || {
 		let status = match *dev {
+			#[cfg(not(target_os = "linux"))]
 			DeviceArgument::ATA(ref dev, _) => dev.get_smart_health().unwrap(),
+			#[cfg(target_os = "linux")]
+			DeviceArgument::ATA(_, _) => unreachable!(),
 			DeviceArgument::SAT(ref dev, _) => dev.get_smart_health().unwrap(),
 			DeviceArgument::SCSI(_) => unimplemented!(),
 		};

@@ -32,7 +32,9 @@ match id.smart {
 
 use Direction;
 
+#[cfg(not(target_os = "linux"))]
 use Device;
+
 use ata::{ATADevice, RegistersRead, RegistersWrite, Command, SMARTFeature};
 use scsi::{self, SCSIDevice};
 
@@ -125,6 +127,7 @@ pub trait Misc {
 	}
 }
 
+#[cfg(not(target_os = "linux"))]
 impl Misc for ATADevice<Device> {
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
 		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
