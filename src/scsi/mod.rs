@@ -24,6 +24,8 @@ use self::data::sense;
 use Direction;
 use Device;
 
+use utils::hexdump;
+
 quick_error! {
 	#[derive(Debug)]
 	pub enum Error {
@@ -297,8 +299,8 @@ impl SCSICommon for SCSIDevice {
 		let ret = Self::do_cmd(self, cmd, dir, sense_len, data_len);
 		match ret {
 			Ok((ref sense, ref data)) => {
-				debug!("SCSI autosense: {:?}", sense);
-				debug!("SCSI data: {:?}", data);
+				debug!("SCSI autosense: {}", hexdump(sense));
+				debug!("SCSI data: {}", hexdump(data));
 			},
 			ref err => {
 				debug!("SCSI err: {:?}", err);

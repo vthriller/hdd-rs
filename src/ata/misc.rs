@@ -41,6 +41,8 @@ use drivedb;
 
 use std::io;
 
+use utils::hexdump;
+
 quick_error! {
 	#[derive(Debug)]
 	pub enum Error {
@@ -130,7 +132,8 @@ impl Misc for ATADevice<Device> {
 		let ret = Self::ata_do(self, dir, regs);
 		match ret {
 			Ok((ref regs, ref data)) => {
-				debug!("cmd reply: regs={:?} data={:?}", regs, data);
+				debug!("cmd reply: regs={:?}", regs);
+				debug!("cmd data: {}", hexdump(data));
 			},
 			ref err => {
 				debug!("cmd error: {:?}", err);
@@ -146,7 +149,8 @@ impl Misc for ATADevice<SCSIDevice> {
 		let ret = Self::ata_do(self, dir, regs);
 		match ret {
 			Ok((ref regs, ref data)) => {
-				debug!("cmd reply: regs={:?} data={:?}", regs, data);
+				debug!("cmd reply: regs={:?}", regs);
+				debug!("cmd data: {}", hexdump(data));
 			},
 			ref err => {
 				debug!("cmd error: {:?}", err);

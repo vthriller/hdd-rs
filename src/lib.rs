@@ -82,3 +82,5 @@ pub mod ata;
 pub mod scsi;
 
 pub mod drivedb;
+
+mod utils;
