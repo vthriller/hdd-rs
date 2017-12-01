@@ -78,10 +78,24 @@ impl SCSIDevice {
 		Self { device }
 	}
 
-	/* implemented in `mod {linux,freebsd}`
+	// thin wrapper against platform-specific implementation, mainly exists to provide consistent logging between platforms
 	/// Executes `cmd` and returns tuple of `(sense, data)`.
-	pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
-	*/
+	pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+		info!("SCSI cmd: dir={:?} cmd={:?}", dir, cmd);
+
+		// this one is implemented in `mod {linux,freebsd}`
+		let ret = Self::do_platform_cmd(self, cmd, dir, sense_len, data_len);
+		match ret {
+			Ok((ref sense, ref data)) => {
+				debug!("SCSI autosense: {}", hexdump(sense));
+				debug!("SCSI data: {}", hexdump(data));
+			},
+			ref err => {
+				debug!("SCSI err: {:?}", err);
+			}
+		}
+		ret
+	}
 }
 
 // TODO look for non-empty autosense and turn it into errors where appropriate
@@ -294,18 +308,6 @@ pub trait SCSICommon {
 impl SCSICommon for SCSIDevice {
 	// XXX DRY
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
-		info!("SCSI cmd: dir={:?} cmd={:?}", dir, cmd);
-
-		let ret = Self::do_cmd(self, cmd, dir, sense_len, data_len);
-		match ret {
-			Ok((ref sense, ref data)) => {
-				debug!("SCSI autosense: {}", hexdump(sense));
-				debug!("SCSI data: {}", hexdump(data));
-			},
-			ref err => {
-				debug!("SCSI err: {:?}", err);
-			}
-		}
-		ret
+		Self::do_cmd(self, cmd, dir, sense_len, data_len)
 	}
 }
