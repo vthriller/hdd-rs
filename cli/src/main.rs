@@ -72,6 +72,8 @@ pub fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
 	drivedb
 }
 
+// cannot use #[cfg(…)] in arg_enum!, hence code duplication
+
 #[cfg(target_os = "linux")]
 arg_enum! {
 	enum Type { Auto, SAT, SCSI }
@@ -84,6 +86,7 @@ arg_enum! {
 
 #[derive(Debug)]
 pub enum DeviceArgument {
+	#[cfg(not(target_os = "linux"))]
 	ATA(ATADevice<Device>, id::Id),
 	SAT(ATADevice<SCSIDevice>, id::Id),
 	SCSI(SCSIDevice),

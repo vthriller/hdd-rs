@@ -113,7 +113,8 @@ pub fn info(
 	args: &ArgMatches,
 ) {
 	let ata_id = match *dev {
-		DeviceArgument::ATA(_, ref id) |
+		#[cfg(not(target_os = "linux"))]
+		DeviceArgument::ATA(_, ref id) => Some(id),
 		DeviceArgument::SAT(_, ref id) => Some(id),
 		DeviceArgument::SCSI(_) => None,
 	};

@@ -173,7 +173,8 @@ use self::Format::*;
 
 fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<Vec<drivedb::Entry>>, user_attributes: Vec<drivedb::Attribute>) {
 	let id = match *dev {
-		DeviceArgument::ATA(_, ref id) |
+		#[cfg(not(target_os = "linux"))]
+		DeviceArgument::ATA(_, ref id) => id,
 		DeviceArgument::SAT(_, ref id) => id,
 		DeviceArgument::SCSI(_) => unreachable!(),
 	};
@@ -211,8 +212,6 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<V
 			let values = match *dev {
 				#[cfg(not(target_os = "linux"))]
 				DeviceArgument::ATA(ref dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
-				#[cfg(target_os = "linux")]
-				DeviceArgument::ATA(_, _) => unreachable!(),
 				DeviceArgument::SAT(ref dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
 				DeviceArgument::SCSI(_) => unreachable!(),
 			};
@@ -409,7 +408,9 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 // TODO prometheus: device id labels, just like in attrs_ata
 fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	let dev = match *dev {
-		DeviceArgument::ATA(_, _) | DeviceArgument::SAT(_, _) => unreachable!(),
+		#[cfg(not(target_os = "linux"))]
+		DeviceArgument::ATA(_, _) => unreachable!(),
+		DeviceArgument::SAT(_, _) => unreachable!(),
 		DeviceArgument::SCSI(ref dev) => dev,
 	};
 
@@ -581,7 +582,9 @@ pub fn attrs(
 
 	use DeviceArgument::*;
 	match dev {
-		dev @ &ATA(_, _) | dev @ &SAT(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
+		#[cfg(not(target_os = "linux"))]
+		dev @ &ATA(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
+		dev @ &SAT(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
 		dev @ &SCSI(_) => attrs_scsi(path, dev, format),
 	};
 }

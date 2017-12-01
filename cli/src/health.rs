@@ -23,7 +23,8 @@ pub fn health(
 	args: &ArgMatches,
 ) {
 	let id = match *dev {
-		DeviceArgument::ATA(_, ref id) |
+		#[cfg(not(target_os = "linux"))]
+		DeviceArgument::ATA(_, ref id) => id,
 		DeviceArgument::SAT(_, ref id) => id,
 		DeviceArgument::SCSI(_) => unimplemented!(),
 	};
@@ -34,8 +35,6 @@ pub fn health(
 		let status = match *dev {
 			#[cfg(not(target_os = "linux"))]
 			DeviceArgument::ATA(ref dev, _) => dev.get_smart_health().unwrap(),
-			#[cfg(target_os = "linux")]
-			DeviceArgument::ATA(_, _) => unreachable!(),
 			DeviceArgument::SAT(ref dev, _) => dev.get_smart_health().unwrap(),
 			DeviceArgument::SCSI(_) => unimplemented!(),
 		};
