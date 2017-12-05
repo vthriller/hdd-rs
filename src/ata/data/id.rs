@@ -103,7 +103,7 @@ fn make_ternary(data: &Vec<u16>, word_sup: usize, bit_sup: usize, word_enabled: 
 
 pub fn parse_id(data: &Vec<u8>) -> Id {
 	// TODO return None if data.len() < 512
-	let data = ::utils::bytes_to_words(data);
+	let data = ::utils::bytes_to_be_words(data);
 	/*
 	TODO ATA8-ACS T13/1699-D Revision 3f field description
 		vs Revision 6a

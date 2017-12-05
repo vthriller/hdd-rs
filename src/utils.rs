@@ -1,4 +1,4 @@
-pub fn bytes_to_words(data: &Vec<u8>) -> Vec<u16> {
+pub fn bytes_to_be_words(data: &Vec<u8>) -> Vec<u16> {
 	let mut output = vec![];
 
 	// XXX what if `data` contains odd number of u8s?
@@ -57,7 +57,7 @@ pub fn hexdump_8(data: &[u8]) -> String {
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
-pub fn hexdump_16(data: &[u16]) -> String {
+pub fn hexdump_16be(data: &[u16]) -> String {
 	// 5× len for ' {:04x}'
 	// len/8 for \n
 	// len/8 for ' ' before ascii
