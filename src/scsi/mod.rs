@@ -24,7 +24,7 @@ use self::data::sense;
 use Direction;
 use Device;
 
-use utils::hexdump;
+use utils::hexdump_8;
 
 quick_error! {
 	#[derive(Debug)]
@@ -87,8 +87,8 @@ impl SCSIDevice {
 		let ret = Self::do_platform_cmd(self, cmd, dir, sense_len, data_len);
 		match ret {
 			Ok((ref sense, ref data)) => {
-				debug!("SCSI autosense: {}", hexdump(sense));
-				debug!("SCSI data: {}", hexdump(data));
+				debug!("SCSI autosense: {}", hexdump_8(sense));
+				debug!("SCSI data: {}", hexdump_8(data));
 			},
 			ref err => {
 				debug!("SCSI err: {:?}", err);

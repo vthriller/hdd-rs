@@ -1,26 +1,5 @@
 use std::fmt;
 
-fn bytes_to_words(data: &Vec<u8>) -> Vec<u16> {
-	let mut output = vec![];
-
-	// XXX what if `data` contains odd number of u8s?
-	for i in 0 .. data.len()/2 {
-		if cfg!(target_endian = "little") {
-			output.push(
-				((data[2 * i + 1] as u16) << 8)
-				+ (data[2 * i] as u16)
-			);
-		} else {
-			output.push(
-				((data[2 * i] as u16) << 8)
-				+ (data[2 * i + 1] as u16)
-			);
-		}
-	}
-
-	output
-}
-
 // TODO make sure characters are in the range of 0x20 to (and including) 0x7e
 // (this is in the standard, and also to make std::String safe again)
 fn read_string(arr: &Vec<u16>, start: usize, fin: usize) -> String {
@@ -124,7 +103,7 @@ fn make_ternary(data: &Vec<u16>, word_sup: usize, bit_sup: usize, word_enabled: 
 
 pub fn parse_id(data: &Vec<u8>) -> Id {
 	// TODO return None if data.len() < 512
-	let data = bytes_to_words(data);
+	let data = ::utils::bytes_to_words(data);
 	/*
 	TODO ATA8-ACS T13/1699-D Revision 3f field description
 		vs Revision 6a
