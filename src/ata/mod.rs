@@ -61,11 +61,29 @@ impl<T> ATADevice<T> {
 	pub fn new(device: T) -> Self {
 		Self { device }
 	}
-
-	/* implemented in `mod {linux,freebsd}`
-	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), io::Error>;
-	*/
 }
+
+// using macro here instead of trait because we don't want to define yet another trait just to declare that `T` in `ATADevice<T>` is capable of `ata_platform_do()`,
+// which is an implementation detail that would leak everywhere as part of a public interface
+// besides, we really only need this method for just, like, two types: `ATADevice<Device>` and `ATADevice<SCSIDevice>`
+macro_rules! ata_do { ($Err:ty) => {
+	pub fn ata_do(&self, dir: Direction, regs: &::ata::RegistersWrite) -> Result<(::ata::RegistersRead, Vec<u8>), $Err> {
+		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
+
+		// this one is implemented in `mod {linux,freebsd}`, and here for `T: SCSIDevice`
+		let ret = Self::ata_platform_do(self, dir, regs);
+		match ret {
+			Ok((ref regs, ref data)) => {
+				debug!("cmd reply: regs={:?}", regs);
+				debug!("cmd data: {}", ::utils::hexdump(data));
+			},
+			ref err => {
+				debug!("cmd error: {:?}", err);
+			},
+		}
+		ret
+	}
+} }
 
 /*
 One might notice there's no linux support here. There's a couple of reasons for that:
@@ -81,7 +99,8 @@ mod freebsd;
 pub use self::freebsd::*;
 
 impl ATADevice<SCSIDevice> {
-	pub fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), scsi::ATAError> {
+	ata_do!(scsi::ATAError);
+	fn ata_platform_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), scsi::ATAError> {
 		self.device.ata_pass_through_16(dir, regs)
 	}
 

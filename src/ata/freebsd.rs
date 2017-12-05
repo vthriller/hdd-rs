@@ -11,7 +11,8 @@ use Device;
 use std::io;
 
 impl ATADevice<Device> {
-	pub fn ata_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), io::Error> {
+	ata_do!(io::Error);
+	fn ata_platform_do(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), io::Error> {
 		let timeout = 10; // in seconds; TODO configurable
 
 		let mut data: [u8; 512] = [0; 512];

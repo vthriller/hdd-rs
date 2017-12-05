@@ -43,8 +43,6 @@ use drivedb;
 
 use std::io;
 
-use utils::hexdump;
-
 quick_error! {
 	#[derive(Debug)]
 	pub enum Error {
@@ -130,35 +128,11 @@ pub trait Misc {
 #[cfg(not(target_os = "linux"))]
 impl Misc for ATADevice<Device> {
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
-		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
-
-		let ret = Self::ata_do(self, dir, regs);
-		match ret {
-			Ok((ref regs, ref data)) => {
-				debug!("cmd reply: regs={:?}", regs);
-				debug!("cmd data: {}", hexdump(data));
-			},
-			ref err => {
-				debug!("cmd error: {:?}", err);
-			},
-		}
-		Ok(ret?)
+		Ok(Self::ata_do(self, dir, regs)?)
 	}
 }
 impl Misc for ATADevice<SCSIDevice> {
 	fn ata_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
-		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
-
-		let ret = Self::ata_do(self, dir, regs);
-		match ret {
-			Ok((ref regs, ref data)) => {
-				debug!("cmd reply: regs={:?}", regs);
-				debug!("cmd data: {}", hexdump(data));
-			},
-			ref err => {
-				debug!("cmd error: {:?}", err);
-			},
-		}
-		Ok(ret?)
+		Ok(Self::ata_do(self, dir, regs)?)
 	}
 }
