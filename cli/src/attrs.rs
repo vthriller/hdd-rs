@@ -232,9 +232,8 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<V
 	}
 }
 
-fn print_prom_scsi_error_counters(path: &str, counters: &HashMap<ErrorCounter, u64>, action: &str) {
-	let mut labels = HashMap::new();
-	labels.insert("dev", path.to_string());
+fn print_prom_scsi_error_counters(labels: &HashMap<&str, String>, counters: &HashMap<ErrorCounter, u64>, action: &str) {
+	let mut labels = labels.clone();
 	labels.insert("action", action.to_string());
 
 	use self::ErrorCounter::*;
@@ -418,6 +417,9 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 
 	let mut json = serde_json::Map::new();
 
+	let mut labels = HashMap::new();
+	labels.insert("dev", path.to_string());
+
 	// XXX should check if page is supported in `trait Pages` methods themselves, not here
 
 	// TODO Err() returned by dev.*_error_counters()
@@ -431,7 +433,7 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	match format {
 		Prometheus => {
 			for (name, counters) in error_counters {
-				counters.map(|counters| print_prom_scsi_error_counters(path, &counters, name));
+				counters.map(|counters| print_prom_scsi_error_counters(&labels, &counters, name));
 			}
 		},
 		Plain => {
@@ -456,8 +458,6 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	if let Ok(x) = pages.non_medium_error_count() {
 		match format {
 			Prometheus => {
-				let mut labels = HashMap::new();
-				labels.insert("dev", path.to_string());
 				print!("{}\n", format_prom("scsi_non_medium_errors", &labels, x));
 			},
 			Plain => {
@@ -475,8 +475,6 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	if let Ok((temp, ref_temp)) = pages.temperature() {
 		match format {
 			Prometheus => {
-				let mut labels = HashMap::new();
-				labels.insert("dev", path.to_string());
 				if let Some(t) = temp     { print!("{}\n", format_prom("scsi_temperature", &labels, t)) };
 				if let Some(t) = ref_temp { print!("{}\n", format_prom("scsi_reference_temperature", &labels, t)) };
 			},
@@ -505,9 +503,6 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	if let Ok(cycles) = pages.dates_and_cycle_counters() {
 		match format {
 			Prometheus => {
-				let mut labels = HashMap::new();
-				labels.insert("dev", path.to_string());
-
 				labels.insert("action", "start-stop".to_string());
 				if let Some(t) = cycles.start_stop_cycles          { print!("{}\n", format_prom("scsi_cycles", &labels, t)) };
 				if let Some(t) = cycles.lifetime_start_stop_cycles { print!("{}\n", format_prom("scsi_lifetime_cycles", &labels, t)) };
