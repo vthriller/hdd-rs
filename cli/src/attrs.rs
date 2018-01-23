@@ -6,6 +6,8 @@ use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
 
 use hdd::scsi::pages::{SCSIPages, ErrorCounter};
+use hdd::scsi::SCSICommon;
+use hdd::scsi::data::inquiry;
 
 use clap::{
 	Arg,
@@ -419,6 +421,12 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 
 	let mut labels = HashMap::new();
 	labels.insert("dev", path.to_string());
+	if let Ok((_sense, data)) = dev.scsi_inquiry(false, 0) {
+		let inquiry = inquiry::parse_inquiry(&data);
+		labels.insert("vendor", inquiry.vendor_id.clone());
+		labels.insert("model", inquiry.product_id.clone());
+		labels.insert("firmware", inquiry.product_rev.clone());
+	}
 
 	// XXX should check if page is supported in `trait Pages` methods themselves, not here
 
