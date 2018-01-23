@@ -204,10 +204,14 @@ fn main() {
 						Err(misc::Error::SCSI(ATAError::NotSupported)) =>
 							DeviceArgument::SCSI(satdev.unwrap()),
 						// huh? time to contact Houston
+						// TODO? or should we just keep treating devices that return random garbage (Err(ATAError::NoRegisters), weird sense codes &c) as SCSI?
+						/*
 						e => {
 							e.unwrap(); // TODO abort gracefully
 							unreachable!() // we already panicked
 						},
+						*/
+						_ => DeviceArgument::SCSI(satdev.unwrap()),
 					}
 				},
 				#[cfg(not(target_os = "linux"))]
