@@ -226,7 +226,18 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 				x @ 0x8000...0xffff => VendorSpecific(x),
 				x => Reserved(x),
 			};
-			let value = (&param.value[..]).read_uint::<BigEndian>(param.value.len()).unwrap();
+			let value = {
+				// read_uint cannot read values larger than 64 bits, and guess what, IBM-ESXS MBF2300RC actually returns 10 and even 16 bytes of data here!
+				// TODO for now I just check whether value fits u64 or not, i.e. first bits are 0; should probably read this into u128 instead
+				let mut offset = 0;
+				if param.value.len() > 8 {
+					for i in 0..(param.value.len() - 8) {
+						if param.value[i] != 0 { return None; }
+						offset += 1;
+					}
+				}
+				(&param.value[offset..]).read_uint::<BigEndian>(param.value.len() - offset).unwrap()
+			};
 
 			Some((counter, value))
 		})
