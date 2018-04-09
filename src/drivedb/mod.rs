@@ -128,6 +128,16 @@ pub struct Match<'a> {
 	pub presets: Vec<Attribute>,
 }
 
+/// Returns default entry from the database (if any).
+pub fn get_default_entry(db: &Vec<Entry>) -> Option<&Entry> {
+	for entry in db.iter() {
+		if entry.family == "DEFAULT" {
+			return Some(entry)
+		}
+	}
+	return None
+}
+
 // FIXME extra_attributes should probably be the reference
 /**
 Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
@@ -136,15 +146,11 @@ Return value is a merge between the default entry and the match; if multiple ent
 `extra_attributes` are also appended to the list of presets afterwards.
 
 This functions skips USB ID entries.
-
-## Panics
-
-This functions expects the first entry in the `db` to be the default one, and panics if there's no entries at all.
 */
 pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> Match<'a> {
-	let mut db = db.iter();
-	let default = db.next().unwrap(); // I'm fine with panicking in the absence of default entry (XXX)
+	let default = get_default_entry(&db).unwrap(); // FIXME unwrap
 
+	let db = db.iter();
 	for entry in db {
 
 		// USB ID entries are parsed differently; also, we don't support USB devices yet
