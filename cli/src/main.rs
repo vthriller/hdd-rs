@@ -30,6 +30,7 @@ use clap::{
 	ArgMatches,
 	App,
 	AppSettings,
+	Values,
 };
 
 extern crate serde_json;
@@ -54,18 +55,30 @@ pub fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action
 	}
 }
 
-pub fn open_drivedb(option: Option<&str>) -> Option<Vec<drivedb::Entry>> {
-	let drivedb = match option {
-		Some(file) => drivedb::load(file).ok(), // .ok(): see below
-		None => [
-				"/var/lib/smartmontools/drivedb/drivedb.h",
-				"/usr/local/share/smartmontools/drivedb.h", // for all FreeBSD folks out there
-				"/usr/share/smartmontools/drivedb.h",
-			].iter()
+#[allow(non_upper_case_globals)]
+static drivedb_default: [&'static str; 3] = [
+	"/var/lib/smartmontools/drivedb/drivedb.h",
+	"/usr/local/share/smartmontools/drivedb.h", // for all FreeBSD folks out there
+	"/usr/share/smartmontools/drivedb.h",
+];
+#[allow(non_upper_case_globals)]
+static drivedb_additional_default: [&'static str; 1] = [
+	"/etc/smart_drivedb.h",
+];
+
+pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
+	let options = options
+		.map(|vals| vals.collect())
+		.unwrap_or(drivedb_default.to_vec());
+
+	// TODO +FILE syntax, drivedb_additional_default
+
+	let drivedb = options.iter()
 			.map(|f| drivedb::load(f).ok()) // .ok(): what's the point in collecting all these "no such file or directory" errors?
+			// (FIXME .ok()? unless it's user-defined list of paths)
 			.find(|db| db.is_some())
 			.unwrap_or(None)
-	};
+	;
 	if drivedb.is_none() {
 		eprint!("Cannot open drivedb file\n");
 	};
@@ -103,8 +116,16 @@ pub fn arg_drivedb() -> Arg {
 			.short("B") // smartctl-like
 			.long("drivedb") // smartctl-like
 			.takes_value(true)
-			.value_name("FILE")
-			.help("path to drivedb file") // unlike smartctl, does not support '+FILE'
+			.multiple(true)
+			.value_name("[+]FILE")
+			/*
+			TODO show what default values are; now it's not possible, temporary value [0] is short-living and `.help()` only accepts &str, not String
+			[0]	format!("…\ndefault:\n{}\n{}",
+					drivedb_default.join("\n"),
+					drivedb_additional.iter().map(|i| format!("+{}", i)).collect::<Vec<_>>().join("\n"),
+				)
+			*/
+			.help("paths to drivedb files to look for\nuse 'FILE' for main (system-wide) file, '+FILE' for additional entries\nentries are looked up in every additional file in order of their appearance, then in the first valid main file, stopping at the first match\n(this option and its behavior is, to some extent, consistent with '-B' from smartctl)")
 }
 
 type F = fn(&str, &DeviceArgument, &ArgMatches);

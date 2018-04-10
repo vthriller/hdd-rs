@@ -581,7 +581,7 @@ pub fn attrs(
 		.filter(|x| x.is_some())
 		.map(|x| x.unwrap())
 		.collect();
-	let drivedb = open_drivedb(args.value_of("drivedb"));
+	let drivedb = open_drivedb(args.values_of("drivedb"));
 
 	use DeviceArgument::*;
 	match dev {

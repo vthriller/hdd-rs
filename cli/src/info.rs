@@ -134,7 +134,7 @@ pub fn info(
 	}
 
 	if let Some(id) = ata_id {
-		let drivedb = open_drivedb(args.value_of("drivedb"));
+		let drivedb = open_drivedb(args.values_of("drivedb"));
 		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
 			&id,
 			drivedb,
