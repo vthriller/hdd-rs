@@ -152,7 +152,7 @@ fn merge(presets: Vec<Option<Vec<Attribute>>>) -> Vec<Attribute> {
 /**
 Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
 
-Return value is a merge between the default entry and the match; if multiple entries match the `id`, the first one is used (this is consistent with smartmontools' `lookup_drive` function).
+Return value is a merge between the default entry and the first match; if multiple entries match the `id`, the first one is used (this is consistent with smartmontools' `lookup_drive` function).
 `extra_attributes` are also appended to the list of presets afterwards.
 
 This functions skips USB ID entries.
@@ -177,7 +177,6 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 			if !re.is_match(id.firmware.as_bytes()) { continue }
 		}
 
-		// > The table will be searched from the start to end or until the first match
 		return Match {
 			family: Some(&entry.family),
 			warning: if ! entry.warning.is_empty() { Some(&entry.warning) } else { None },
