@@ -139,9 +139,7 @@ pub fn get_default_entry(db: &Vec<Entry>) -> Option<&Entry> {
 }
 
 fn match_drive<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Option<&'a Entry> {
-	let db = db.iter();
-	for entry in db {
-
+	for entry in db.iter() {
 		// USB ID entries are parsed differently; also, we don't support USB devices yet
 		if entry.model.starts_with("USB:") { continue }
 
