@@ -99,7 +99,7 @@ pub trait Misc {
 	}
 
 	/// Issues SMART READ DATA and SMART READ THRESHOLDS commands, then renders their answers using optional [drivedb](../../drivedb/index.html) entry.
-	fn get_smart_attributes(&self, dbentry: &Option<drivedb::Match>) -> Result<Vec<attr::SmartAttribute>, Error> {
+	fn get_smart_attributes(&self, meta: &Option<drivedb::DriveMeta>) -> Result<Vec<attr::SmartAttribute>, Error> {
 		info!("reading SMART attributes and thresholds");
 
 		let (_, data) = self.ata_do(Direction::From, &RegistersWrite {
@@ -121,7 +121,7 @@ pub trait Misc {
 			device: 0,
 		})?;
 
-		Ok(attr::parse_smart_values(&data, &thresh, &dbentry))
+		Ok(attr::parse_smart_values(&data, &thresh, &meta))
 	}
 }
 

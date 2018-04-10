@@ -114,9 +114,9 @@ fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
 	}).collect()
 }
 
-/// Matching drivedb entry, with parsed attribute presets and without irrelevant regexes.
+/// Drive-related data that cannot be queried from the drive itself (model family, attribute presets etc.)
 #[derive(Debug)]
-pub struct Match<'a> {
+pub struct DriveMeta<'a> {
 	/// > Informal string about the model family/series of a device.
 	pub family: Option<&'a String>,
 
@@ -147,10 +147,10 @@ Return value is a merge between the default entry and the first match; if multip
 
 This functions skips USB ID entries.
 */
-pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> Match<'a> {
+pub fn render_meta<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> DriveMeta<'a> {
 	let default = get_default_entry(&db).unwrap(); // FIXME unwrap
 
-	let mut m = Match {
+	let mut m = DriveMeta {
 		family: None,
 		warning: None,
 		presets: Vec::<Attribute>::new(),
@@ -193,7 +193,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 	return m;
 }
 
-impl<'a> Match<'a> {
+impl<'a> DriveMeta<'a> {
 	pub fn render_attribute(&'a self, id: u8) -> Option<Attribute> {
 		vendor_attribute::render(self.presets.to_vec(), id)
 	}

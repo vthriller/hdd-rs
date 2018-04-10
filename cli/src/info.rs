@@ -22,7 +22,7 @@ fn bool_to_sup(b: bool) -> &'static str {
 	else { "not supported" }
 }
 
-fn print_ata_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
+fn print_ata_id(id: &id::Id, meta: &Option<drivedb::DriveMeta>) {
 	if id.incomplete { print!("WARNING: device reports information it provides is incomplete\n\n"); }
 
 	// XXX id.is_ata is deemed redundant and is skipped
@@ -38,13 +38,13 @@ fn print_ata_id(id: &id::Id, dbentry: &Option<drivedb::Match>) {
 	print!("Serial:   {}\n", id.serial);
 	// TODO: id.wwn_supported is cool, but actual WWN ID is better
 
-	if let Some(ref dbentry) = *dbentry {
-		if let Some(family) = dbentry.family {
+	if let Some(ref meta) = *meta {
+		if let Some(family) = meta.family {
 			print!("Model family according to drive database:\n  {}\n", family);
 		} else {
 			print!("This drive is not in the drive database\n");
 		}
-		if let Some(warning) = dbentry.warning {
+		if let Some(warning) = meta.warning {
 			print!("\n══════ WARNING ══════\n{}\n═════════════════════\n", warning);
 		}
 	}
@@ -135,7 +135,7 @@ pub fn info(
 
 	if let Some(id) = ata_id {
 		let drivedb = open_drivedb(args.values_of("drivedb"));
-		let dbentry = drivedb.as_ref().map(|drivedb| drivedb::match_entry(
+		let meta = drivedb.as_ref().map(|drivedb| drivedb::render_meta(
 			&id,
 			drivedb,
 			// no need to parse custom vendor attributes,
@@ -146,18 +146,18 @@ pub fn info(
 		if use_json {
 			let mut info = id.to_json().unwrap();
 
-			if let Some(ref dbentry) = dbentry {
-				if let Some(family) = dbentry.family {
+			if let Some(ref meta) = meta {
+				if let Some(family) = meta.family {
 					info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
 				}
-				if let Some(warning) = dbentry.warning {
+				if let Some(warning) = meta.warning {
 					info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
 				}
 			}
 
 			print!("{}\n", serde_json::to_string(&info).unwrap());
 		} else {
-			print_ata_id(&id, &dbentry);
+			print_ata_id(&id, &meta);
 		}
 	}
 }

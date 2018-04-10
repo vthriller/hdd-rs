@@ -31,7 +31,7 @@ pub struct SmartAttribute {
 	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 }
 
-pub fn parse_smart_values(data: &Vec<u8>, raw_thresh: &Vec<u8>, dbentry: &Option<drivedb::Match>) -> Vec<SmartAttribute> {
+pub fn parse_smart_values(data: &Vec<u8>, raw_thresh: &Vec<u8>, meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
 	// TODO cover bytes 0..1 362..511 of data
 	// XXX what if some drive reports the same attribute multiple times?
 	// TODO return None if data.len() < 512
@@ -53,7 +53,7 @@ pub fn parse_smart_values(data: &Vec<u8>, raw_thresh: &Vec<u8>, dbentry: &Option
 
 		let id = data[offset];
 
-		let attr = dbentry.as_ref().map(|dbentry| dbentry.render_attribute(id)).unwrap_or(None);
+		let attr = meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None);
 		let is_in_raw = |c| attr.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false);
 
 		attrs.push(SmartAttribute {
