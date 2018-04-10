@@ -160,6 +160,11 @@ This functions skips USB ID entries.
 pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> Match<'a> {
 	let default = get_default_entry(&db).unwrap(); // FIXME unwrap
 
+	let mut attrs = Vec::<Attribute>::new();
+	if let Some(ref presets) = presets::parse(&default.presets) {
+		attrs.extend(presets.iter().cloned());
+	}
+
 	let db = db.iter();
 	for entry in db {
 
@@ -177,12 +182,16 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 			if !re.is_match(id.firmware.as_bytes()) { continue }
 		}
 
+		// here's the match
+		if let Some(ref presets) = presets::parse(&entry.presets) {
+			attrs.extend(presets.iter().cloned());
+		}
+
 		return Match {
 			family: Some(&entry.family),
 			warning: if ! entry.warning.is_empty() { Some(&entry.warning) } else { None },
 			presets: filter_presets(id, merge(vec![
-				presets::parse(&default.presets),
-				presets::parse(&entry.presets),
+				Some(attrs),
 				Some(extra_attributes),
 			])),
 		};
@@ -192,7 +201,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		family: None,
 		warning: None,
 		presets: filter_presets(id, merge(vec![
-			presets::parse(&default.presets),
+			Some(attrs),
 			Some(extra_attributes),
 		])),
 	}
