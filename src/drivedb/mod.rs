@@ -138,6 +138,30 @@ pub fn get_default_entry(db: &Vec<Entry>) -> Option<&Entry> {
 	return None
 }
 
+fn match_drive<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Option<&'a Entry> {
+	let db = db.iter();
+	for entry in db {
+
+		// USB ID entries are parsed differently; also, we don't support USB devices yet
+		if entry.model.starts_with("USB:") { continue }
+
+		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
+
+		// > [modelregexp] should never be "".
+		let re = Regex::new(format!("(?-u)^{}$", entry.model).as_str()).unwrap();
+		if !re.is_match(id.model.as_bytes()) { continue }
+
+		if ! entry.firmware.is_empty() {
+			let re = Regex::new(format!("^(?-u){}$", entry.firmware).as_str()).unwrap();
+			if !re.is_match(id.firmware.as_bytes()) { continue }
+		}
+
+		return Some(entry);
+	}
+
+	None
+}
+
 // FIXME extra_attributes should probably be the reference
 /**
 Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
@@ -159,33 +183,13 @@ pub fn render_meta<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		m.presets.extend(presets);
 	}
 
-	let db = db.iter();
-	for entry in db {
-
-		// USB ID entries are parsed differently; also, we don't support USB devices yet
-		if entry.model.starts_with("USB:") { continue }
-
-		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
-
-		// > [modelregexp] should never be "".
-		let re = Regex::new(format!("(?-u)^{}$", entry.model).as_str()).unwrap();
-		if !re.is_match(id.model.as_bytes()) { continue }
-
-		if ! entry.firmware.is_empty() {
-			let re = Regex::new(format!("^(?-u){}$", entry.firmware).as_str()).unwrap();
-			if !re.is_match(id.firmware.as_bytes()) { continue }
-		}
-
-		// here's the match
-
+	if let Some(entry) = match_drive(id, db) {
 		if let Some(presets) = presets::parse(&entry.presets) {
 			m.presets.extend(presets);
 		}
 
 		m.family = Some(&entry.family);
 		m.warning = if ! entry.warning.is_empty() { Some(&entry.warning) } else { None };
-
-		break;
 	}
 
 	m.presets.extend(extra_attributes);
