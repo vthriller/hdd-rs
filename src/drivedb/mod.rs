@@ -187,6 +187,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		}
 
 		// here's the match
+
 		if let Some(ref presets) = presets::parse(&entry.presets) {
 			m.presets.extend(presets.iter().cloned());
 		}
@@ -194,11 +195,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		m.family = Some(&entry.family);
 		m.warning = if ! entry.warning.is_empty() { Some(&entry.warning) } else { None };
 
-		m.presets = filter_presets(id, merge(vec![
-				Some(m.presets),
-				Some(extra_attributes),
-			]));
-		return m;
+		break;
 	}
 
 	m.presets = filter_presets(id, merge(vec![
