@@ -160,9 +160,13 @@ This functions skips USB ID entries.
 pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> Match<'a> {
 	let default = get_default_entry(&db).unwrap(); // FIXME unwrap
 
-	let mut attrs = Vec::<Attribute>::new();
+	let mut m = Match {
+		family: None,
+		warning: None,
+		presets: Vec::<Attribute>::new(),
+	};
 	if let Some(ref presets) = presets::parse(&default.presets) {
-		attrs.extend(presets.iter().cloned());
+		m.presets.extend(presets.iter().cloned());
 	}
 
 	let db = db.iter();
@@ -184,27 +188,24 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 
 		// here's the match
 		if let Some(ref presets) = presets::parse(&entry.presets) {
-			attrs.extend(presets.iter().cloned());
+			m.presets.extend(presets.iter().cloned());
 		}
 
-		return Match {
-			family: Some(&entry.family),
-			warning: if ! entry.warning.is_empty() { Some(&entry.warning) } else { None },
-			presets: filter_presets(id, merge(vec![
-				Some(attrs),
+		m.family = Some(&entry.family);
+		m.warning = if ! entry.warning.is_empty() { Some(&entry.warning) } else { None };
+
+		m.presets = filter_presets(id, merge(vec![
+				Some(m.presets),
 				Some(extra_attributes),
-			])),
-		};
+			]));
+		return m;
 	}
 
-	Match {
-		family: None,
-		warning: None,
-		presets: filter_presets(id, merge(vec![
-			Some(attrs),
+	m.presets = filter_presets(id, merge(vec![
+			Some(m.presets),
 			Some(extra_attributes),
-		])),
-	}
+		]));
+	return m;
 }
 
 impl<'a> Match<'a> {
