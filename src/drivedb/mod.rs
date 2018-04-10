@@ -138,6 +138,16 @@ pub fn get_default_entry(db: &Vec<Entry>) -> Option<&Entry> {
 	return None
 }
 
+fn merge(presets: Vec<Option<Vec<Attribute>>>) -> Vec<Attribute> {
+	let mut output = Vec::<Attribute>::new();
+	for preset in presets {
+		if let Some(ref dpresets) = preset {
+			output.extend(dpresets.iter().cloned());
+		}
+	}
+	output
+}
+
 // FIXME extra_attributes should probably be the reference
 /**
 Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
@@ -171,7 +181,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		return Match {
 			family: Some(&entry.family),
 			warning: if ! entry.warning.is_empty() { Some(&entry.warning) } else { None },
-			presets: filter_presets(id, vendor_attribute::merge(vec![
+			presets: filter_presets(id, merge(vec![
 				presets::parse(&default.presets),
 				presets::parse(&entry.presets),
 				Some(extra_attributes),
@@ -182,7 +192,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 	Match {
 		family: None,
 		warning: None,
-		presets: filter_presets(id, vendor_attribute::merge(vec![
+		presets: filter_presets(id, merge(vec![
 			presets::parse(&default.presets),
 			Some(extra_attributes),
 		])),

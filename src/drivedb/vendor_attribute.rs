@@ -174,14 +174,3 @@ pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 
 	out
 }
-
-/// Concatenates lists of attribute presets.
-pub fn merge(presets: Vec<Option<Vec<Attribute>>>) -> Vec<Attribute> {
-	let mut output = Vec::<Attribute>::new();
-	for preset in presets {
-		if let Some(ref dpresets) = preset {
-			output.extend(dpresets.iter().cloned());
-		}
-	}
-	output
-}
