@@ -155,8 +155,8 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		warning: None,
 		presets: Vec::<Attribute>::new(),
 	};
-	if let Some(ref presets) = presets::parse(&default.presets) {
-		m.presets.extend(presets.iter().cloned());
+	if let Some(presets) = presets::parse(&default.presets) {
+		m.presets.extend(presets);
 	}
 
 	let db = db.iter();
@@ -178,8 +178,8 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 
 		// here's the match
 
-		if let Some(ref presets) = presets::parse(&entry.presets) {
-			m.presets.extend(presets.iter().cloned());
+		if let Some(presets) = presets::parse(&entry.presets) {
+			m.presets.extend(presets);
 		}
 
 		m.family = Some(&entry.family);
@@ -188,7 +188,7 @@ pub fn match_entry<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		break;
 	}
 
-	m.presets.extend(extra_attributes.iter().cloned());
+	m.presets.extend(extra_attributes);
 	m.presets = filter_presets(id, m.presets);
 	return m;
 }
