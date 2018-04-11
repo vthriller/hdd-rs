@@ -52,7 +52,7 @@ Features:
 * Tests.
 * More tests.
 * Even more tests: big-endian systems, old hardware…
-* `rg 'TODO|FIXME|XXX|((?i)WTF)|unimplemented!|unwrap|expect' src {cli,sample-scsi}/src build.rs`
+* `rg 'TODO|FIXME|XXX|((?i)WTF)|unimplemented!|\b(unwrap|expect)\b' src {cli,sample-scsi}/src build.rs`
 * Feature parity with [insert your favourite package name here].
 * Support for RAID weirdos (LSI, Adaptec, Areca, you name it) and USB bridges.
 * Debugging options (think `smartctl -r ataioctl,2` or `skdump`) for CLI tool.
