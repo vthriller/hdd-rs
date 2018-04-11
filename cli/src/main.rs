@@ -98,17 +98,13 @@ pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 		}
 	}
 
-	let drivedb = paths_main.iter()
-			.map(|f| drivedb::load(f).ok()) // .ok(): what's the point in collecting all these "no such file or directory" errors?
-			// (FIXME .ok()? unless it's user-defined list of paths)
-			.find(|db| db.is_some())
-			.unwrap_or(None)
-	;
-	// FIXME show warning for every file if list of files comes from the args
-	if let Some(drivedb) = drivedb {
-		entries.extend(drivedb);
-	} else {
-		eprint!("Cannot open drivedb file\n");
+	for f in paths_main {
+		if let Ok(fentries) = drivedb::load(f) {
+			entries.extend(fentries);
+			break; // we only need one 'main' file, the first valid one
+		} else {
+			eprint!("Cannot open drivedb file {}\n", f);
+		}
 	}
 
 	Some(entries)
