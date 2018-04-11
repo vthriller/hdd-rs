@@ -77,10 +77,21 @@ pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 	// trim leading '+'
 	let paths_add: Vec<&str> = paths_add.iter().map(|path| &path[1..]).collect();
 
-	// apply defaults if corresponding lists are empty
+
+	let mut show_warn_main = true;
+	let mut show_warn_add = true;
+
+	/*
+	if some list is empty:
+	- apply defaults
+	- silence warnings
+	*/
 	let (paths_main, paths_add) = if paths_main.is_empty() {
+		show_warn_main = false;
 		let paths_main = drivedb_default.to_vec();
+
 		let paths_add = if paths_add.is_empty() {
+			show_warn_add = false;
 			drivedb_additional_default.to_vec()
 		} else {
 			paths_add
@@ -97,7 +108,9 @@ pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 	for f in paths_add {
 		match drivedb::load(f) {
 			Ok(fentries) => entries.extend(fentries),
-			Err(e) => eprint!("Cannot open additional drivedb file {}: {}\n", f, e),
+			Err(e) => if show_warn_add {
+				eprint!("Cannot open additional drivedb file {}: {}\n", f, e);
+			},
 		}
 	}
 
@@ -107,7 +120,9 @@ pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 				entries.extend(fentries);
 				break; // we only need one 'main' file, the first valid one
 			},
-			Err(e) => eprint!("Cannot open drivedb file {}: {}\n", f, e),
+			Err(e) => if show_warn_main {
+				eprint!("Cannot open drivedb file {}: {}\n", f, e);
+			},
 		}
 	}
 
