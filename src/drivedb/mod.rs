@@ -170,15 +170,17 @@ Return value is a merge between the default entry and the first match; if multip
 This functions skips USB ID entries.
 */
 pub fn render_meta<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<Attribute>) -> DriveMeta<'a> {
-	let default = get_default_entry(&db).unwrap(); // FIXME unwrap
-
 	let mut m = DriveMeta {
 		family: None,
 		warning: None,
 		presets: Vec::<Attribute>::new(),
 	};
-	if let Some(presets) = presets::parse(&default.presets) {
-		m.presets.extend(presets);
+
+	// TODO show somehow whether default entry was found or not, or ask caller for the default entry
+	if let Some(default) = get_default_entry(&db) {
+		if let Some(presets) = presets::parse(&default.presets) {
+			m.presets.extend(presets);
+		}
 	}
 
 	if let Some(entry) = match_drive(id, db) {
