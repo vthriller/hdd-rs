@@ -66,10 +66,13 @@ static drivedb_additional_default: [&'static str; 1] = [
 	"/etc/smart_drivedb.h",
 ];
 
+/// Returns concatenated list of entries from main and additional drivedb files, falling back to built-in paths if none were provided.
 pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 	let options = options
 		.map(|vals| vals.collect())
 		.unwrap_or(drivedb_default.to_vec());
+
+	let mut entries = Vec::<_>::new();
 
 	// TODO +FILE syntax, drivedb_additional_default
 
@@ -79,10 +82,14 @@ pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 			.find(|db| db.is_some())
 			.unwrap_or(None)
 	;
-	if drivedb.is_none() {
+	// FIXME show warning for every file if list of files comes from the args
+	if let Some(drivedb) = drivedb {
+		entries.extend(drivedb);
+	} else {
 		eprint!("Cannot open drivedb file\n");
-	};
-	drivedb
+	}
+
+	Some(entries)
 }
 
 // cannot use #[cfg(…)] in arg_enum!, hence code duplication
