@@ -70,13 +70,35 @@ static drivedb_additional_default: [&'static str; 1] = [
 pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 	let options = options
 		.map(|vals| vals.collect())
-		.unwrap_or(drivedb_default.to_vec());
+		.unwrap_or_else(|| vec![]);
+
+	let (paths_add, paths_main): (Vec<&str>, Vec<&str>) = options.iter().partition(|path| path.starts_with('+'));
+
+	// trim leading '+'
+	let paths_add: Vec<&str> = paths_add.iter().map(|path| &path[1..]).collect();
+
+	let paths_main = if paths_main.is_empty() {
+		drivedb_default.to_vec()
+	} else {
+		paths_main
+	};
+
+	let paths_add = if paths_add.is_empty() {
+		drivedb_additional_default.to_vec()
+	} else {
+		paths_add
+	};
 
 	let mut entries = Vec::<_>::new();
 
-	// TODO +FILE syntax, drivedb_additional_default
+	// entries from additional files take precedence and, thus, are read first
+	for f in paths_add {
+		if let Ok(fentries) = drivedb::load(f) {
+			entries.extend(fentries);
+		}
+	}
 
-	let drivedb = options.iter()
+	let drivedb = paths_main.iter()
 			.map(|f| drivedb::load(f).ok()) // .ok(): what's the point in collecting all these "no such file or directory" errors?
 			// (FIXME .ok()? unless it's user-defined list of paths)
 			.find(|db| db.is_some())
