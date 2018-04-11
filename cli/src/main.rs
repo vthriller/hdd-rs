@@ -95,17 +95,19 @@ pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 
 	// entries from additional files take precedence and, thus, are read first
 	for f in paths_add {
-		if let Ok(fentries) = drivedb::load(f) {
-			entries.extend(fentries);
+		match drivedb::load(f) {
+			Ok(fentries) => entries.extend(fentries),
+			Err(e) => eprint!("Cannot open additional drivedb file {}: {}\n", f, e),
 		}
 	}
 
 	for f in paths_main {
-		if let Ok(fentries) = drivedb::load(f) {
-			entries.extend(fentries);
-			break; // we only need one 'main' file, the first valid one
-		} else {
-			eprint!("Cannot open drivedb file {}\n", f);
+		match drivedb::load(f) {
+			Ok(fentries) => {
+				entries.extend(fentries);
+				break; // we only need one 'main' file, the first valid one
+			},
+			Err(e) => eprint!("Cannot open drivedb file {}: {}\n", f, e),
 		}
 	}
 
