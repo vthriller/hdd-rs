@@ -77,16 +77,18 @@ pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 	// trim leading '+'
 	let paths_add: Vec<&str> = paths_add.iter().map(|path| &path[1..]).collect();
 
-	let paths_main = if paths_main.is_empty() {
-		drivedb_default.to_vec()
+	// apply defaults if corresponding lists are empty
+	let (paths_main, paths_add) = if paths_main.is_empty() {
+		let paths_main = drivedb_default.to_vec();
+		let paths_add = if paths_add.is_empty() {
+			drivedb_additional_default.to_vec()
+		} else {
+			paths_add
+		};
+		(paths_main, paths_add)
 	} else {
-		paths_main
-	};
-
-	let paths_add = if paths_add.is_empty() {
-		drivedb_additional_default.to_vec()
-	} else {
-		paths_add
+		// do not apply defaults to paths_add if paths_main is not the default one
+		(paths_main, paths_add)
 	};
 
 	let mut entries = Vec::<_>::new();
