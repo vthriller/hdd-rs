@@ -178,12 +178,14 @@ pub fn render_meta<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 
 	// TODO show somehow whether default entry was found or not, or ask caller for the default entry
 	if let Some(default) = get_default_entry(&db) {
+		// TODO show somehow whether preset is valid or not
 		if let Some(presets) = presets::parse(&default.presets) {
 			m.presets.extend(presets);
 		}
 	}
 
 	if let Some(entry) = match_drive(id, db) {
+		// TODO show somehow whether preset is valid or not
 		if let Some(presets) = presets::parse(&entry.presets) {
 			m.presets.extend(presets);
 		}
