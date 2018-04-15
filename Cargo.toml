@@ -21,6 +21,9 @@ log = "0.3"
 serde = { version = "0.9", optional = true }
 serde_derive = { version = "0.9", optional = true }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libudev = "0.2"
+
 [features]
 default = []
 serializable = ["serde", "serde_derive"]
