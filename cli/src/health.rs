@@ -18,10 +18,16 @@ pub fn subcommand() -> App<'static, 'static> {
 }
 
 pub fn health(
-	_: &str,
-	dev: &DeviceArgument,
+	_: &Option<&str>,
+	dev: &Option<&DeviceArgument>,
 	args: &ArgMatches,
 ) {
+	let dev = dev.unwrap_or_else(|| {
+		// TODO show usage and whatnot
+		eprint!("<device> is required\n");
+		::std::process::exit(1);
+	});
+
 	let id = match *dev {
 		#[cfg(not(target_os = "linux"))]
 		DeviceArgument::ATA(_, ref id) => id,

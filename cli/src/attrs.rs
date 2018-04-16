@@ -560,10 +560,17 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 }
 
 pub fn attrs(
-	path: &str,
-	dev: &DeviceArgument,
+	path: &Option<&str>,
+	dev: &Option<&DeviceArgument>,
 	args: &ArgMatches,
 ) {
+	let dev = dev.unwrap_or_else(|| {
+		// TODO show usage and whatnot
+		eprint!("<device> is required\n");
+		::std::process::exit(1);
+	});
+	let path = path.unwrap(); // `path` and `dev` are both `Some()` or both `None`
+
 	let format = match args.value_of("format") {
 		Some("plain") => Plain,
 		Some("json") => JSON,

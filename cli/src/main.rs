@@ -172,7 +172,7 @@ pub fn arg_drivedb() -> Arg {
 			.help("paths to drivedb files to look for\nuse 'FILE' for main (system-wide) file, '+FILE' for additional entries\nentries are looked up in every additional file in order of their appearance, then in the first valid main file, stopping at the first match\n(this option and its behavior is, to some extent, consistent with '-B' from smartctl)")
 }
 
-type F = fn(&str, &DeviceArgument, &ArgMatches);
+type F = fn(&Option<&str>, &Option<&DeviceArgument>, &ArgMatches);
 
 fn main() {
 	let mut log = LogBuilder::new();
@@ -216,7 +216,7 @@ fn main() {
 		)
 		.arg(Arg::with_name("device")
 			.help("Device to query")
-			.required(true)
+			//.required(true) // optional for 'list' subcommand, required for anything else
 			.index(1)
 		)
 		.get_matches();
@@ -235,8 +235,8 @@ fn main() {
 	});
 	log.init().unwrap();
 
-	let path = args.value_of("device").unwrap();
-	let dev = Device::open(path).unwrap();
+	let path = args.value_of("device");
+	let dev = path.map(|p| Device::open(p).unwrap());
 
 	let dtype = args.value_of("type")
 		.unwrap_or("auto")
@@ -255,7 +255,7 @@ fn main() {
 	- It allows us to distinguish between pure SCSI devices and ATA devices behind SAT by issuing ATA PASS-THROUGH and checking whether this command is supported.
 	*/
 
-	let dev = match dtype {
+	let dev = dev.map(|dev| match dtype {
 		Type::Auto => {
 			match dev.get_type().unwrap() {
 				device::Type::SCSI => {
@@ -299,7 +299,7 @@ fn main() {
 			DeviceArgument::SAT(dev, id)
 		},
 		Type::SCSI => DeviceArgument::SCSI(SCSIDevice::new(dev)),
-	};
+	});
 
-	subcommand(path, &dev, sargs)
+	subcommand(&path, &dev.as_ref(), sargs)
 }
