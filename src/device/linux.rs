@@ -50,8 +50,11 @@ impl Device {
 
 		return enumerator.scan_devices().unwrap()
 			.filter(|d| d.is_initialized())
-			// skip devices like /dev/{loop,ram,zram,md}*
-			.filter(|d| ! d.devpath().to_str().unwrap().starts_with("/devices/virtual/"))
+			// skip devices like /dev/{loop,ram,zram,md,fd}*
+			.filter(|d| {
+				let path = d.devpath().to_str().unwrap();
+				! (path.starts_with("/devices/virtual/") || path.starts_with("/devices/platform/floppy"))
+			})
 			.filter(|d| d.devtype().map(|os| os.to_str().unwrap()) != Some("partition"))
 			.map(|d| d.devnode().map(|path| path.to_path_buf())) // second map is because .devnode() returns &Path that is owned by temporary udev::Device
 				.filter(|d| d.is_some()).map(|d| d.unwrap())
