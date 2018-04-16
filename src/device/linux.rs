@@ -55,7 +55,8 @@ impl Device {
 				let path = d.devpath().to_str().unwrap();
 				! (path.starts_with("/devices/virtual/") || path.starts_with("/devices/platform/floppy"))
 			})
-			.filter(|d| d.devtype().map(|os| os.to_str().unwrap()) != Some("partition"))
+			// != Some("partition")? != None? easier to just pick device types we want
+			.filter(|d| d.devtype().map(|os| os.to_str().unwrap()) == Some("disk"))
 			.map(|d| d.devnode().map(|path| path.to_path_buf())) // second map is because .devnode() returns &Path that is owned by temporary udev::Device
 				.filter(|d| d.is_some()).map(|d| d.unwrap())
 			.collect();
