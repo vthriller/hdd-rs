@@ -46,6 +46,7 @@ use env_logger::LogBuilder;
 mod info;
 mod health;
 mod attrs;
+mod list;
 
 pub fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F) where F: FnMut() -> () {
 	match *status {
@@ -199,6 +200,7 @@ fn main() {
 		.version(crate_version!())
 		.setting(AppSettings::SubcommandRequired)
 		.subcommand(health::subcommand())
+		.subcommand(list::subcommand())
 		.subcommand(info::subcommand())
 		.subcommand(attrs::subcommand())
 		.arg(Arg::with_name("type")
@@ -245,6 +247,7 @@ fn main() {
 	let (subcommand, sargs): (F, _) = match args.subcommand() {
 		("info", Some(args)) => (info::info, args),
 		("health", Some(args)) => (health::health, args),
+		("list", Some(args)) => (list::list, args),
 		("attrs", Some(args)) => (attrs::attrs, args),
 		_ => unreachable!(),
 	};
