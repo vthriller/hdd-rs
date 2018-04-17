@@ -35,7 +35,6 @@ impl Device {
 		Why udev?
 		- easy to use
 		- can possibly use some metadata from various attributes associated with devices
-		- makes us aware of custom device names that might be in place due to udev rules
 
 		Cons:
 		- extra dependency
