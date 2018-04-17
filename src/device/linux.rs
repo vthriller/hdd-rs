@@ -44,10 +44,12 @@ impl Device {
 
 		let context = libudev::Context::new().unwrap();
 
+		let mut devices = vec![];
+
 		let mut enumerator = libudev::Enumerator::new(&context).unwrap();
 		enumerator.match_subsystem("block").unwrap();
 
-		return enumerator.scan_devices().unwrap()
+		devices.append(&mut enumerator.scan_devices().unwrap()
 			.filter(|d| d.is_initialized())
 			// skip devices like /dev/{loop,ram,zram,md,fd}*
 			.filter(|d| {
@@ -58,6 +60,22 @@ impl Device {
 			.filter(|d| d.devtype().map(|os| os.to_str().unwrap()) == Some("disk"))
 			.map(|d| d.devnode().map(|path| path.to_path_buf())) // second map is because .devnode() returns &Path that is owned by temporary udev::Device
 				.filter(|d| d.is_some()).map(|d| d.unwrap())
-			.collect();
+			.collect());
+
+		/*
+		Some drivers (e.g. aacraid) also provide generic SCSI devices for disks behind hardware RAIDs;
+		these devices can be used to query SMART or SCSI logs from disks that are not represented with corresponding block devices
+		*/
+
+		let mut enumerator = libudev::Enumerator::new(&context).unwrap();
+		enumerator.match_subsystem("scsi_generic").unwrap();
+
+		devices.append(&mut enumerator.scan_devices().unwrap()
+			.filter(|d| d.is_initialized())
+			.map(|d| d.devnode().map(|path| path.to_path_buf()))
+				.filter(|d| d.is_some()).map(|d| d.unwrap())
+			.collect());
+
+		devices
 	}
 }
