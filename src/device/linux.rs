@@ -49,18 +49,18 @@ impl Device {
 		let mut enumerator = libudev::Enumerator::new(&context).unwrap();
 		enumerator.match_subsystem("block").unwrap();
 
-		devices.append(&mut enumerator.scan_devices().unwrap()
-			.filter(|d| d.is_initialized())
+		for d in enumerator.scan_devices().unwrap() {
+			if ! d.is_initialized() { continue }
 			// skip devices like /dev/{loop,ram,zram,md,fd}*
-			.filter(|d| {
-				let path = d.devpath().to_str().unwrap();
-				! (path.starts_with("/devices/virtual/") || path.starts_with("/devices/platform/floppy"))
-			})
+			let path = d.devpath().to_str().unwrap();
+			if path.starts_with("/devices/virtual/") || path.starts_with("/devices/platform/floppy") { continue }
 			// != Some("partition")? != None? easier to just pick device types we want
-			.filter(|d| d.devtype().map(|os| os.to_str().unwrap()) == Some("disk"))
-			.map(|d| d.devnode().map(|path| path.to_path_buf())) // second map is because .devnode() returns &Path that is owned by temporary udev::Device
-				.filter(|d| d.is_some()).map(|d| d.unwrap())
-			.collect());
+			if d.devtype().map(|os| os.to_str().unwrap()) != Some("disk") { continue }
+
+			if let Some(path) = d.devnode() {
+				devices.push(path.to_path_buf())
+			}
+		}
 
 		/*
 		Some drivers (e.g. aacraid) also provide generic SCSI devices for disks behind hardware RAIDs;
@@ -70,11 +70,13 @@ impl Device {
 		let mut enumerator = libudev::Enumerator::new(&context).unwrap();
 		enumerator.match_subsystem("scsi_generic").unwrap();
 
-		devices.append(&mut enumerator.scan_devices().unwrap()
-			.filter(|d| d.is_initialized())
-			.map(|d| d.devnode().map(|path| path.to_path_buf()))
-				.filter(|d| d.is_some()).map(|d| d.unwrap())
-			.collect());
+		for d in enumerator.scan_devices().unwrap() {
+			if ! d.is_initialized() { continue }
+
+			if let Some(path) = d.devnode() {
+				devices.push(path.to_path_buf())
+			}
+		}
 
 		devices
 	}
