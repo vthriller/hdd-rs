@@ -3,6 +3,7 @@ use std::io;
 
 extern crate libudev;
 use std::path::PathBuf;
+use std::collections::HashSet;
 
 /// See [parent module docs](../index.html)
 #[derive(Debug)]
@@ -45,6 +46,7 @@ impl Device {
 		let context = libudev::Context::new().unwrap();
 
 		let mut devices = vec![];
+		let mut skip_generics = HashSet::new();
 
 		let mut enumerator = libudev::Enumerator::new(&context).unwrap();
 		enumerator.match_subsystem("block").unwrap();
@@ -60,6 +62,18 @@ impl Device {
 			if let Some(path) = d.devnode() {
 				devices.push(path.to_path_buf())
 			}
+
+			if let Some(parent) = d.parent() {
+				let mut parent_generic = parent.syspath().to_path_buf();
+				parent_generic.push("generic");
+
+				// e.g. `readlink /sys/class/block/sda/device/generic` → `scsi_generic/sg0`
+				if let Ok(generic_path) = parent_generic.read_link() {
+					if let Some(generic_name) = generic_path.file_name() {
+						skip_generics.insert(format!("/dev/{}", generic_name.to_str().unwrap()));
+					}
+				}
+			}
 		}
 
 		/*
@@ -74,7 +88,9 @@ impl Device {
 			if ! d.is_initialized() { continue }
 
 			if let Some(path) = d.devnode() {
-				devices.push(path.to_path_buf())
+				if ! skip_generics.contains(&path.to_str().unwrap().to_owned()) {
+					devices.push(path.to_path_buf());
+				}
 			}
 		}
 
