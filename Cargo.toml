@@ -27,6 +27,3 @@ serializable = ["serde", "serde_derive"]
 
 [target.'cfg(target_os = "freebsd")'.build-dependencies]
 bindgen = "0.26.3"
-
-[lib]
-name = "hdd"
