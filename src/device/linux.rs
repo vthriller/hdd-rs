@@ -23,7 +23,7 @@ impl Device {
 
 	pub fn get_type(&self) -> Result<Type, io::Error> { Ok(Type::SCSI) }
 
-	pub fn list_devices() -> Vec<PathBuf> {
+	pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 		/*
 		Various software enumerates block devices in a variety of ways:
 		- smartd: probes for /dev/hd[a-t], /dev/sd[a-z], /dev/sd[a-c][a-z], /dev/nvme[0-99]
@@ -45,7 +45,9 @@ impl Device {
 		let mut devices = vec![];
 		let mut skip_generics = HashSet::new();
 
-		for d in fs::read_dir("/sys/class/block").unwrap() {
+		// XXX do not return Err() if /sys/class/block does not exist but /sys/class/scsi_generic does, or vice versa
+
+		for d in fs::read_dir("/sys/class/block")? {
 			let d = if let Ok(d) = d { d } else { continue };
 
 			// XXX this assumes that dir name equals to whatever `DEVNAME` is set to in the uevent file
@@ -95,7 +97,7 @@ impl Device {
 		these devices can be used to query SMART or SCSI logs from disks that are not represented with corresponding block devices
 		*/
 
-		for d in fs::read_dir("/sys/class/scsi_generic").unwrap() {
+		for d in fs::read_dir("/sys/class/scsi_generic")? {
 			let d = if let Ok(d) = d { d } else { continue };
 
 			let name = d.file_name();
@@ -107,6 +109,6 @@ impl Device {
 			}
 		}
 
-		devices
+		Ok(devices)
 	}
 }

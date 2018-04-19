@@ -27,7 +27,10 @@ pub fn list(
 		::std::process::exit(1);
 	};
 
-	let devs = Device::list_devices();
+	let devs = Device::list_devices().unwrap_or_else(|err| {
+		eprint!("Cannot list devices: {}\n", err);
+		::std::process::exit(1);
+	});
 
 	if args.is_present("json") {
 		print!("{}\n", serde_json::to_string(&devs).unwrap());
