@@ -1,7 +1,6 @@
 use std::fs::{self, File};
 use std::io;
 
-extern crate libudev;
 use std::path::PathBuf;
 use std::io::{BufRead, BufReader};
 use std::collections::HashSet;
@@ -42,8 +41,6 @@ impl Device {
 		- data provided by libudev can be easily read from /sys
 		- the data that libudev does not provide (e.g. `device/generic` symlink target for SCSI block devices), well, needs to be read from /sys anyways, so in a long run it's not, like, super-convenient to use this library
 		*/
-
-		let context = libudev::Context::new().unwrap();
 
 		let mut devices = vec![];
 		let mut skip_generics = HashSet::new();
