@@ -98,17 +98,16 @@ impl Device {
 		these devices can be used to query SMART or SCSI logs from disks that are not represented with corresponding block devices
 		*/
 
-		let mut enumerator = libudev::Enumerator::new(&context).unwrap();
-		enumerator.match_subsystem("scsi_generic").unwrap();
+		for d in fs::read_dir("/sys/class/scsi_generic").unwrap() {
+			let d = if let Ok(d) = d { d } else { continue };
 
-		for d in enumerator.scan_devices().unwrap() {
-			if ! d.is_initialized() { continue }
+			let name = d.file_name();
 
-			if let Some(path) = d.devnode() {
-				if ! skip_generics.contains(&path.to_str().unwrap().to_owned()) {
-					devices.push(path.to_path_buf());
+			let path = format!("/dev/{}", name.into_string().unwrap());
+
+				if ! skip_generics.contains(&path) {
+					devices.push(PathBuf::from(path));
 				}
-			}
 		}
 
 		devices
