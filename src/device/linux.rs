@@ -1,8 +1,9 @@
-use std::fs::File;
+use std::fs::{self, File};
 use std::io;
 
 extern crate libudev;
 use std::path::PathBuf;
+use std::io::{BufRead, BufReader};
 use std::collections::HashSet;
 
 /// See [parent module docs](../index.html)
@@ -32,15 +33,14 @@ impl Device {
 		- util-linux/lsblk: iterates over /sys/block, skipping devices with major number 1 (RAM disks) by default (see --include/--exclude), as well as devices with no known size or the size of 0 (see /sys/class/block/<X>/size)
 		- udisks: querying udev for devices in a "block" subsystem
 		- gnome-disk-utility: just asks udisks
+		- udev: just reads a bunch of files from /sys, appending irrelevant (in our case) data from hwdb and attributes set via various rules
 
-		Why udev?
-		- easy to use
-		- can possibly use some metadata from various attributes associated with devices
-
-		Cons:
-		- extra dependency
-		- harder to build for x86_64-unknown-linux-musl
-		- might not work on exotic systems that runn mdev or rely solely on devtmpfs
+		This code was once written using libudev, but it was dropped for a number of reason:
+		- it's an extra dependency
+		- it is much harder to make static builds for x86_64-unknown-linux-musl
+		- it might not work on exotic systems that run mdev or rely solely on devtmpfs
+		- data provided by libudev can be easily read from /sys
+		- the data that libudev does not provide (e.g. `device/generic` symlink target for SCSI block devices), well, needs to be read from /sys anyways, so in a long run it's not, like, super-convenient to use this library
 		*/
 
 		let context = libudev::Context::new().unwrap();
@@ -48,32 +48,49 @@ impl Device {
 		let mut devices = vec![];
 		let mut skip_generics = HashSet::new();
 
-		let mut enumerator = libudev::Enumerator::new(&context).unwrap();
-		enumerator.match_subsystem("block").unwrap();
+		for d in fs::read_dir("/sys/class/block").unwrap() {
+			let d = if let Ok(d) = d { d } else { continue };
 
-		for d in enumerator.scan_devices().unwrap() {
-			if ! d.is_initialized() { continue }
+			// XXX this assumes that dir name equals to whatever `DEVNAME` is set to in the uevent file
+			// (and that `DEVNAME` is even present there)
+			let name = d.file_name();
+			let path = if let Ok(path) = d.path().canonicalize() { path } else { continue };
+
 			// skip devices like /dev/{loop,ram,zram,md,fd}*
-			let path = d.devpath().to_str().unwrap();
-			if path.starts_with("/devices/virtual/") || path.starts_with("/devices/platform/floppy") { continue }
-			// != Some("partition")? != None? easier to just pick device types we want
-			if d.devtype().map(|os| os.to_str().unwrap()) != Some("disk") { continue }
+			if path.starts_with("/sys/devices/virtual/") || path.starts_with("/sys/devices/platform/floppy") { continue }
 
-			if let Some(path) = d.devnode() {
-				devices.push(path.to_path_buf())
+			// $ grep -q '^DEVTYPE=disk$' /sys/class/block/sda/uevent
+			if let Ok(uevent) = File::open(path.join("uevent")) {
+				let mut is_disk = false;
+
+				let mut buf = BufReader::new(uevent);
+				for line in buf.lines() {
+					match line {
+						Ok(ref s) if s.as_str() == "DEVTYPE=disk" => {
+							is_disk = true;
+							break;
+						}
+						Ok(_) => (), // keep reading
+						Err(_) => break, // oh boy :-\
+					}
+				}
+
+				if ! is_disk { continue	}
+			} else {
+				// can't read uevent
+				continue;
 			}
 
-			if let Some(parent) = d.parent() {
-				let mut parent_generic = parent.syspath().to_path_buf();
-				parent_generic.push("generic");
+			devices.push(PathBuf::from(
+				format!("/dev/{}", name.into_string().unwrap())
+			));
 
 				// e.g. `readlink /sys/class/block/sda/device/generic` → `scsi_generic/sg0`
-				if let Ok(generic_path) = parent_generic.read_link() {
+				if let Ok(generic_path) = path.join("device/generic").read_link() {
 					if let Some(generic_name) = generic_path.file_name() {
 						skip_generics.insert(format!("/dev/{}", generic_name.to_str().unwrap()));
 					}
 				}
-			}
 		}
 
 		/*
