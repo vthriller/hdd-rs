@@ -46,7 +46,7 @@ use env_logger::LogBuilder;
 #[macro_use]
 extern crate lazy_static;
 mod subcommands;
-use subcommands::subcommands as SUBCOMMANDS;
+use subcommands::SUBCOMMANDS;
 
 pub fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F) where F: FnMut() -> () {
 	match *status {
