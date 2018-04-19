@@ -8,12 +8,15 @@ use clap::{
 
 use serde_json;
 
-use ::{DeviceArgument, arg_json};
+use ::{Subcommand, DeviceArgument, arg_json};
 
-pub fn subcommand() -> App<'static, 'static> {
+pub struct List {}
+impl Subcommand for List {
+fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("list")
 		.about("Lists disk devices")
 		.arg(arg_json())
+}
 }
 
 pub fn list(

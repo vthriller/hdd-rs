@@ -9,12 +9,15 @@ use clap::{
 use serde_json;
 use serde_json::value::ToJson;
 
-use ::{DeviceArgument, when_smart_enabled, arg_json};
+use ::{Subcommand, DeviceArgument, when_smart_enabled, arg_json};
 
-pub fn subcommand() -> App<'static, 'static> {
+pub struct Health {}
+impl Subcommand for Health {
+fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("health")
 		.about("Prints the health status of the device")
 		.arg(arg_json())
+}
 }
 
 pub fn health(

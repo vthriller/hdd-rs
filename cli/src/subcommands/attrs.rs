@@ -31,7 +31,7 @@ use prettytable::Table;
 use prettytable::row::Row;
 use prettytable::cell::Cell;
 
-use ::{DeviceArgument, open_drivedb, arg_drivedb};
+use ::{Subcommand, DeviceArgument, open_drivedb, arg_drivedb};
 
 fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
@@ -143,7 +143,9 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 	}
 }
 
-pub fn subcommand() -> App<'static, 'static> {
+pub struct Attrs {}
+impl Subcommand for Attrs {
+fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("attrs")
 		.about("Prints a list of S.M.A.R.T. attributes")
 		.arg(Arg::with_name("format")
@@ -167,6 +169,7 @@ pub fn subcommand() -> App<'static, 'static> {
 			.value_name("id,format[:byteorder][,name]")
 			.help("set display option for vendor attribute 'id'")
 		)
+}
 }
 
 #[derive(PartialEq)]

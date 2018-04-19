@@ -173,6 +173,10 @@ pub fn arg_drivedb() -> Arg {
 
 type F = fn(&Option<&str>, &Option<&DeviceArgument>, &ArgMatches);
 
+pub trait Subcommand {
+	fn subcommand() -> App<'static, 'static>;
+}
+
 fn main() {
 	let mut log = LogBuilder::new();
 
@@ -197,10 +201,10 @@ fn main() {
 		.about("yet another disk querying tool")
 		.version(crate_version!())
 		.setting(AppSettings::SubcommandRequired)
-		.subcommand(health::subcommand())
-		.subcommand(list::subcommand())
-		.subcommand(info::subcommand())
-		.subcommand(attrs::subcommand())
+		.subcommand(health::Health::subcommand())
+		.subcommand(list::List::subcommand())
+		.subcommand(info::Info::subcommand())
+		.subcommand(attrs::Attrs::subcommand())
 		.arg(Arg::with_name("type")
 			.short("t")
 			.long("type")

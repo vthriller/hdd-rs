@@ -15,7 +15,7 @@ use serde_json::value::ToJson;
 use separator::Separatable;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
-use ::{DeviceArgument, open_drivedb, arg_json, arg_drivedb};
+use ::{Subcommand, DeviceArgument, open_drivedb, arg_json, arg_drivedb};
 
 fn bool_to_sup(b: bool) -> &'static str {
 	if b { "supported" }
@@ -100,11 +100,14 @@ fn print_scsi_id(inquiry: &inquiry::Inquiry) {
 	// TODO other inquiry fields, capacity, …
 }
 
-pub fn subcommand() -> App<'static, 'static> {
+pub struct Info {}
+impl Subcommand for Info {
+fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("info")
 		.about("Prints a basic information about the device")
 		.arg(arg_json())
 		.arg(arg_drivedb())
+}
 }
 
 pub fn info(
