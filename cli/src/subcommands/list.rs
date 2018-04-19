@@ -17,9 +17,8 @@ fn subcommand() -> App<'static, 'static> {
 		.about("Lists disk devices")
 		.arg(arg_json())
 }
-}
 
-pub fn list(
+fn run(
 	_: &Option<&str>,
 	dev: &Option<&DeviceArgument>,
 	args: &ArgMatches,
@@ -42,4 +41,5 @@ pub fn list(
 			print!("{}\n", dev.into_os_string().to_str().unwrap());
 		}
 	}
+}
 }

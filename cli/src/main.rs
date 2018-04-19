@@ -171,10 +171,9 @@ pub fn arg_drivedb() -> Arg {
 			.help("paths to drivedb files to look for\nuse 'FILE' for main (system-wide) file, '+FILE' for additional entries\nentries are looked up in every additional file in order of their appearance, then in the first valid main file, stopping at the first match\n(this option and its behavior is, to some extent, consistent with '-B' from smartctl)")
 }
 
-type F = fn(&Option<&str>, &Option<&DeviceArgument>, &ArgMatches);
-
 pub trait Subcommand {
 	fn subcommand() -> App<'static, 'static>;
+	fn run(path: &Option<&str>, dev: &Option<&DeviceArgument>, args: &ArgMatches);
 }
 
 fn main() {
@@ -246,11 +245,11 @@ fn main() {
 		.unwrap_or("auto")
 		.parse::<Type>().unwrap();
 
-	let (subcommand, sargs): (F, _) = match args.subcommand() {
-		("info", Some(args)) => (info::info, args),
-		("health", Some(args)) => (health::health, args),
-		("list", Some(args)) => (list::list, args),
-		("attrs", Some(args)) => (attrs::attrs, args),
+	let (subcommand, sargs): (&Fn(&Option<&str>, &Option<&DeviceArgument>, &ArgMatches), _) = match args.subcommand() {
+		("info", Some(args)) => (&info::Info::run, args),
+		("health", Some(args)) => (&health::Health::run, args),
+		("list", Some(args)) => (&list::List::run, args),
+		("attrs", Some(args)) => (&attrs::Attrs::run, args),
 		_ => unreachable!(),
 	};
 

@@ -170,6 +170,14 @@ fn subcommand() -> App<'static, 'static> {
 			.help("set display option for vendor attribute 'id'")
 		)
 }
+fn run(
+	path: &Option<&str>,
+	dev: &Option<&DeviceArgument>,
+	args: &ArgMatches,
+) {
+	// TODO inline it here
+	attrs(path, dev, args)
+}
 }
 
 #[derive(PartialEq)]
@@ -562,7 +570,7 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	}
 }
 
-pub fn attrs(
+fn attrs(
 	path: &Option<&str>,
 	dev: &Option<&DeviceArgument>,
 	args: &ArgMatches,

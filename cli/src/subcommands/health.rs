@@ -18,9 +18,8 @@ fn subcommand() -> App<'static, 'static> {
 		.about("Prints the health status of the device")
 		.arg(arg_json())
 }
-}
 
-pub fn health(
+fn run(
 	_: &Option<&str>,
 	dev: &Option<&DeviceArgument>,
 	args: &ArgMatches,
@@ -58,4 +57,5 @@ pub fn health(
 			});
 		}
 	});
+}
 }

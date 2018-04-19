@@ -108,9 +108,8 @@ fn subcommand() -> App<'static, 'static> {
 		.arg(arg_json())
 		.arg(arg_drivedb())
 }
-}
 
-pub fn info(
+fn run(
 	_: &Option<&str>,
 	dev: &Option<&DeviceArgument>,
 	args: &ArgMatches,
@@ -169,4 +168,5 @@ pub fn info(
 			print_ata_id(&id, &meta);
 		}
 	}
+}
 }
