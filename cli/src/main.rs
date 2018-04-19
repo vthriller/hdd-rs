@@ -43,8 +43,10 @@ extern crate env_logger;
 use log::LogLevelFilter;
 use env_logger::LogBuilder;
 
+#[macro_use]
+extern crate lazy_static;
 mod subcommands;
-use subcommands::{subcommands,info,health,attrs,list};
+use subcommands::{subcommands as SUBCOMMANDS,info,health,attrs,list};
 
 pub fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F) where F: FnMut() -> () {
 	match *status {
@@ -200,7 +202,7 @@ fn main() {
 		.about("yet another disk querying tool")
 		.version(crate_version!())
 		.setting(AppSettings::SubcommandRequired)
-		.subcommands(subcommands.iter().map(|&subcommand| subcommand.subcommand()))
+		.subcommands(SUBCOMMANDS.values().map(|&subcommand| subcommand.subcommand()))
 		.arg(Arg::with_name("type")
 			.short("t")
 			.long("type")
@@ -242,13 +244,10 @@ fn main() {
 		.unwrap_or("auto")
 		.parse::<Type>().unwrap();
 
-	let (subcommand, sargs): (&Subcommand, _) = match args.subcommand() {
-		("info", Some(args)) => (&info::Info{}, args),
-		("health", Some(args)) => (&health::Health{}, args),
-		("list", Some(args)) => (&list::List{}, args),
-		("attrs", Some(args)) => (&attrs::Attrs{}, args),
-		_ => unreachable!(),
-	};
+	let (subcommand, sargs) = args.subcommand();
+	// unwrap() ×2: clap should not allow subcommands that do not exist
+	let subcommand = SUBCOMMANDS.get(subcommand).unwrap();
+	let sargs = sargs.unwrap();
 
 	/*
 	Why do we issue ATA IDENTIFY DEVICE here?

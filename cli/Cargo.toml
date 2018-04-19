@@ -12,6 +12,7 @@ prettytable-rs = "^0.6"
 log = "0.3"
 env_logger = "0.4"
 hdd = { path = "..", features = ["serializable"] }
+lazy_static = "1.0"
 
 [[bin]]
 name = "hdd"
