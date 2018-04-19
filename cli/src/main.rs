@@ -44,7 +44,7 @@ use log::LogLevelFilter;
 use env_logger::LogBuilder;
 
 mod subcommands;
-use subcommands::{info,health,attrs,list};
+use subcommands::{subcommands,info,health,attrs,list};
 
 pub fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F) where F: FnMut() -> () {
 	match *status {
@@ -171,7 +171,7 @@ pub fn arg_drivedb() -> Arg {
 			.help("paths to drivedb files to look for\nuse 'FILE' for main (system-wide) file, '+FILE' for additional entries\nentries are looked up in every additional file in order of their appearance, then in the first valid main file, stopping at the first match\n(this option and its behavior is, to some extent, consistent with '-B' from smartctl)")
 }
 
-pub trait Subcommand {
+pub trait Subcommand: Sync {
 	fn subcommand(&self) -> App<'static, 'static>;
 	fn run(&self, path: &Option<&str>, dev: &Option<&DeviceArgument>, args: &ArgMatches);
 }
@@ -200,10 +200,7 @@ fn main() {
 		.about("yet another disk querying tool")
 		.version(crate_version!())
 		.setting(AppSettings::SubcommandRequired)
-		.subcommand(health::Health{}.subcommand())
-		.subcommand(list::List{}.subcommand())
-		.subcommand(info::Info{}.subcommand())
-		.subcommand(attrs::Attrs{}.subcommand())
+		.subcommands(subcommands.iter().map(|&subcommand| subcommand.subcommand()))
 		.arg(Arg::with_name("type")
 			.short("t")
 			.long("type")
