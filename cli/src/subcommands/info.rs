@@ -15,7 +15,7 @@ use serde_json::value::ToJson;
 use separator::Separatable;
 use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 
-use super::{DeviceArgument, open_drivedb, arg_json, arg_drivedb};
+use ::{DeviceArgument, open_drivedb, arg_json, arg_drivedb};
 
 fn bool_to_sup(b: bool) -> &'static str {
 	if b { "supported" }

@@ -9,7 +9,7 @@ use clap::{
 use serde_json;
 use serde_json::value::ToJson;
 
-use super::{DeviceArgument, when_smart_enabled, arg_json};
+use ::{DeviceArgument, when_smart_enabled, arg_json};
 
 pub fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("health")

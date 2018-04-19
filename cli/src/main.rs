@@ -43,10 +43,8 @@ extern crate env_logger;
 use log::LogLevelFilter;
 use env_logger::LogBuilder;
 
-mod info;
-mod health;
-mod attrs;
-mod list;
+mod subcommands;
+use subcommands::{info,health,attrs,list};
 
 pub fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F) where F: FnMut() -> () {
 	match *status {

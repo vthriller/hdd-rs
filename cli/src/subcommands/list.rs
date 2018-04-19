@@ -8,7 +8,7 @@ use clap::{
 
 use serde_json;
 
-use super::{DeviceArgument, arg_json};
+use ::{DeviceArgument, arg_json};
 
 pub fn subcommand() -> App<'static, 'static> {
 	SubCommand::with_name("list")

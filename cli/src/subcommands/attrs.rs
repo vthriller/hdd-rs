@@ -31,7 +31,7 @@ use prettytable::Table;
 use prettytable::row::Row;
 use prettytable::cell::Cell;
 
-use super::{DeviceArgument, open_drivedb, arg_drivedb};
+use ::{DeviceArgument, open_drivedb, arg_drivedb};
 
 fn bool_to_flag(b: bool, c: char) -> char {
 	if b { c } else { '-' }
