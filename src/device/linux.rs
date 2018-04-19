@@ -80,9 +80,7 @@ impl Device {
 				continue;
 			}
 
-			devices.push(PathBuf::from(
-				format!("/dev/{}", name.into_string().unwrap())
-			));
+			devices.push(name);
 
 			// e.g. `readlink /sys/class/block/sda/device/generic` → `scsi_generic/sg0`
 			if let Ok(generic_path) = path.join("device/generic").read_link() {
@@ -102,13 +100,17 @@ impl Device {
 
 			let name = d.file_name();
 
-			let path = format!("/dev/{}", (*name).to_str().unwrap());
-
 			if ! skip_generics.contains(&name) {
-				devices.push(PathBuf::from(path));
+				devices.push(name);
 			}
 		}
 
-		Ok(devices)
+		Ok(devices
+			.into_iter()
+			.map(|dev| PathBuf::from(
+				format!("/dev/{}", dev.into_string().unwrap())
+			))
+			.collect()
+		)
 	}
 }
