@@ -47,16 +47,28 @@ impl Device {
 
 		// XXX do not return Err() if /sys/class/block does not exist but /sys/class/scsi_generic does, or vice versa
 
+		info!("inspecting /sys/class/block");
 		for d in fs::read_dir("/sys/class/block")? {
 			let d = if let Ok(d) = d { d } else { continue };
 
 			// XXX this assumes that dir name equals to whatever `DEVNAME` is set to in the uevent file
 			// (and that `DEVNAME` is even present there)
 			let name = d.file_name();
-			let path = if let Ok(path) = d.path().canonicalize() { path } else { continue };
+			let path = if let Ok(path) = d.path().canonicalize() { path } else {
+				debug!("{:?}: unable to read canonical device path, skipping", name);
+				continue
+			};
+			debug!("{:?} → {:?}", name, path);
 
 			// skip devices like /dev/{loop,ram,zram,md,fd}*
-			if path.starts_with("/sys/devices/virtual/") || path.starts_with("/sys/devices/platform/floppy") { continue }
+			if path.starts_with("/sys/devices/virtual/") {
+				debug!("virtual device, skipping");
+				continue;
+			}
+			if path.starts_with("/sys/devices/platform/floppy") {
+				debug!("floppy device, skipping");
+				continue;
+			}
 
 			// $ grep -q '^DEVTYPE=disk$' /sys/class/block/sda/uevent
 			if let Ok(uevent) = File::open(path.join("uevent")) {
@@ -66,17 +78,29 @@ impl Device {
 				for line in buf.lines() {
 					match line {
 						Ok(ref s) if s.as_str() == "DEVTYPE=disk" => {
+							debug!("{}", s);
 							is_disk = true;
 							break;
 						}
+						Ok(ref s) if s.starts_with("DEVTYPE=") => {
+							debug!("{}", s);
+							is_disk = false; // see first match arm
+							break;
+						}
 						Ok(_) => (), // keep reading
-						Err(_) => break, // oh boy :-\
+						Err(e) => {
+							debug!("problem reading uevent file: {}", e);
+							break;
+						},
 					}
 				}
 
-				if ! is_disk { continue	}
+				if ! is_disk {
+					debug!("undisclosed block device type, or device is not a disk, skipping");
+					continue
+				}
 			} else {
-				// can't read uevent
+				debug!("unable to determine device type, skipping");
 				continue;
 			}
 
@@ -85,6 +109,7 @@ impl Device {
 			// e.g. `readlink /sys/class/block/sda/device/generic` → `scsi_generic/sg0`
 			if let Ok(generic_path) = path.join("device/generic").read_link() {
 				if let Some(generic_name) = generic_path.file_name() {
+					debug!("found corresponding scsi_generic device {:?}", generic_name);
 					skip_generics.insert(generic_name.to_os_string());
 				}
 			}
@@ -95,13 +120,17 @@ impl Device {
 		these devices can be used to query SMART or SCSI logs from disks that are not represented with corresponding block devices
 		*/
 
+		info!("inspecting /sys/class/scsi_generic");
 		for d in fs::read_dir("/sys/class/scsi_generic")? {
 			let d = if let Ok(d) = d { d } else { continue };
 
 			let name = d.file_name();
+			debug!("{:?}", name);
 
 			if ! skip_generics.contains(&name) {
 				devices.push(name);
+			} else {
+				debug!("already covered by corresponding block device, skipping");
 			}
 		}
 
