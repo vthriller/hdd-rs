@@ -102,71 +102,71 @@ fn print_scsi_id(inquiry: &inquiry::Inquiry) {
 
 pub struct Info {}
 impl Subcommand for Info {
-fn subcommand() -> App<'static, 'static> {
-	SubCommand::with_name("info")
-		.about("Prints a basic information about the device")
-		.arg(arg_json())
-		.arg(arg_drivedb())
-}
-
-fn run(
-	_: &Option<&str>,
-	dev: &Option<&DeviceArgument>,
-	args: &ArgMatches,
-) {
-	let dev = dev.unwrap_or_else(|| {
-		// TODO show usage and whatnot
-		eprint!("<device> is required\n");
-		::std::process::exit(1);
-	});
-
-	let ata_id = match *dev {
-		#[cfg(not(target_os = "linux"))]
-		DeviceArgument::ATA(_, ref id) => Some(id),
-		DeviceArgument::SAT(_, ref id) => Some(id),
-		DeviceArgument::SCSI(_) => None,
-	};
-
-	let use_json = args.is_present("json");
-
-	if let DeviceArgument::SCSI(ref dev) = *dev {
-		let (_sense, data) = dev.scsi_inquiry(false, 0).unwrap();
-		let inquiry = inquiry::parse_inquiry(&data);
-
-		if use_json {
-			let info = inquiry.to_json().unwrap();
-			print!("{}\n", serde_json::to_string(&info).unwrap());
-		} else {
-			print_scsi_id(&inquiry);
-		}
+	fn subcommand() -> App<'static, 'static> {
+		SubCommand::with_name("info")
+			.about("Prints a basic information about the device")
+			.arg(arg_json())
+			.arg(arg_drivedb())
 	}
 
-	if let Some(id) = ata_id {
-		let drivedb = open_drivedb(args.values_of("drivedb"));
-		let meta = drivedb.as_ref().map(|drivedb| drivedb::render_meta(
-			&id,
-			drivedb,
-			// no need to parse custom vendor attributes,
-			// we're only using drivedb for the family and the warning here
-			vec![],
-		));
+	fn run(
+		_: &Option<&str>,
+		dev: &Option<&DeviceArgument>,
+		args: &ArgMatches,
+	) {
+		let dev = dev.unwrap_or_else(|| {
+			// TODO show usage and whatnot
+			eprint!("<device> is required\n");
+			::std::process::exit(1);
+		});
 
-		if use_json {
-			let mut info = id.to_json().unwrap();
+		let ata_id = match *dev {
+			#[cfg(not(target_os = "linux"))]
+			DeviceArgument::ATA(_, ref id) => Some(id),
+			DeviceArgument::SAT(_, ref id) => Some(id),
+			DeviceArgument::SCSI(_) => None,
+		};
 
-			if let Some(ref meta) = meta {
-				if let Some(family) = meta.family {
-					info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
-				}
-				if let Some(warning) = meta.warning {
-					info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
-				}
+		let use_json = args.is_present("json");
+
+		if let DeviceArgument::SCSI(ref dev) = *dev {
+			let (_sense, data) = dev.scsi_inquiry(false, 0).unwrap();
+			let inquiry = inquiry::parse_inquiry(&data);
+
+			if use_json {
+				let info = inquiry.to_json().unwrap();
+				print!("{}\n", serde_json::to_string(&info).unwrap());
+			} else {
+				print_scsi_id(&inquiry);
 			}
+		}
 
-			print!("{}\n", serde_json::to_string(&info).unwrap());
-		} else {
-			print_ata_id(&id, &meta);
+		if let Some(id) = ata_id {
+			let drivedb = open_drivedb(args.values_of("drivedb"));
+			let meta = drivedb.as_ref().map(|drivedb| drivedb::render_meta(
+				&id,
+				drivedb,
+				// no need to parse custom vendor attributes,
+				// we're only using drivedb for the family and the warning here
+				vec![],
+			));
+
+			if use_json {
+				let mut info = id.to_json().unwrap();
+
+				if let Some(ref meta) = meta {
+					if let Some(family) = meta.family {
+						info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
+					}
+					if let Some(warning) = meta.warning {
+						info.as_object_mut().unwrap().insert("warning".to_string(), warning.to_json().unwrap());
+					}
+				}
+
+				print!("{}\n", serde_json::to_string(&info).unwrap());
+			} else {
+				print_ata_id(&id, &meta);
+			}
 		}
 	}
-}
 }

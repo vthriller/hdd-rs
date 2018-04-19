@@ -145,39 +145,71 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 
 pub struct Attrs {}
 impl Subcommand for Attrs {
-fn subcommand() -> App<'static, 'static> {
-	SubCommand::with_name("attrs")
-		.about("Prints a list of S.M.A.R.T. attributes")
-		.arg(Arg::with_name("format")
-			.long("format")
-			.takes_value(true)
-			.possible_values(&["plain", "json", "prometheus"])
-			.help("format to export data in")
-		)
-		.arg(Arg::with_name("json")
-			.long("json")
-			// for consistency with other subcommands
-			.help("alias for --format=json")
-			.overrides_with("format")
-		)
-		.arg(arg_drivedb())
-		.arg(Arg::with_name("vendorattribute")
-			.multiple(true)
-			.short("v") // smartctl-like
-			.long("vendorattribute") // smartctl-like
-			.takes_value(true)
-			.value_name("id,format[:byteorder][,name]")
-			.help("set display option for vendor attribute 'id'")
-		)
-}
-fn run(
-	path: &Option<&str>,
-	dev: &Option<&DeviceArgument>,
-	args: &ArgMatches,
-) {
-	// TODO inline it here
-	attrs(path, dev, args)
-}
+	fn subcommand() -> App<'static, 'static> {
+		SubCommand::with_name("attrs")
+			.about("Prints a list of S.M.A.R.T. attributes")
+			.arg(Arg::with_name("format")
+				.long("format")
+				.takes_value(true)
+				.possible_values(&["plain", "json", "prometheus"])
+				.help("format to export data in")
+			)
+			.arg(Arg::with_name("json")
+				.long("json")
+				// for consistency with other subcommands
+				.help("alias for --format=json")
+				.overrides_with("format")
+			)
+			.arg(arg_drivedb())
+			.arg(Arg::with_name("vendorattribute")
+				.multiple(true)
+				.short("v") // smartctl-like
+				.long("vendorattribute") // smartctl-like
+				.takes_value(true)
+				.value_name("id,format[:byteorder][,name]")
+				.help("set display option for vendor attribute 'id'")
+			)
+	}
+
+	fn run(
+		path: &Option<&str>,
+		dev: &Option<&DeviceArgument>,
+		args: &ArgMatches,
+	) {
+		let dev = dev.unwrap_or_else(|| {
+			// TODO show usage and whatnot
+			eprint!("<device> is required\n");
+			::std::process::exit(1);
+		});
+		let path = path.unwrap(); // `path` and `dev` are both `Some()` or both `None`
+
+		let format = match args.value_of("format") {
+			Some("plain") => Plain,
+			Some("json") => JSON,
+			Some("prometheus") => Prometheus,
+			None if args.is_present("json") => JSON,
+			None => Plain,
+			_ => unreachable!(),
+		};
+
+		let user_attributes = args.values_of("vendorattribute")
+			.map(|attrs| attrs.collect())
+			.unwrap_or(vec![])
+			.into_iter()
+			.map(|attr| vendor_attribute::parse(attr).ok()) // TODO Err(_)
+			.filter(|x| x.is_some())
+			.map(|x| x.unwrap())
+			.collect();
+		let drivedb = open_drivedb(args.values_of("drivedb"));
+
+		use DeviceArgument::*;
+		match dev {
+			#[cfg(not(target_os = "linux"))]
+			dev @ &ATA(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
+			dev @ &SAT(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
+			dev @ &SCSI(_) => attrs_scsi(path, dev, format),
+		};
+	}
 }
 
 #[derive(PartialEq)]
@@ -568,44 +600,4 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	if format == JSON {
 		print!("{}\n", serde_json::to_string(&json).unwrap());
 	}
-}
-
-fn attrs(
-	path: &Option<&str>,
-	dev: &Option<&DeviceArgument>,
-	args: &ArgMatches,
-) {
-	let dev = dev.unwrap_or_else(|| {
-		// TODO show usage and whatnot
-		eprint!("<device> is required\n");
-		::std::process::exit(1);
-	});
-	let path = path.unwrap(); // `path` and `dev` are both `Some()` or both `None`
-
-	let format = match args.value_of("format") {
-		Some("plain") => Plain,
-		Some("json") => JSON,
-		Some("prometheus") => Prometheus,
-		None if args.is_present("json") => JSON,
-		None => Plain,
-		_ => unreachable!(),
-	};
-
-	let user_attributes = args.values_of("vendorattribute")
-		.map(|attrs| attrs.collect())
-		.unwrap_or(vec![])
-		.into_iter()
-		.map(|attr| vendor_attribute::parse(attr).ok()) // TODO Err(_)
-		.filter(|x| x.is_some())
-		.map(|x| x.unwrap())
-		.collect();
-	let drivedb = open_drivedb(args.values_of("drivedb"));
-
-	use DeviceArgument::*;
-	match dev {
-		#[cfg(not(target_os = "linux"))]
-		dev @ &ATA(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
-		dev @ &SAT(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
-		dev @ &SCSI(_) => attrs_scsi(path, dev, format),
-	};
 }
