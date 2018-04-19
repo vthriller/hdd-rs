@@ -172,8 +172,8 @@ pub fn arg_drivedb() -> Arg {
 }
 
 pub trait Subcommand {
-	fn subcommand() -> App<'static, 'static>;
-	fn run(path: &Option<&str>, dev: &Option<&DeviceArgument>, args: &ArgMatches);
+	fn subcommand(&self) -> App<'static, 'static>;
+	fn run(&self, path: &Option<&str>, dev: &Option<&DeviceArgument>, args: &ArgMatches);
 }
 
 fn main() {
@@ -200,10 +200,10 @@ fn main() {
 		.about("yet another disk querying tool")
 		.version(crate_version!())
 		.setting(AppSettings::SubcommandRequired)
-		.subcommand(health::Health::subcommand())
-		.subcommand(list::List::subcommand())
-		.subcommand(info::Info::subcommand())
-		.subcommand(attrs::Attrs::subcommand())
+		.subcommand(health::Health{}.subcommand())
+		.subcommand(list::List{}.subcommand())
+		.subcommand(info::Info{}.subcommand())
+		.subcommand(attrs::Attrs{}.subcommand())
 		.arg(Arg::with_name("type")
 			.short("t")
 			.long("type")
@@ -245,11 +245,11 @@ fn main() {
 		.unwrap_or("auto")
 		.parse::<Type>().unwrap();
 
-	let (subcommand, sargs): (&Fn(&Option<&str>, &Option<&DeviceArgument>, &ArgMatches), _) = match args.subcommand() {
-		("info", Some(args)) => (&info::Info::run, args),
-		("health", Some(args)) => (&health::Health::run, args),
-		("list", Some(args)) => (&list::List::run, args),
-		("attrs", Some(args)) => (&attrs::Attrs::run, args),
+	let (subcommand, sargs): (&Subcommand, _) = match args.subcommand() {
+		("info", Some(args)) => (&info::Info{}, args),
+		("health", Some(args)) => (&health::Health{}, args),
+		("list", Some(args)) => (&list::List{}, args),
+		("attrs", Some(args)) => (&attrs::Attrs{}, args),
 		_ => unreachable!(),
 	};
 
@@ -305,5 +305,5 @@ fn main() {
 		Type::SCSI => DeviceArgument::SCSI(SCSIDevice::new(dev)),
 	});
 
-	subcommand(&path, &dev.as_ref(), sargs)
+	subcommand.run(&path, &dev.as_ref(), sargs)
 }

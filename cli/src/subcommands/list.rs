@@ -12,13 +12,14 @@ use ::{Subcommand, DeviceArgument, arg_json};
 
 pub struct List {}
 impl Subcommand for List {
-	fn subcommand() -> App<'static, 'static> {
+	fn subcommand(&self) -> App<'static, 'static> {
 		SubCommand::with_name("list")
 			.about("Lists disk devices")
 			.arg(arg_json())
 	}
 
 	fn run(
+		&self,
 		_: &Option<&str>,
 		dev: &Option<&DeviceArgument>,
 		args: &ArgMatches,

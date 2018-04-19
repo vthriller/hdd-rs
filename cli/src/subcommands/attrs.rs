@@ -145,7 +145,7 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 
 pub struct Attrs {}
 impl Subcommand for Attrs {
-	fn subcommand() -> App<'static, 'static> {
+	fn subcommand(&self) -> App<'static, 'static> {
 		SubCommand::with_name("attrs")
 			.about("Prints a list of S.M.A.R.T. attributes")
 			.arg(Arg::with_name("format")
@@ -172,6 +172,7 @@ impl Subcommand for Attrs {
 	}
 
 	fn run(
+		&self,
 		path: &Option<&str>,
 		dev: &Option<&DeviceArgument>,
 		args: &ArgMatches,

@@ -102,7 +102,7 @@ fn print_scsi_id(inquiry: &inquiry::Inquiry) {
 
 pub struct Info {}
 impl Subcommand for Info {
-	fn subcommand() -> App<'static, 'static> {
+	fn subcommand(&self) -> App<'static, 'static> {
 		SubCommand::with_name("info")
 			.about("Prints a basic information about the device")
 			.arg(arg_json())
@@ -110,6 +110,7 @@ impl Subcommand for Info {
 	}
 
 	fn run(
+		&self,
 		_: &Option<&str>,
 		dev: &Option<&DeviceArgument>,
 		args: &ArgMatches,

@@ -13,13 +13,14 @@ use ::{Subcommand, DeviceArgument, when_smart_enabled, arg_json};
 
 pub struct Health {}
 impl Subcommand for Health {
-	fn subcommand() -> App<'static, 'static> {
+	fn subcommand(&self) -> App<'static, 'static> {
 		SubCommand::with_name("health")
 			.about("Prints the health status of the device")
 			.arg(arg_json())
 	}
 
 	fn run(
+		&self,
 		_: &Option<&str>,
 		dev: &Option<&DeviceArgument>,
 		args: &ArgMatches,
