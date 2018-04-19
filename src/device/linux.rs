@@ -82,12 +82,12 @@ impl Device {
 				format!("/dev/{}", name.into_string().unwrap())
 			));
 
-				// e.g. `readlink /sys/class/block/sda/device/generic` → `scsi_generic/sg0`
-				if let Ok(generic_path) = path.join("device/generic").read_link() {
-					if let Some(generic_name) = generic_path.file_name() {
-						skip_generics.insert(format!("/dev/{}", generic_name.to_str().unwrap()));
-					}
+			// e.g. `readlink /sys/class/block/sda/device/generic` → `scsi_generic/sg0`
+			if let Ok(generic_path) = path.join("device/generic").read_link() {
+				if let Some(generic_name) = generic_path.file_name() {
+					skip_generics.insert(format!("/dev/{}", generic_name.to_str().unwrap()));
 				}
+			}
 		}
 
 		/*
@@ -102,9 +102,9 @@ impl Device {
 
 			let path = format!("/dev/{}", name.into_string().unwrap());
 
-				if ! skip_generics.contains(&path) {
-					devices.push(PathBuf::from(path));
-				}
+			if ! skip_generics.contains(&path) {
+				devices.push(PathBuf::from(path));
+			}
 		}
 
 		devices
