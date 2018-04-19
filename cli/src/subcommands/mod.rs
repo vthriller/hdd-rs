@@ -1,7 +1,7 @@
-pub(crate) mod info;
-pub(crate) mod health;
-pub(crate) mod attrs;
-pub(crate) mod list;
+mod info;
+mod health;
+mod attrs;
+mod list;
 
 use std::collections::HashMap;
 
