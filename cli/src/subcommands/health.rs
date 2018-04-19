@@ -9,7 +9,8 @@ use clap::{
 use serde_json;
 use serde_json::value::ToJson;
 
-use ::{Subcommand, DeviceArgument, when_smart_enabled, arg_json};
+use ::{DeviceArgument, when_smart_enabled};
+use super::{Subcommand, arg_json};
 
 pub struct Health {}
 impl Subcommand for Health {

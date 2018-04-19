@@ -8,7 +8,8 @@ use clap::{
 
 use serde_json;
 
-use ::{Subcommand, DeviceArgument, arg_json};
+use ::DeviceArgument;
+use super::{Subcommand, arg_json};
 
 pub struct List {}
 impl Subcommand for List {
