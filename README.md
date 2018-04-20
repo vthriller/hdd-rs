@@ -14,7 +14,11 @@ Mainly because I was disappointed in all the available options for putting SMART
 
 ## How?
 
-Build sample tool:
+### Prerequisites
+
+This crate can be build on Rust >= 1.19.
+
+### Building CLI tool
 
 ```sh
 git clone https://github.com/vthriller/hdd-rs.git
@@ -30,13 +34,13 @@ You can build static binary if, say, you want it for remote GNU/Linux system tha
 * install musl toolchain (e.g. via `rustup target add x86_64-unknown-linux-musl`),
 * append `--target x86_64-unknown-linux-musl` to the `cargo build` line.
 
-Put this into your `Cargo.toml` to start using this crate:
+### Using library in your code
+
+Put this into your `Cargo.toml`:
 ```toml
 [dependencies]
 hdd = "0.9"
 ```
-
-This crate can be build on Rust >= 1.19.
 
 ## What's supported?
 
