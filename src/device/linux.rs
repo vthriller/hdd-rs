@@ -68,7 +68,9 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 			debug!("    virtual device, skipping");
 			continue;
 		}
-		if path.starts_with("/sys/devices/platform/floppy") {
+		// Path.starts_with only works with whole path components so it can't match …/floppy.0
+		// hence .to_str()
+		if path.as_path().to_str().unwrap().starts_with("/sys/devices/platform/floppy") {
 			debug!("    floppy device, skipping");
 			continue;
 		}
