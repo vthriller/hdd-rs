@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::io;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::io::{BufRead, BufReader};
 use std::collections::HashSet;
 
@@ -15,7 +15,7 @@ pub struct Device {
 pub enum Type { SCSI }
 
 impl Device {
-	pub fn open(path: &str) -> Result<Self, io::Error> {
+	pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, io::Error> {
 		Ok(Device {
 			file: File::open(path)?,
 		})
