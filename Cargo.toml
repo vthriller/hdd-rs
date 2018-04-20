@@ -43,3 +43,4 @@ bindgen = "0.26.3"
 [[bin]]
 name = "hdd"
 required-features = ["bin", "serializable"]
+doc = false
