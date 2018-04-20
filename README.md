@@ -25,6 +25,11 @@ sudo ./target/release/hdd /dev/sda attrs --json
 
 ([Sorry if that looks complicated.](https://github.com/rust-lang/cargo/issues/1982))
 
+You can build static binary if, say, you want it for remote GNU/Linux system that runs older version of glibc:
+
+* install musl toolchain (e.g. via `rustup target add x86_64-unknown-linux-musl`),
+* append `--target x86_64-unknown-linux-musl` to the `cargo build` line.
+
 Put this into your `Cargo.toml` to start using this crate:
 ```toml
 [dependencies]
