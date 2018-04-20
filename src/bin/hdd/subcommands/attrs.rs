@@ -426,6 +426,7 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 		row.push(Cell::new(&name));
 
 		for &(_, ref values) in counters.iter() {
+			#[allow(trivial_casts)] // closures in .map_or()
 			row.push(Cell::new(&values.get(&key)
 				.map_or(
 					"-".to_string(),
