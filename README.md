@@ -18,10 +18,12 @@ Build sample tool:
 
 ```sh
 git clone https://github.com/vthriller/hdd-rs.git
-cd hdd-rs/cli
-cargo build --release
-sudo ../target/release/hdd /dev/sda attrs --json
+cd hdd-rs
+cargo build --release --features='bin serializable' --bin=hdd
+sudo ./target/release/hdd /dev/sda attrs --json
 ```
+
+([Sorry if that looks complicated.](https://github.com/rust-lang/cargo/issues/1982))
 
 Put this into your `Cargo.toml` to start using this crate:
 ```toml
@@ -52,7 +54,7 @@ Features:
 * Tests.
 * More tests.
 * Even more tests: big-endian systems, old hardware…
-* `rg 'TODO|FIXME|XXX|((?i)WTF)|unimplemented!|\b(unwrap|expect)\b' src {cli,sample-scsi}/src build.rs`
+* `rg 'TODO|FIXME|XXX|((?i)WTF)|unimplemented!|\b(unwrap|expect)\b' src sample-scsi/src build.rs`
 * Feature parity with [insert your favourite package name here].
 * Support for RAID weirdos (LSI, Adaptec, Areca, you name it) and USB bridges.
 * Debugging options (think `smartctl -r ataioctl,2` or `skdump`) for CLI tool.
