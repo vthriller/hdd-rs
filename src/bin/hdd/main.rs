@@ -188,6 +188,14 @@ fn main() {
 			.multiple(true)
 			.help("Verbose output: set once to log actions, twice to also show raw data buffers\ncan also be set though env_logger's RUST_LOG env")
 		)
+		/*
+		Unlike other pretty common arguments like `--json`, and unlike in tools like `smartctl`, `device` appears before the subcommand.
+		Sure this is surprising and "counterintuitive" for users, but there are reasons to do so:
+		- if you have to deal with the same disk over and over again for some reason, you're only interested in subcommands, which are easier to edit if they're at the end of your shell prompt (i.e. much less `^W`s and `^[b`s to type),
+		- if you want to quickly go through disks in your system, there are better ways to do so anyways:
+		  - write a loop (e.g. `for d in /dev/sd?; do hdd $d info; done`),
+		  - my guess is you're just interested in disk attributes, in which case you should really be looking into your monitoring system (doesn't matter whether it's local or remote).
+		*/
 		.arg(Arg::with_name("device")
 			.help("Device to query")
 			//.required(true) // optional for 'list' subcommand, required for anything else
