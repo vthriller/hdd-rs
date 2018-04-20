@@ -22,6 +22,7 @@ impl Device {
 	}
 
 	pub fn get_type(&self) -> Result<Type, io::Error> { Ok(Type::SCSI) }
+}
 
 	pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 		/*
@@ -144,4 +145,3 @@ impl Device {
 			.collect()
 		)
 	}
-}

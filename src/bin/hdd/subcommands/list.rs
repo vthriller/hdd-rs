@@ -1,4 +1,4 @@
-use hdd::device::Device;
+use hdd::device::list_devices;
 
 use clap::{
 	ArgMatches,
@@ -31,7 +31,7 @@ impl Subcommand for List {
 			::std::process::exit(1);
 		};
 
-		let devs = Device::list_devices().unwrap_or_else(|err| {
+		let devs = list_devices().unwrap_or_else(|err| {
 			eprint!("Cannot list devices: {}\n", err);
 			::std::process::exit(1);
 		});
