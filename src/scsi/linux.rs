@@ -1,11 +1,10 @@
-extern crate libc;
-use self::libc::{c_int, c_uint, c_uchar, c_ushort, c_void};
+use libc::{c_int, c_uint, c_uchar, c_ushort, c_void};
 
-use self::libc::ioctl;
+use libc::ioctl;
 use std::ptr;
 
 #[cfg(not(any(target_env = "musl")))]
-use self::libc::c_ulong;
+use libc::c_ulong;
 
 use std::os::unix::io::AsRawFd;
 use std::io;

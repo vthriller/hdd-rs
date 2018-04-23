@@ -68,6 +68,8 @@ extern crate nom;
 extern crate regex;
 extern crate byteorder;
 
+extern crate libc;
+
 /// Data transfer direction
 #[derive(Debug, Clone, Copy)]
 pub enum Direction { None, From, To, Both }

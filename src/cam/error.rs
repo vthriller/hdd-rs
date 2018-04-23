@@ -5,7 +5,7 @@ use cam::ccb::CCB;
 use std::ffi::CStr;
 use std::io;
 
-extern crate libc;
+use libc;
 
 /**
 Returns errors reported by some of the functions described in cam(3).

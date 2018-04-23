@@ -1,5 +1,4 @@
-extern crate libc;
-use self::libc::c_void;
+use libc::{c_void, memcpy};
 
 use cam::*;
 
@@ -48,7 +47,7 @@ impl SCSIDevice {
 			csio.tag_action = MSG_SIMPLE_Q_TAG as u8;
 
 			#[allow(trivial_casts)] // XXX
-			libc::memcpy(
+			memcpy(
 				&mut csio.cdb_io.cdb_bytes as *mut _ as *mut c_void,
 				cmd.as_ptr() as *const c_void,
 				cmd.len(),
@@ -71,7 +70,7 @@ impl SCSIDevice {
 					let csio = ccb.csio();
 
 					#[allow(trivial_casts)] // XXX
-					libc::memcpy(
+					memcpy(
 						sense.as_mut_ptr() as *mut c_void,
 						&csio.sense_data as *const _ as *const c_void,
 						sense.capacity(),

@@ -5,7 +5,7 @@ use std::io;
 
 use std::ffi::CString;
 
-extern crate libc;
+use libc;
 
 /// Thin wrapper for `struct cam_device *`. Note that the underlying raw pointer is *mutable*.
 ///
