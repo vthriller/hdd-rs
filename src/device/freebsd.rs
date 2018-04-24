@@ -144,7 +144,7 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 	*/
 	let mut devices: Vec<Vec<(String, u32)>> = vec![];
 
-        // > We do the ioctl multiple times if necessary, in case there are more than MAX_NUM_DEV nodes in the EDT.
+	// > We do the ioctl multiple times if necessary, in case there are more than MAX_NUM_DEV nodes in the EDT.
 	loop {
 		debug!("(CAMIOCOMMAND)");
 		if unsafe { ioctl(xpt.as_raw_fd(), CAMIOCOMMAND, &mut ccb) == -1 } {

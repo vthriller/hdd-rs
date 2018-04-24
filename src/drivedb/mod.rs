@@ -50,7 +50,7 @@ use ata::data::id;
 use regex::bytes::Regex;
 
 quick_error! {
-#[derive(Debug)]
+	#[derive(Debug)]
 	pub enum Error {
 		IO(err: io::Error) {
 			from()
