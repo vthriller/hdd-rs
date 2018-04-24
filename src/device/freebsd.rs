@@ -43,6 +43,7 @@ impl Device {
 
 // based on freebsd/sbin/camcontrol/camcontrol.c:getdevtree (`camcontrol devlist`), smartmontools/os_freebsd.cpp:get_dev_names_cam
 // TODO? smartmontools also try to probe /dev/ata; should we do the same, or is it just some deprecated thing?
+/// Lists paths to devices currently presented in the system.
 pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 	use cam::bindings::{
 		ccb,

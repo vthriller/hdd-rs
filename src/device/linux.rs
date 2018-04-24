@@ -24,6 +24,7 @@ impl Device {
 	pub fn get_type(&self) -> Result<Type, io::Error> { Ok(Type::SCSI) }
 }
 
+/// Lists paths to devices currently presented in the system.
 pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 	/*
 	Various software enumerates block devices in a variety of ways:
