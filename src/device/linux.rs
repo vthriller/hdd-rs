@@ -8,7 +8,7 @@ use std::collections::HashSet;
 /// See [parent module docs](../index.html)
 #[derive(Debug)]
 pub struct Device {
-	pub file: File,
+	pub(crate) file: File,
 }
 
 #[derive(Debug)]

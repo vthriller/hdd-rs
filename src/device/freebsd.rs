@@ -6,7 +6,7 @@ use std::path::PathBuf;
 /// See [parent module docs](../index.html)
 #[derive(Debug)]
 pub struct Device {
-	pub dev: CAMDevice,
+	pub(crate) dev: CAMDevice,
 }
 
 #[derive(Debug)]
