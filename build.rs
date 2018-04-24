@@ -22,9 +22,16 @@ fn main() {
 		.whitelisted_type("cam_status")
 		.whitelisted_type("cam_error_string_flags")
 		.whitelisted_type("cam_error_proto_flags")
+		.whitelisted_type("ccb_dev_match_status")
+		.whitelisted_type("dev_match_result")
 		.whitelisted_var("cam_errbuf")
 		.whitelisted_var("CAM_ATAIO_.*")
 		.whitelisted_var("MSG_SIMPLE_Q_TAG")
+		.whitelisted_var("XPT_DEVICE")
+		// XXX see bindings.rs for the hack
+		//.whitelisted_var("CAM_XPT_PATH_ID")
+		//.whitelisted_var("CAM_(TARGET|LUN)_WILDCARD")
+		//.whitelisted_var("CAMIOCOMMAND")
 		.generate()
 		.expect("Unable to generate bindings");
 
