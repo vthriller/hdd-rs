@@ -16,7 +16,7 @@ Mainly because I was disappointed in all the available options for putting SMART
 
 ### Prerequisites
 
-This crate can be build on Rust >= 1.21.
+This crate can be built on Rust >= 1.21.
 
 ### Building CLI tool
 
