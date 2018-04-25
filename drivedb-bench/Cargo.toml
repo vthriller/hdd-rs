@@ -1,0 +1,9 @@
+[package]
+name = "drivedb-bench"
+version = "0.9.0"
+authors = ["vthriller <unixway.drive+rs@gmail.com>"]
+
+[dependencies]
+hdd = { path = ".." }
+clap = ">=0.6.6"
+regex = "0.2"
