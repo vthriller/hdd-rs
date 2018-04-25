@@ -19,9 +19,10 @@ extern crate clap;
 use clap::{App, Arg};
 
 use std::time::Instant;
+use std::collections::HashSet;
 
 extern crate regex;
-use regex::bytes::Regex;
+use regex::bytes::{Regex, RegexSet};
 extern crate regex_cache;
 use regex_cache::LazyRegex;
 
@@ -89,6 +90,13 @@ fn find_precompiled_s<'a>(db: &Vec<(&'a Entry, LazyRegex, Option<LazyRegex>)>, m
 	}
 
 	None
+}
+
+fn find_precompiled_set(models: &RegexSet, firmwares: &RegexSet, model: &str, firmware: &str) -> Option<usize> {
+	let models: HashSet<_> = models.matches(model.as_bytes()).iter().collect();
+	let firmwares: HashSet<_> = firmwares.matches(firmware.as_bytes()).iter().collect();
+
+	models.intersection(&firmwares).min().map(|index| *index)
 }
 
 fn main() {
@@ -173,6 +181,31 @@ fn main() {
 		let now = Instant::now();
 		let e = find_precompiled_s(&compiled, &model, &firmware);
 		println!("find_precompiled_s() in {:.4}ms", elapsed(now));
+		black_box(e); // make sure `e` is not eliminated
+	}
+
+	let now = Instant::now();
+	let models = RegexSet::new(drivedb.iter()
+		.filter(|e| ! e.model.starts_with("USB:"))
+		.map(|e| format!("^{}$", e.model))
+	).unwrap();
+	let firmwares = RegexSet::new(drivedb.iter()
+		.filter(|e| ! e.model.starts_with("USB:"))
+		.map(|e| if e.firmware.is_empty() { "".to_string() } else {
+			format!("^{}$", e.firmware)
+		})
+	).unwrap();
+	println!("compiled set in {:.4}ms", elapsed(now));
+
+	let now = Instant::now();
+	let e = find_precompiled_set(&models, &firmwares, &model, &firmware);
+	println!("find_precompiled_set() in {:.4}ms", elapsed(now));
+	println!("{:?}", e.map(|index| &drivedb[index]));
+
+	for _ in 1..10 {
+		let now = Instant::now();
+		let e = find_precompiled_set(&models, &firmwares, &model, &firmware);
+		println!("find_precompiled_set() in {:.4}ms", elapsed(now));
 		black_box(e); // make sure `e` is not eliminated
 	}
 }
