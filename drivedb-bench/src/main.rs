@@ -111,18 +111,18 @@ fn main() {
 
 	let now = Instant::now();
 	let drivedb = drivedb::load(drivedb);
-	println!("loaded drivedb in {:.1}ms", elapsed(now));
+	println!("loaded drivedb in {:.4}ms", elapsed(now));
 	let drivedb = drivedb.unwrap();
 
 	let now = Instant::now();
 	let e = find(&drivedb, &model, &firmware);
-	println!("find() in {:.1}ms", elapsed(now));
+	println!("find() in {:.4}ms", elapsed(now));
 	println!("{:?}", e);
 
 	for _ in 1..10 {
 		let now = Instant::now();
 		let e = find(&drivedb, &model, &firmware);
-		println!("find() in {:.1}ms", elapsed(now));
+		println!("find() in {:.4}ms", elapsed(now));
 		black_box(e); // make sure `e` is not eliminated
 	}
 
@@ -137,17 +137,17 @@ fn main() {
 			},
 		))
 		.collect();
-	println!("compiled in {:.1}ms", elapsed(now));
+	println!("compiled in {:.4}ms", elapsed(now));
 
 	let now = Instant::now();
 	let e = find_precompiled(&compiled, &model, &firmware);
-	println!("find_precompiled() in {:.1}ms", elapsed(now));
+	println!("find_precompiled() in {:.4}ms", elapsed(now));
 	println!("{:?}", e);
 
 	for _ in 1..10 {
 		let now = Instant::now();
 		let e = find_precompiled(&compiled, &model, &firmware);
-		println!("find_precompiled() in {:.1}ms", elapsed(now));
+		println!("find_precompiled() in {:.4}ms", elapsed(now));
 		black_box(e); // make sure `e` is not eliminated
 	}
 
@@ -162,17 +162,17 @@ fn main() {
 			},
 		))
 		.collect();
-	println!("compiled lazy in {:.1}ms", elapsed(now));
+	println!("compiled lazy in {:.4}ms", elapsed(now));
 
 	let now = Instant::now();
 	let e = find_precompiled_s(&compiled, &model, &firmware);
-	println!("find_precompiled_s() in {:.1}ms", elapsed(now));
+	println!("find_precompiled_s() in {:.4}ms", elapsed(now));
 	println!("{:?}", e);
 
 	for _ in 1..10 {
 		let now = Instant::now();
 		let e = find_precompiled_s(&compiled, &model, &firmware);
-		println!("find_precompiled_s() in {:.1}ms", elapsed(now));
+		println!("find_precompiled_s() in {:.4}ms", elapsed(now));
 		black_box(e); // make sure `e` is not eliminated
 	}
 }
