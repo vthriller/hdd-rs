@@ -61,6 +61,20 @@ fn find<'a>(db: &'a Vec<Entry>, model: &str, firmware: &str) -> Option<&'a Entry
 	None
 }
 
+fn find_precompiled<'a>(db: &Vec<(&'a Entry, Regex, Option<Regex>)>, model: &str, firmware: &str) -> Option<&'a Entry> {
+	for &(entry, ref model_re, ref fw_re) in db.iter() {
+		if ! model_re.is_match(model.as_bytes()) { continue }
+
+		if let &Some(ref fw_re) = fw_re {
+			if ! fw_re.is_match(firmware.as_bytes()) { continue }
+		}
+
+		return Some(entry);
+	}
+
+	None
+}
+
 fn main() {
 	let args = App::new("drivedb-bench")
 		.version(crate_version!())
@@ -93,6 +107,31 @@ fn main() {
 		let now = Instant::now();
 		let e = find(&drivedb, &model, &firmware);
 		println!("find() in {:.1}ms", elapsed(now));
+		black_box(e); // make sure `e` is not eliminated
+	}
+
+	let now = Instant::now();
+	let compiled: Vec<_> = drivedb.iter()
+		.filter(|e| ! e.model.starts_with("USB:"))
+		.map(|e| (
+			e,
+			Regex::new(format!("(?-u)^{}$", e.model).as_str()).unwrap(),
+			if e.firmware.is_empty() { None } else {
+				Some(Regex::new(format!("^(?-u){}$", e.firmware).as_str()).unwrap())
+			},
+		))
+		.collect();
+	println!("compiled in {:.1}ms", elapsed(now));
+
+	let now = Instant::now();
+	let e = find_precompiled(&compiled, &model, &firmware);
+	println!("find_precompiled() in {:.1}ms", elapsed(now));
+	println!("{:?}", e);
+
+	for _ in 1..10 {
+		let now = Instant::now();
+		let e = find_precompiled(&compiled, &model, &firmware);
+		println!("find_precompiled() in {:.1}ms", elapsed(now));
 		black_box(e); // make sure `e` is not eliminated
 	}
 }
