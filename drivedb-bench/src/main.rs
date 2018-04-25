@@ -22,6 +22,8 @@ use std::time::Instant;
 
 extern crate regex;
 use regex::bytes::Regex;
+extern crate regex_cache;
+use regex_cache::LazyRegex;
 
 // borrowed from https://crates.io/crates/criterion (Apache-2.0/MIT)
 // cannot just write this crate in as a dependency due to some dep resolution conflicts
@@ -67,6 +69,20 @@ fn find_precompiled<'a>(db: &Vec<(&'a Entry, Regex, Option<Regex>)>, model: &str
 
 		if let &Some(ref fw_re) = fw_re {
 			if ! fw_re.is_match(firmware.as_bytes()) { continue }
+		}
+
+		return Some(entry);
+	}
+
+	None
+}
+
+fn find_precompiled_s<'a>(db: &Vec<(&'a Entry, LazyRegex, Option<LazyRegex>)>, model: &str, firmware: &str) -> Option<&'a Entry> {
+	for &(entry, ref model_re, ref fw_re) in db.iter() {
+		if ! model_re.is_match(model) { continue }
+
+		if let &Some(ref fw_re) = fw_re {
+			if ! fw_re.is_match(firmware) { continue }
 		}
 
 		return Some(entry);
@@ -132,6 +148,31 @@ fn main() {
 		let now = Instant::now();
 		let e = find_precompiled(&compiled, &model, &firmware);
 		println!("find_precompiled() in {:.1}ms", elapsed(now));
+		black_box(e); // make sure `e` is not eliminated
+	}
+
+	let now = Instant::now();
+	let compiled: Vec<_> = drivedb.iter()
+		.filter(|e| ! e.model.starts_with("USB:"))
+		.map(|e| (
+			e,
+			LazyRegex::new(format!("^{}$", e.model).as_str()).unwrap(),
+			if e.firmware.is_empty() { None } else {
+				Some(LazyRegex::new(format!("^{}$", e.firmware).as_str()).unwrap())
+			},
+		))
+		.collect();
+	println!("compiled lazy in {:.1}ms", elapsed(now));
+
+	let now = Instant::now();
+	let e = find_precompiled_s(&compiled, &model, &firmware);
+	println!("find_precompiled_s() in {:.1}ms", elapsed(now));
+	println!("{:?}", e);
+
+	for _ in 1..10 {
+		let now = Instant::now();
+		let e = find_precompiled_s(&compiled, &model, &firmware);
+		println!("find_precompiled_s() in {:.1}ms", elapsed(now));
 		black_box(e); // make sure `e` is not eliminated
 	}
 }

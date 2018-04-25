@@ -7,3 +7,4 @@ authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 hdd = { path = ".." }
 clap = ">=0.6.6"
 regex = "0.2"
+regex-cache = "0.1.6"
