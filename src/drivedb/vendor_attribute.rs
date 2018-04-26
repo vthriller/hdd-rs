@@ -148,7 +148,7 @@ Why not simply find the latest attribute with a given `id`?
 * Description might match all attributes at once (`-v N,…`, represented with `attr.id` of `None`).
 * Description might only update data format, leaving previously defined name and drive type intact.
 */
-pub fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
+pub(crate) fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
 	let mut out = None;
 
 	for new in presets {
