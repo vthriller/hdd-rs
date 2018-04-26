@@ -3,12 +3,12 @@ use regex::bytes::RegexSet;
 use std::collections::HashSet;
 
 #[derive(Debug)]
-pub struct DriveDB<'a> {
-	entries: Vec<&'a Entry>,
+pub struct DriveDB {
+	entries: Vec<Entry>,
 
 	// pre-found default entry: most likely it will be used right away, so it's not that harmful,
 	// and it's better to have one if it's going to be requested multiple times
-	default: Option<&'a Entry>,
+	default: Option<Entry>,
 
 	// precompiled RegexSets are often faster than simple regexes lazily compiled one by one on demand until the first match
 	// (even if RegexSet compilation time is taken into account!),
@@ -17,9 +17,9 @@ pub struct DriveDB<'a> {
 	firmware_regexes: RegexSet,
 }
 
-impl<'a> DriveDB<'a> {
-	pub fn new(entries: &'a Vec<Entry>) -> Self {
-		let entries = entries.iter()
+impl DriveDB {
+	pub fn new(entries: Vec<Entry>) -> Self {
+		let entries = entries.into_iter()
 			// USB ID entries are parsed differently; also, we don't support USB devices yet
 			.filter(|e| ! e.model.starts_with("USB:"));
 
@@ -51,17 +51,17 @@ impl<'a> DriveDB<'a> {
 			firmware_regexes,
 		}
 	}
-	pub fn find(&self, model: &str, firmware: &str) -> Option<&'a Entry> {
+	pub fn find(&self, model: &str, firmware: &str) -> Option<&Entry> {
 		let models: HashSet<_> = self.model_regexes.matches(model.as_bytes()).iter().collect();
 		let firmwares: HashSet<_> = self.firmware_regexes.matches(firmware.as_bytes()).iter().collect();
 
 		// find the first match (if any)
 		models.intersection(&firmwares)
 			.min()
-			.map(|index| self.entries[*index])
+			.map(|index| &self.entries[*index])
 	}
 	/// Returns default entry from the database (if any).
-	pub fn get_default_entry(&self) -> Option<&'a Entry> {
-		self.default
+	pub fn get_default_entry(&self) -> Option<&Entry> {
+		self.default.as_ref()
 	}
 }

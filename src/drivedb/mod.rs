@@ -134,7 +134,7 @@ Return value is a merge between the default entry and the first match; if multip
 
 This functions skips USB ID entries.
 */
-pub fn render_meta<'a>(id: &id::Id, db: &DriveDB<'a>, extra_attributes: Vec<Attribute>) -> DriveMeta<'a> {
+pub fn render_meta<'a>(id: &id::Id, db: &'a DriveDB, extra_attributes: Vec<Attribute>) -> DriveMeta<'a> {
 	let mut m = DriveMeta {
 		family: None,
 		warning: None,

@@ -127,7 +127,7 @@ pub fn open_drivedb(options: Option<Values>) -> Option<drivedb::DriveDB> {
 		}
 	}
 
-	let db = drivedb::DriveDB::new(&entries);
+	let db = drivedb::DriveDB::new(entries);
 	Some(db)
 }
 
