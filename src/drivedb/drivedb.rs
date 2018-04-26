@@ -3,18 +3,19 @@ use regex::bytes::Regex;
 
 #[derive(Debug)]
 pub struct DriveDB<'a> {
-	entries: &'a Vec<Entry>,
+	entries: Vec<&'a Entry>,
 }
 
 impl<'a> DriveDB<'a> {
 	pub fn new(entries: &'a Vec<Entry>) -> Self {
+		let entries = entries.iter()
+			// USB ID entries are parsed differently; also, we don't support USB devices yet
+			.filter(|e| ! e.model.starts_with("USB:"))
+			.collect();
 		DriveDB { entries }
 	}
 	pub fn find(&self, model: &str, firmware: &str) -> Option<&'a Entry> {
 		for entry in self.entries.iter() {
-			// USB ID entries are parsed differently; also, we don't support USB devices yet
-			if entry.model.starts_with("USB:") { continue }
-
 			// model and firmware are expected to be ascii strings, no need to try matching unicode characters
 
 			// > [modelregexp] should never be "".
