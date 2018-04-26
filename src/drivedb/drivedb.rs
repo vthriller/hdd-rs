@@ -1,4 +1,4 @@
-use super::{filter_presets, presets, Attribute, DriveMeta};
+use super::{filter_presets, presets, vendor_attribute, Attribute};
 use super::parser::Entry;
 use regex::bytes::RegexSet;
 use std::collections::HashSet;
@@ -105,5 +105,25 @@ impl DriveDB {
 		m.presets.extend(extra_attributes.iter().map(|a| a.clone()));
 		m.presets = filter_presets(id, m.presets);
 		return m;
+	}
+}
+
+/// Drive-related data that cannot be queried from the drive itself (model family, attribute presets etc.)
+#[derive(Debug)]
+pub struct DriveMeta<'a> {
+	/// > Informal string about the model family/series of a device.
+	pub family: Option<&'a String>,
+
+	/// > A message that may be displayed for matching drives.
+	/// > For example, to inform the user that they may need to apply a firmware patch.
+	pub warning: Option<&'a String>,
+
+	/// SMART attribute descriptions
+	pub presets: Vec<Attribute>,
+}
+
+impl<'a> DriveMeta<'a> {
+	pub fn render_attribute(&'a self, id: u8) -> Option<Attribute> {
+		vendor_attribute::render(self.presets.to_vec(), id)
 	}
 }

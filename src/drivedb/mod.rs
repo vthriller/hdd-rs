@@ -39,7 +39,7 @@ mod drivedb;
 mod loader;
 pub mod vendor_attribute;
 pub use self::vendor_attribute::Attribute;
-pub use self::drivedb::DriveDB;
+pub use self::drivedb::{DriveDB, DriveMeta};
 pub use self::loader::{Loader, Error};
 
 use ata::data::id;
@@ -66,24 +66,4 @@ fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
 		// applying drive-type-specific attributes to drives of unknown type makes no sense
 		(&Some(_), &None) => false,
 	}).collect()
-}
-
-/// Drive-related data that cannot be queried from the drive itself (model family, attribute presets etc.)
-#[derive(Debug)]
-pub struct DriveMeta<'a> {
-	/// > Informal string about the model family/series of a device.
-	pub family: Option<&'a String>,
-
-	/// > A message that may be displayed for matching drives.
-	/// > For example, to inform the user that they may need to apply a firmware patch.
-	pub warning: Option<&'a String>,
-
-	/// SMART attribute descriptions
-	pub presets: Vec<Attribute>,
-}
-
-impl<'a> DriveMeta<'a> {
-	pub fn render_attribute(&'a self, id: u8) -> Option<Attribute> {
-		vendor_attribute::render(self.presets.to_vec(), id)
-	}
 }
