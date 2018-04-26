@@ -119,7 +119,7 @@ pub struct DriveMeta<'a> {
 	pub warning: Option<&'a String>,
 
 	/// SMART attribute descriptions
-	pub presets: Vec<Attribute>,
+	presets: Vec<Attribute>,
 }
 
 impl<'a> DriveMeta<'a> {
