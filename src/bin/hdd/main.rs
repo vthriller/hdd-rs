@@ -68,7 +68,7 @@ static drivedb_additional_default: [&'static str; 1] = [
 ];
 
 /// Returns concatenated list of entries from main and additional drivedb files, falling back to built-in paths if none were provided.
-pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
+pub fn open_drivedb(options: Option<Values>) -> Option<drivedb::DriveDB> {
 	let options = options
 		.map(|vals| vals.collect())
 		.unwrap_or_else(|| vec![]);
@@ -127,7 +127,8 @@ pub fn open_drivedb(options: Option<Values>) -> Option<Vec<drivedb::Entry>> {
 		}
 	}
 
-	Some(entries)
+	let db = drivedb::DriveDB::new(&entries);
+	Some(db)
 }
 
 // cannot use #[cfg(…)] in arg_enum!, hence code duplication

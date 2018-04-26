@@ -218,7 +218,7 @@ impl Subcommand for Attrs {
 enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
-fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<Vec<drivedb::Entry>>, user_attributes: Vec<drivedb::Attribute>) {
+fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<drivedb::DriveDB>, user_attributes: Vec<drivedb::Attribute>) {
 	let id = match *dev {
 		#[cfg(not(target_os = "linux"))]
 		DeviceArgument::ATA(_, ref id) => id,
