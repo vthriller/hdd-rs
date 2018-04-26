@@ -6,6 +6,10 @@ use std::collections::HashSet;
 pub struct DriveDB<'a> {
 	entries: Vec<&'a Entry>,
 
+	// pre-found default entry: most likely it will be used right away, so it's not that harmful,
+	// and it's better to have one if it's going to be requested multiple times
+	default: Option<&'a Entry>,
+
 	// precompiled RegexSets are often faster than simple regexes lazily compiled one by one on demand until the first match
 	// (even if RegexSet compilation time is taken into account!),
 	// and are a must if multiple lookups are about to be performed
@@ -19,6 +23,14 @@ impl<'a> DriveDB<'a> {
 			// USB ID entries are parsed differently; also, we don't support USB devices yet
 			.filter(|e| ! e.model.starts_with("USB:"))
 			.collect();
+
+		let mut default = None;
+		for entry in entries.iter() {
+			if entry.family == "DEFAULT" {
+				default = Some(*entry);
+				break;
+			}
+		}
 
 		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
 		let model_regexes = RegexSet::new(entries.iter()
@@ -36,6 +48,7 @@ impl<'a> DriveDB<'a> {
 
 		DriveDB {
 			entries,
+			default,
 			model_regexes,
 			firmware_regexes,
 		}
@@ -51,11 +64,6 @@ impl<'a> DriveDB<'a> {
 	}
 	/// Returns default entry from the database (if any).
 	pub fn get_default_entry(&self) -> Option<&'a Entry> {
-		for entry in self.entries.iter() {
-			if entry.family == "DEFAULT" {
-				return Some(entry)
-			}
-		}
-		return None
+		self.default
 	}
 }
