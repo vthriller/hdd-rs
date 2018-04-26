@@ -5,6 +5,11 @@ use std::collections::HashSet;
 
 use ata::data::id;
 
+/**
+Drive database that hosts its entries and allows to search for relevant data.
+
+USB entries are currently not supported.
+*/
 #[derive(Debug)]
 pub struct DriveDB {
 	entries: Vec<Entry>,
@@ -34,6 +39,7 @@ impl DriveDB {
 		let default = default.into_iter().next();
 
 		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
+		// hence `(?-u)` and use of `regex::bytes::*` instead of `regex::*`
 		let model_regexes = RegexSet::new(entries.iter()
 			.map(|e| format!("^(?-u){}$", e.model))
 		).unwrap();
@@ -74,8 +80,6 @@ impl DriveDB {
 
 	Return value is a merge between the default entry and the first match; if multiple entries match the `id`, the first one is used (this is consistent with smartmontools' `lookup_drive` function).
 	`extra_attributes` are also appended to the list of presets afterwards.
-
-	This functions skips USB ID entries.
 	*/
 	pub fn render_meta(&self, id: &id::Id, extra_attributes: &Vec<Attribute>) -> DriveMeta {
 		let mut m = DriveMeta {
@@ -123,14 +127,12 @@ pub struct DriveMeta<'a> {
 }
 
 impl<'a> DriveMeta<'a> {
-	/**
-	Squashes attribute description for a particular attribute `id`.
-
-	Why not simply find the latest attribute with a given `id`?
-
-	* Description might match all attributes at once (`-v N,…`, represented with `attr.id` of `None`).
-	* Description might only update data format, leaving previously defined name and drive type intact.
+	/*
+	Attributes are never looked up; they must be rendered for a number of reasons:
+	- description might match all attributes at once (`-v N,…`, represented with `attr.id` of `None`),
+	- description might only update data format, leaving previously defined name and drive type intact.
 	*/
+	/// Renders attribute description for a particular attribute `id`.
 	pub fn render_attribute(&'a self, id: u8) -> Option<Attribute> {
 		let mut out = None;
 

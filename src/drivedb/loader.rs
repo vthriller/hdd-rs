@@ -35,7 +35,11 @@ fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	}
 }
 
-/// Use this helper to load entries from `drivedb.h`.
+/**
+Use this helper to load entries from `drivedb.h`.
+
+It is also possible to use `Loader` to create dummy database in case if only user-defined attributes (or none at all) are needed: just call [`db()`](#method.db) right after creating the loader.
+*/
 #[derive(Debug)]
 pub struct Loader {
 	entries: Vec<Entry>,
@@ -65,7 +69,7 @@ impl Loader {
 		Ok(())
 	}
 	/**
-	Loads more entries from additional drivedb file. Additional entries always take precedence over the main file.
+	Loads more entries from additional drivedb file. Additional entries always take precedence over the ones from the main file.
 
 	## Errors
 
@@ -78,7 +82,7 @@ impl Loader {
 		self.entries = load(file)?;
 		Ok(())
 	}
-	/// Returns all loaded entries.
+	/// Returns actual drive database with all entries loaded beforehand.
 	pub fn db(self) -> DriveDB {
 		let entries: Vec<_> = self.additional.into_iter()
 			.chain(self.entries.into_iter())
