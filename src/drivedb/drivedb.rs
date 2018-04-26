@@ -1,4 +1,4 @@
-use super::Entry;
+use super::parser::Entry;
 use regex::bytes::RegexSet;
 use std::collections::HashSet;
 

@@ -38,7 +38,6 @@ mod presets;
 mod drivedb;
 mod loader;
 pub mod vendor_attribute;
-pub use self::parser::Entry;
 pub use self::vendor_attribute::Attribute;
 pub use self::drivedb::DriveDB;
 pub use self::loader::{Loader, Error};
