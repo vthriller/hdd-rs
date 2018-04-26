@@ -24,16 +24,6 @@ quick_error! {
 	}
 }
 
-/**
-Opens `file`, parses its content and returns it as a `Vec` of entries.
-
-## Errors
-
-Returns [enum Error](enum.Error.html) if:
-
-* it encounters any kind of I/O error,
-* drive database is malformed.
-*/
 fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	let mut db = Vec::new();
 	File::open(&file)?.read_to_end(&mut db)?;
@@ -45,6 +35,7 @@ fn load(file: &str) -> Result<Vec<Entry>, Error> {
 	}
 }
 
+/// Use this helper to load entries from `drivedb.h`.
 #[derive(Debug)]
 pub struct Loader {
 	entries: Vec<Entry>,
@@ -57,16 +48,38 @@ impl Loader {
 			additional: vec![],
 		}
 	}
+	/**
+	Loads entries from main drivedb file.
+
+	Entries from previously loaded main file will be discarded; entries from additional files will not be affected.
+
+	## Errors
+
+	Returns [enum Error](enum.Error.html) if:
+
+	- it encounters any kind of I/O error,
+	- drive database is malformed.
+	*/
 	pub fn load(&mut self, file: &str) -> Result<(), Error> {
 		self.entries = load(file)?;
 		Ok(())
 	}
+	/**
+	Loads more entries from additional drivedb file. Additional entries always take precedence over the main file.
+
+	## Errors
+
+	Returns [enum Error](enum.Error.html) if:
+
+	- it encounters any kind of I/O error,
+	- drive database is malformed.
+	*/
 	pub fn load_additional(&mut self, file: &str) -> Result<(), Error> {
 		self.entries = load(file)?;
 		Ok(())
 	}
+	/// Returns all loaded entries.
 	pub fn db(self) -> DriveDB {
-		// additional entries take precedence
 		let entries: Vec<_> = self.additional.into_iter()
 			.chain(self.entries.into_iter())
 			.collect();
