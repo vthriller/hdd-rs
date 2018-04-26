@@ -19,18 +19,16 @@ pub struct DriveDB<'a> {
 
 impl<'a> DriveDB<'a> {
 	pub fn new(entries: &'a Vec<Entry>) -> Self {
-		let entries: Vec<_> = entries.iter()
+		let entries = entries.iter()
 			// USB ID entries are parsed differently; also, we don't support USB devices yet
-			.filter(|e| ! e.model.starts_with("USB:"))
-			.collect();
+			.filter(|e| ! e.model.starts_with("USB:"));
 
-		let mut default = None;
-		for entry in entries.iter() {
-			if entry.family == "DEFAULT" {
-				default = Some(*entry);
-				break;
-			}
-		}
+		// filter out all entries marked as default: they're of no use fo self.find()
+		// (yes, there might be multiple default entries from e.g. additional drivedb files)
+		let (default, entries): (Vec<_>, Vec<_>) = entries.partition(|e| e.family == "DEFAULT");
+
+		// pick the first default entry, if any, or set to None
+		let default = default.into_iter().next();
 
 		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
 		let model_regexes = RegexSet::new(entries.iter()
