@@ -103,12 +103,11 @@ pub fn open_drivedb(options: Option<Values>) -> Option<drivedb::DriveDB> {
 		(paths_main, paths_add)
 	};
 
-	let mut entries = Vec::<_>::new();
+	let mut loader = drivedb::Loader::new();
 
-	// entries from additional files take precedence and, thus, are read first
 	for f in paths_add {
-		match drivedb::load(f) {
-			Ok(fentries) => entries.extend(fentries),
+		match loader.load_additional(f) {
+			Ok(()) => (),
 			Err(e) => if show_warn_add {
 				eprint!("Cannot open additional drivedb file {}: {}\n", f, e);
 			},
@@ -116,9 +115,8 @@ pub fn open_drivedb(options: Option<Values>) -> Option<drivedb::DriveDB> {
 	}
 
 	for f in paths_main {
-		match drivedb::load(f) {
-			Ok(fentries) => {
-				entries.extend(fentries);
+		match loader.load(f) {
+			Ok(()) => {
 				break; // we only need one 'main' file, the first valid one
 			},
 			Err(e) => if show_warn_main {
@@ -127,7 +125,7 @@ pub fn open_drivedb(options: Option<Values>) -> Option<drivedb::DriveDB> {
 		}
 	}
 
-	let db = drivedb::DriveDB::new(entries);
+	let db = loader.db();
 	Some(db)
 }
 

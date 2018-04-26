@@ -41,7 +41,7 @@ pub mod vendor_attribute;
 pub use self::parser::Entry;
 pub use self::vendor_attribute::Attribute;
 pub use self::drivedb::DriveDB;
-pub use self::loader::{load, Error};
+pub use self::loader::{Loader, Error};
 
 use ata::data::id;
 
