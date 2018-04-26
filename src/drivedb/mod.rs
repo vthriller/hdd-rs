@@ -35,6 +35,7 @@ if let Some(warn) = dbentry.warning {
 
 mod parser;
 mod presets;
+pub mod drivedb;
 pub mod vendor_attribute;
 pub use self::parser::Entry;
 pub use self::vendor_attribute::Attribute;
@@ -46,8 +47,6 @@ use std::io;
 use nom;
 
 use ata::data::id;
-
-use regex::bytes::Regex;
 
 quick_error! {
 	#[derive(Debug)]
@@ -139,25 +138,8 @@ pub fn get_default_entry(db: &Vec<Entry>) -> Option<&Entry> {
 }
 
 fn match_drive<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Option<&'a Entry> {
-	for entry in db.iter() {
-		// USB ID entries are parsed differently; also, we don't support USB devices yet
-		if entry.model.starts_with("USB:") { continue }
-
-		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
-
-		// > [modelregexp] should never be "".
-		let re = Regex::new(format!("(?-u)^{}$", entry.model).as_str()).unwrap();
-		if !re.is_match(id.model.as_bytes()) { continue }
-
-		if ! entry.firmware.is_empty() {
-			let re = Regex::new(format!("^(?-u){}$", entry.firmware).as_str()).unwrap();
-			if !re.is_match(id.firmware.as_bytes()) { continue }
-		}
-
-		return Some(entry);
-	}
-
-	None
+	let db = drivedb::DriveDB::new(db);
+	db.find(&id.model, &id.firmware)
 }
 
 // FIXME extra_attributes should probably be the reference
