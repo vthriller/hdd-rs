@@ -75,6 +75,19 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 			debug!("    floppy device, skipping");
 			continue;
 		}
+		if name.to_str().unwrap().starts_with('v') {
+			// probably /dev/vdX, check whether it is a virtio-blk device
+			// N.B. we do NOT skip virtio_scsi devices due to LUN passthrough
+			if let Ok(driver) = path.join("device/driver").read_link() {
+				if driver.file_name() == Some(::std::ffi::OsStr::new("virtio_blk")) {
+					debug!("    virtio_blk device, skipping");
+					continue;
+				}
+			}
+			// there are other ways to identify virtio devices;
+			// one of them relies on PCI vendor id (`device/vendor` should read `0x1af4`, Red Hat, Inc.)
+			// and device id (`../../../device` → 0x1001)
+		}
 
 		// $ grep -q '^DEVTYPE=disk$' /sys/class/block/sda/uevent
 		if let Ok(uevent) = File::open(path.join("uevent")) {
