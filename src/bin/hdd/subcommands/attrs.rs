@@ -229,7 +229,7 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<d
 	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::render_meta(
 		&id,
 		drivedb,
-		user_attributes,
+		&user_attributes,
 	));
 
 	// for --format=prometheus (TODO? don't compose if other format is used)

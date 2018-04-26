@@ -150,7 +150,7 @@ impl Subcommand for Info {
 				drivedb,
 				// no need to parse custom vendor attributes,
 				// we're only using drivedb for the family and the warning here
-				vec![],
+				&vec![],
 			));
 
 			if use_json {

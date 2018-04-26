@@ -83,7 +83,6 @@ pub struct DriveMeta<'a> {
 	pub presets: Vec<Attribute>,
 }
 
-// FIXME extra_attributes should probably be the reference
 /**
 Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
 
@@ -92,7 +91,7 @@ Return value is a merge between the default entry and the first match; if multip
 
 This functions skips USB ID entries.
 */
-pub fn render_meta<'a>(id: &id::Id, db: &'a DriveDB, extra_attributes: Vec<Attribute>) -> DriveMeta<'a> {
+pub fn render_meta<'a>(id: &id::Id, db: &'a DriveDB, extra_attributes: &Vec<Attribute>) -> DriveMeta<'a> {
 	let mut m = DriveMeta {
 		family: None,
 		warning: None,
@@ -117,7 +116,7 @@ pub fn render_meta<'a>(id: &id::Id, db: &'a DriveDB, extra_attributes: Vec<Attri
 		m.warning = if ! entry.warning.is_empty() { Some(&entry.warning) } else { None };
 	}
 
-	m.presets.extend(extra_attributes);
+	m.presets.extend(extra_attributes.iter().map(|a| a.clone()));
 	m.presets = filter_presets(id, m.presets);
 	return m;
 }
