@@ -127,17 +127,6 @@ pub struct DriveMeta<'a> {
 	pub presets: Vec<Attribute>,
 }
 
-fn get_default_entry(db: &Vec<Entry>) -> Option<&Entry> {
-	let db = drivedb::DriveDB::new(db);
-
-	db.get_default_entry()
-}
-
-fn match_drive<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Option<&'a Entry> {
-	let db = drivedb::DriveDB::new(db);
-	db.find(&id.model, &id.firmware)
-}
-
 // FIXME extra_attributes should probably be the reference
 /**
 Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
@@ -154,15 +143,17 @@ pub fn render_meta<'a>(id: &id::Id, db: &'a Vec<Entry>, extra_attributes: Vec<At
 		presets: Vec::<Attribute>::new(),
 	};
 
+	let db = drivedb::DriveDB::new(db);
+
 	// TODO show somehow whether default entry was found or not, or ask caller for the default entry
-	if let Some(default) = get_default_entry(&db) {
+	if let Some(default) = db.get_default_entry() {
 		// TODO show somehow whether preset is valid or not
 		if let Some(presets) = presets::parse(&default.presets) {
 			m.presets.extend(presets);
 		}
 	}
 
-	if let Some(entry) = match_drive(id, db) {
+	if let Some(entry) = db.find(&id.model, &id.firmware) {
 		// TODO show somehow whether preset is valid or not
 		if let Some(presets) = presets::parse(&entry.presets) {
 			m.presets.extend(presets);
