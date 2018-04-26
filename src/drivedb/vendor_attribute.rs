@@ -139,38 +139,3 @@ pub fn parse(s: &str) -> Result<Attribute, Error> {
 		nom::IResult::Incomplete(_) => Err(Error::Parse), // TODO?
 	}
 }
-
-/**
-Squashes attribute description for a particular attribute `id`.
-
-Why not simply find the latest attribute with a given `id`?
-
-* Description might match all attributes at once (`-v N,…`, represented with `attr.id` of `None`).
-* Description might only update data format, leaving previously defined name and drive type intact.
-*/
-pub(crate) fn render(presets: Vec<Attribute>, id: u8) -> Option<Attribute> {
-	let mut out = None;
-
-	for new in presets {
-		match new.id {
-			Some(x) if x != id => continue,
-			_ => ()
-		}
-
-		match out {
-			None => { out = Some(new.clone()); },
-			Some(ref mut old) => {
-				old.format = new.format.clone();
-				old.byte_order = new.byte_order.clone();
-				if new.name.is_some() {
-					old.name = new.name.clone();
-				}
-				if new.drivetype.is_some() {
-					old.drivetype = new.drivetype;
-				}
-			},
-		}
-	}
-
-	out
-}
