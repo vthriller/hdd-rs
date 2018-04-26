@@ -65,9 +65,6 @@ quick_error! {
 	}
 }
 
-// TODO load_compiled, with pre-compiled headers and pre-parsed presets,
-// for those who work with drives in bulk
-// TODO invalid regex should result in parsing error (or maybe not, maybe just stick to Option<Regex>)
 /**
 Opens `file`, parses its content and returns it as a `Vec` of entries.
 
