@@ -31,4 +31,13 @@ impl<'a> DriveDB<'a> {
 
 		None
 	}
+	/// Returns default entry from the database (if any).
+	pub fn get_default_entry(&self) -> Option<&'a Entry> {
+		for entry in self.entries.iter() {
+			if entry.family == "DEFAULT" {
+				return Some(entry)
+			}
+		}
+		return None
+	}
 }

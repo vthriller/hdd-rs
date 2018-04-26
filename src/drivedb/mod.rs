@@ -127,14 +127,10 @@ pub struct DriveMeta<'a> {
 	pub presets: Vec<Attribute>,
 }
 
-/// Returns default entry from the database (if any).
-pub fn get_default_entry(db: &Vec<Entry>) -> Option<&Entry> {
-	for entry in db.iter() {
-		if entry.family == "DEFAULT" {
-			return Some(entry)
-		}
-	}
-	return None
+fn get_default_entry(db: &Vec<Entry>) -> Option<&Entry> {
+	let db = drivedb::DriveDB::new(db);
+
+	db.get_default_entry()
 }
 
 fn match_drive<'a>(id: &id::Id, db: &'a Vec<Entry>) -> Option<&'a Entry> {
