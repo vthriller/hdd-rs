@@ -21,7 +21,7 @@ pub struct DriveDB {
 }
 
 impl DriveDB {
-	pub fn new(entries: Vec<Entry>) -> Self {
+	pub(crate) fn new(entries: Vec<Entry>) -> Self {
 		let entries = entries.into_iter()
 			// USB ID entries are parsed differently; also, we don't support USB devices yet
 			.filter(|e| ! e.model.starts_with("USB:"));
@@ -55,7 +55,7 @@ impl DriveDB {
 		}
 	}
 
-	pub fn find(&self, model: &str, firmware: &str) -> Option<&Entry> {
+	pub(crate) fn find(&self, model: &str, firmware: &str) -> Option<&Entry> {
 		let models: HashSet<_> = self.model_regexes.matches(model.as_bytes()).iter().collect();
 		let firmwares: HashSet<_> = self.firmware_regexes.matches(firmware.as_bytes()).iter().collect();
 
@@ -65,8 +65,7 @@ impl DriveDB {
 			.map(|index| &self.entries[*index])
 	}
 
-	/// Returns default entry from the database (if any).
-	pub fn get_default_entry(&self) -> Option<&Entry> {
+	pub(crate) fn get_default_entry(&self) -> Option<&Entry> {
 		self.default.as_ref()
 	}
 
