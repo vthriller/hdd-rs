@@ -35,10 +35,11 @@ if let Some(warn) = dbentry.warning {
 
 mod parser;
 mod presets;
-pub mod drivedb;
+mod drivedb;
 pub mod vendor_attribute;
 pub use self::parser::Entry;
 pub use self::vendor_attribute::Attribute;
+pub use self::drivedb::DriveDB;
 
 use std::fs::File;
 use std::io::prelude::*;
