@@ -82,44 +82,6 @@ pub struct DriveMeta<'a> {
 	pub presets: Vec<Attribute>,
 }
 
-/**
-Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
-
-Return value is a merge between the default entry and the first match; if multiple entries match the `id`, the first one is used (this is consistent with smartmontools' `lookup_drive` function).
-`extra_attributes` are also appended to the list of presets afterwards.
-
-This functions skips USB ID entries.
-*/
-pub fn render_meta<'a>(id: &id::Id, db: &'a DriveDB, extra_attributes: &Vec<Attribute>) -> DriveMeta<'a> {
-	let mut m = DriveMeta {
-		family: None,
-		warning: None,
-		presets: Vec::<Attribute>::new(),
-	};
-
-	// TODO show somehow whether default entry was found or not, or ask caller for the default entry
-	if let Some(default) = db.get_default_entry() {
-		// TODO show somehow whether preset is valid or not
-		if let Some(presets) = presets::parse(&default.presets) {
-			m.presets.extend(presets);
-		}
-	}
-
-	if let Some(entry) = db.find(&id.model, &id.firmware) {
-		// TODO show somehow whether preset is valid or not
-		if let Some(presets) = presets::parse(&entry.presets) {
-			m.presets.extend(presets);
-		}
-
-		m.family = Some(&entry.family);
-		m.warning = if ! entry.warning.is_empty() { Some(&entry.warning) } else { None };
-	}
-
-	m.presets.extend(extra_attributes.iter().map(|a| a.clone()));
-	m.presets = filter_presets(id, m.presets);
-	return m;
-}
-
 impl<'a> DriveMeta<'a> {
 	pub fn render_attribute(&'a self, id: u8) -> Option<Attribute> {
 		vendor_attribute::render(self.presets.to_vec(), id)

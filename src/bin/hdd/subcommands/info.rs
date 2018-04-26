@@ -145,9 +145,8 @@ impl Subcommand for Info {
 
 		if let Some(id) = ata_id {
 			let drivedb = open_drivedb(args.values_of("drivedb"));
-			let meta = drivedb.as_ref().map(|drivedb| drivedb::render_meta(
+			let meta = drivedb.as_ref().map(|drivedb| drivedb.render_meta(
 				&id,
-				drivedb,
 				// no need to parse custom vendor attributes,
 				// we're only using drivedb for the family and the warning here
 				&vec![],

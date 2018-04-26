@@ -1,6 +1,9 @@
+use super::{filter_presets, presets, Attribute, DriveMeta};
 use super::parser::Entry;
 use regex::bytes::RegexSet;
 use std::collections::HashSet;
+
+use ata::data::id;
 
 #[derive(Debug)]
 pub struct DriveDB {
@@ -51,6 +54,7 @@ impl DriveDB {
 			firmware_regexes,
 		}
 	}
+
 	pub fn find(&self, model: &str, firmware: &str) -> Option<&Entry> {
 		let models: HashSet<_> = self.model_regexes.matches(model.as_bytes()).iter().collect();
 		let firmwares: HashSet<_> = self.firmware_regexes.matches(firmware.as_bytes()).iter().collect();
@@ -60,8 +64,47 @@ impl DriveDB {
 			.min()
 			.map(|index| &self.entries[*index])
 	}
+
 	/// Returns default entry from the database (if any).
 	pub fn get_default_entry(&self) -> Option<&Entry> {
 		self.default.as_ref()
+	}
+
+	/**
+	Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
+
+	Return value is a merge between the default entry and the first match; if multiple entries match the `id`, the first one is used (this is consistent with smartmontools' `lookup_drive` function).
+	`extra_attributes` are also appended to the list of presets afterwards.
+
+	This functions skips USB ID entries.
+	*/
+	pub fn render_meta(&self, id: &id::Id, extra_attributes: &Vec<Attribute>) -> DriveMeta {
+		let mut m = DriveMeta {
+			family: None,
+			warning: None,
+			presets: Vec::<Attribute>::new(),
+		};
+
+		// TODO show somehow whether default entry was found or not, or ask caller for the default entry
+		if let Some(default) = self.get_default_entry() {
+			// TODO show somehow whether preset is valid or not
+			if let Some(presets) = presets::parse(&default.presets) {
+				m.presets.extend(presets);
+			}
+		}
+
+		if let Some(entry) = self.find(&id.model, &id.firmware) {
+			// TODO show somehow whether preset is valid or not
+			if let Some(presets) = presets::parse(&entry.presets) {
+				m.presets.extend(presets);
+			}
+
+			m.family = Some(&entry.family);
+			m.warning = if ! entry.warning.is_empty() { Some(&entry.warning) } else { None };
+		}
+
+		m.presets.extend(extra_attributes.iter().map(|a| a.clone()));
+		m.presets = filter_presets(id, m.presets);
+		return m;
 	}
 }

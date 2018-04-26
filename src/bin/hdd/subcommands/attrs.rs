@@ -226,9 +226,8 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<d
 		DeviceArgument::SCSI(_) => unreachable!(),
 	};
 
-	let dbentry = drivedb.as_ref().map(|drivedb| drivedb::render_meta(
+	let dbentry = drivedb.as_ref().map(|drivedb| drivedb.render_meta(
 		&id,
-		drivedb,
 		&user_attributes,
 	));
 
