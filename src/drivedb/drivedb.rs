@@ -1,6 +1,6 @@
 use super::{filter_presets, presets, Attribute};
 use super::parser::Entry;
-use regex::bytes::RegexSet;
+use regex::bytes::{RegexSet, RegexSetBuilder};
 use std::collections::HashSet;
 
 use ata::data::id;
@@ -39,19 +39,19 @@ impl DriveDB {
 		let default = default.into_iter().next();
 
 		// model and firmware are expected to be ascii strings, no need to try matching unicode characters
-		// hence `(?-u)` and use of `regex::bytes::*` instead of `regex::*`
-		let model_regexes = RegexSet::new(entries.iter()
-			.map(|e| format!("^(?-u){}$", e.model))
-		).unwrap();
-		let firmware_regexes = RegexSet::new(entries.iter()
+		// hence `unicode(false)` and use of `regex::bytes::*` instead of `regex::*`
+		let model_regexes = RegexSetBuilder::new(entries.iter()
+			.map(|e| format!("^{}$", e.model))
+		).unicode(false).build().unwrap();
+		let firmware_regexes = RegexSetBuilder::new(entries.iter()
 			.map(|e|
 				if e.firmware.is_empty() {
-					"(?-u)".to_string()
+					"".to_string()
 				} else {
-					format!("^(?-u){}$", e.firmware)
+					format!("^{}$", e.firmware)
 				}
 			)
-		).unwrap();
+		).unicode(false).build().unwrap();
 
 		DriveDB {
 			entries,
