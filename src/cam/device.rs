@@ -3,7 +3,8 @@ use cam::ccb::CCB;
 use cam::error;
 use std::io;
 
-use std::ffi::CString;
+use std::ffi::{OsStr, CString};
+use std::os::unix::ffi::OsStrExt;
 
 use libc;
 
@@ -14,9 +15,9 @@ use libc;
 pub struct CAMDevice(pub *mut bindings::cam_device);
 
 impl CAMDevice {
-	pub fn open(path: &str) -> Result<Self, io::Error> {
+	pub fn open(path: &OsStr) -> Result<Self, io::Error> {
 		// keep CString's buffer allocated by binding to the variable
-		let path = CString::new(path).unwrap();
+		let path = CString::new(path.as_bytes()).unwrap();
 		let dev = unsafe { bindings::cam_open_device(path.as_ptr(), libc::O_RDWR) };
 		if dev.is_null() {
 			Err(error::current())

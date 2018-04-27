@@ -1,7 +1,7 @@
 use cam::{CAMDevice, CCB, error};
 use cam::bindings::{xpt_opcode, cam_status, cam_proto};
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// See [parent module docs](../index.html)
 #[derive(Debug)]
@@ -13,9 +13,9 @@ pub struct Device {
 pub enum Type { ATA, SCSI }
 
 impl Device {
-	pub fn open(path: &str) -> Result<Self, io::Error> {
+	pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, io::Error> {
 		Ok(Device {
-			dev: CAMDevice::open(path)?,
+			dev: CAMDevice::open(path.as_ref().as_os_str())?,
 		})
 	}
 
