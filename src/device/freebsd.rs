@@ -124,11 +124,11 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 
 		bus1 ( dev11 ( periph111 ) dev12 ( periph121 periph122 ) ) bus2 ( dev21 ( periph211 periph212 ) )
 
-	In other words, periphery devices are picked based on what the latest bus/device was.
+	In other words, peripheral devices are picked based on what the latest bus/device was.
 
 	`camcontrol devlist [-v]` behaves similarly: it just outputs information on each item regardless of its type (bus/dev/periph), without any sorting.
 
-	Multiple periphery devices are like alternative device names for the top device (which apparently has no name);
+	Multiple peripheral devices are like alternative device names for the top device (which apparently has no name);
 	smartmontools prioritizes the one that is not 'passX'
 	(linux analogy: preferring '/sys/class/block/sda' over '/sys/class/scsi_generic/sg0',
 	 although both 'sda' and 'sg0' can be used to access the device in question)

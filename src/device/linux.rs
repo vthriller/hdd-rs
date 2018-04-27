@@ -32,7 +32,7 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 	- lsscsi: looks for *:* in /sys/bus/scsi/devices/, skipping {host,target}*
 	- sg3_utils/sg_scan: iterates over /sys/class/scsi_generic if exists, otherwise probing for /dev/sg{0..8191} or /dev/sg{a..z,aa..zz,...}
 	- util-linux/lsblk: iterates over /sys/block, skipping devices with major number 1 (RAM disks) by default (see --include/--exclude), as well as devices with no known size or the size of 0 (see /sys/class/block/<X>/size)
-	- udisks: querying udev for devices in a "block" subsystem
+	- udisks: queries udev for devices in a "block" subsystem
 	- gnome-disk-utility: just asks udisks
 	- udev: just reads a bunch of files from /sys, appending irrelevant (in our case) data from hwdb and attributes set via various rules
 

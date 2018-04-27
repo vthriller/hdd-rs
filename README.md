@@ -8,8 +8,8 @@ This is [work in progress](#to-do).
 
 Mainly because I was disappointed in all the available options for putting SMART and SCSI log info into various monitoring systems.
 
-* Scripts that parse `smartctl` output are just ugly, error prone hacks that still make me cringe.
-* To add support for different, programming-friendly output formats into `smartctl` (e.g. JSON), one basically needs to rewrite a lot of ad-hoc `printf`s scattered all over the source files, and it's not much easier if you decide to drop the idea of implementing some command-line switch in favour of simply changing the output format altogether. (Things are only getting more complex with `smartd`.)
+* Scripts that parse `smartctl` output (usually with regexes) are slow, ugly, unreliable hacks.
+* To add support for different, programming-friendly output format into `smartctl` (e.g. JSON), one basically needs to rewrite a lot of ad-hoc `printf`s scattered all over the source files, and it's not much easier if you decide to drop the idea of implementing some command-line switch in favour of simply changing the output format altogether. (Things are only getting more complex with `smartd`.)
 * `libatasmart` (and tools that it powers) can only work with ATA devices, and only on Linux, and expecting more from that library is simply naïve.
 
 ## How?
@@ -69,6 +69,10 @@ Features:
 * Debugging options (think `smartctl -r ataioctl,2` or `skdump`) for CLI tool.
 * More devices (smartmontools can query NVMe devices).
 * More platforms (Windows, macOS, \*BSD, Redox…).
+
+## Acknowledgements
+
+Here goes [obligatory mention of smartmontools contributors](https://svn.code.sf.net/p/smartmontools/code/trunk/smartmontools/AUTHORS) who laid foundations of what this crate currently is.
 
 ## License
 
