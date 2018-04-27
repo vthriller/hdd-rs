@@ -71,10 +71,6 @@ impl DriveDB {
 			.map(|index| &self.entries[*index])
 	}
 
-	fn get_default_entry(&self) -> Option<&Entry> {
-		self.default.as_ref()
-	}
-
 	/**
 	Matches given ATA IDENTIFY DEVICE response `id` against drive database `db`.
 
@@ -89,7 +85,7 @@ impl DriveDB {
 		};
 
 		// TODO show somehow whether default entry was found or not, or ask caller for the default entry
-		if let Some(default) = self.get_default_entry() {
+		if let Some(ref default) = self.default {
 			// TODO show somehow whether preset is valid or not
 			if let Some(presets) = presets::parse(&default.presets) {
 				m.presets.extend(presets);
