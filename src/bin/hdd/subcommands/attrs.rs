@@ -398,8 +398,7 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 			}
 		}
 	}
-	// XXX use .sort_unstable_by once I decide to drop support for Rust<1.20
-	unexpected.sort_by(|a, b| {
+	unexpected.sort_unstable_by(|a, b| {
 		use std::cmp::Ordering::*;
 		match (*a, *b) {
 			(VendorSpecific(a), VendorSpecific(b)) => a.cmp(&b),
