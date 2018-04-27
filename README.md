@@ -39,7 +39,7 @@ You can build static binary if, say, you want it for remote GNU/Linux system tha
 Put this into your `Cargo.toml`:
 ```toml
 [dependencies]
-hdd = "0.9"
+hdd = "0.10"
 ```
 
 ## What's supported?
