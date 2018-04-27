@@ -154,7 +154,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		Self { device, supported_pages: None }
 	}
 
-	pub fn supported_pages(&mut self) -> Result<Vec<u8>, Error> {
+	pub fn supported_pages(&mut self) -> Result<&Vec<u8>, Error> {
 		if self.supported_pages == None {
 			info!("querying supported log pages");
 
@@ -172,7 +172,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		}
 
 		// unwrap is safe: list of pages is here, or function already returned after unsuccessful attempt to update this field
-		Ok(self.supported_pages.as_ref().unwrap().to_vec())
+		Ok(self.supported_pages.as_ref().unwrap())
 	}
 
 	fn get_page(&mut self, page: u8) -> Result<log_page::Page, Error> {
