@@ -158,8 +158,14 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		if self.supported_pages == None {
 			info!("querying supported log pages");
 
-			let page = self.get_page(0x00)?;
-			self.supported_pages = Some(page.data.to_vec());
+			match self.get_page(0x00) {
+				Ok(page) => self.supported_pages = Some(page.data.to_vec()),
+				// we cannot tell what pages are supported, so cache empty list
+				Err(e) => {
+					self.supported_pages = Some(vec![]);
+					return Err(e);
+				},
+			}
 		} else {
 			// this one repeats way too often
 			//info!("(cached) querying supported log pages");
