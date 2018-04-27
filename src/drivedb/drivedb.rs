@@ -61,7 +61,7 @@ impl DriveDB {
 		}
 	}
 
-	pub(crate) fn find(&self, model: &str, firmware: &str) -> Option<&Entry> {
+	fn find(&self, model: &str, firmware: &str) -> Option<&Entry> {
 		let models: HashSet<_> = self.model_regexes.matches(model.as_bytes()).iter().collect();
 		let firmwares: HashSet<_> = self.firmware_regexes.matches(firmware.as_bytes()).iter().collect();
 
@@ -71,7 +71,7 @@ impl DriveDB {
 			.map(|index| &self.entries[*index])
 	}
 
-	pub(crate) fn get_default_entry(&self) -> Option<&Entry> {
+	fn get_default_entry(&self) -> Option<&Entry> {
 		self.default.as_ref()
 	}
 
