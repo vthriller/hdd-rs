@@ -1,4 +1,4 @@
-use super::{filter_presets, presets, Attribute};
+use super::{presets, Attribute};
 use super::parser::Entry;
 use regex::bytes::{RegexSet, RegexSetBuilder};
 use std::collections::HashSet;
@@ -110,6 +110,30 @@ impl DriveDB {
 		m.presets = filter_presets(id, m.presets);
 		return m;
 	}
+}
+
+fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
+	let drivetype = {
+		use self::id::RPM::*;
+		use super::vendor_attribute::Type::*;
+		match id.rpm {
+			RPM(_) => Some(HDD),
+			NonRotating => Some(SSD),
+			Unknown => None,
+		}
+	};
+
+	#[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
+	preset.into_iter().filter(|attr| match (&attr.drivetype, &drivetype) {
+		// this attribute is not type-specific
+		(&None, _) => true,
+		// drive type match
+		(&Some(ref a), &Some(ref b)) if a == b => true,
+		// drive type does not match
+		(&Some(_), &Some(_)) => false,
+		// applying drive-type-specific attributes to drives of unknown type makes no sense
+		(&Some(_), &None) => false,
+	}).collect()
 }
 
 /// Drive-related data that cannot be queried from the drive itself (model family, attribute presets etc.)
