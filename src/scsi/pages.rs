@@ -158,7 +158,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		if self.supported_pages == None {
 			info!("querying supported log pages");
 
-			match self.get_page(0x00) {
+			match self.get_page_unchecked(0x00) {
 				Ok(page) => self.supported_pages = Some(page.data.to_vec()),
 				// we cannot tell what pages are supported, so cache empty list
 				// TODO cache the error and return it instead
@@ -175,10 +175,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	}
 
 	fn get_page(&mut self, page: u8) -> Result<log_page::Page, Error> {
-		// this very function is also used by self.supported_pages() so skip that
-		if page != 0x00 && ! self.supported_pages().contains(&page) {
-			// this is a little shortcut function, there is no general need to info!() here (log_sense() would do that for us)
-			// however we want to show whether we aborted early because page is not supported
+		if ! self.supported_pages().contains(&page) {
 			info!("attemted to query unsupported page {}", page);
 			return Err(Error::NotSupported)
 		}
