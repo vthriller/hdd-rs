@@ -183,6 +183,10 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 			return Err(Error::NotSupported)
 		}
 
+		self.get_page_unchecked(page)
+	}
+
+	fn get_page_unchecked(&mut self, page: u8) -> Result<log_page::Page, Error> {
 		let (_sense, data) = self.device.log_sense(
 			false, // changed
 			false, // save_params
