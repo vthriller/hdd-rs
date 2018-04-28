@@ -40,8 +40,8 @@ extern crate prettytable;
 
 extern crate log;
 extern crate env_logger;
-use log::LogLevelFilter;
-use env_logger::LogBuilder;
+use log::LevelFilter;
+use env_logger::Builder as LogBuilder;
 
 use std::path::Path;
 
@@ -209,14 +209,14 @@ fn main() {
 	}
 	// -d takes precedence over RUST_LOG which some might export globally for some reasons
 	log.filter(Some("hdd"), {
-		use self::LogLevelFilter::*;
+		use self::LevelFilter::*;
 		match args.occurrences_of("debug") {
 			0 => Warn,
 			1 => Info,
 			_ => Debug,
 		}
 	});
-	log.init().unwrap();
+	log.init();
 
 	let path = args.value_of("device").map(|path| Path::new(path));
 	let dev = path.map(|p| Device::open(p).unwrap());

@@ -16,7 +16,7 @@ nom = "^2.2"
 regex = "0.2"
 byteorder = "1"
 quick-error = "1.2"
-log = "0.3"
+log = "0.4"
 
 # feature: serializable
 serde = { version = "0.9", optional = true }
@@ -28,7 +28,7 @@ serde_json = { version = "0.9", optional = true }
 separator = { version = "0.3.1", optional = true }
 number_prefix = { version = "0.2.7", optional = true }
 prettytable-rs = { version = "^0.6", optional = true }
-env_logger = { version = "0.4", optional = true }
+env_logger = { version = "0.5", optional = true }
 lazy_static = { version = "1.0", optional = true }
 
 [features]
