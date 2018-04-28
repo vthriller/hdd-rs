@@ -156,6 +156,10 @@ impl Subcommand for Attrs {
 				.possible_values(&["plain", "json", "prometheus"])
 				.help("format to export data in")
 			)
+			.arg(Arg::with_name("full-path")
+				.long("full-path")
+				.help("whether to use full device path if exporting in prometheus format")
+			)
 			.arg(Arg::with_name("json")
 				.long("json")
 				// for consistency with other subcommands
@@ -185,6 +189,12 @@ impl Subcommand for Attrs {
 			::std::process::exit(1);
 		});
 		let path = path.unwrap(); // `path` and `dev` are both `Some()` or both `None`
+
+		let path = if args.is_present("full-path") {
+			path.to_str()
+		} else {
+			path.file_name().unwrap().to_str()
+		}.unwrap();
 
 		let format = match args.value_of("format") {
 			Some("plain") => Plain,
@@ -219,7 +229,7 @@ impl Subcommand for Attrs {
 enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
-fn attrs_ata(path: &Path, dev: &DeviceArgument, format: Format, drivedb: Option<drivedb::DriveDB>, user_attributes: Vec<drivedb::Attribute>) {
+fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<drivedb::DriveDB>, user_attributes: Vec<drivedb::Attribute>) {
 	let id = match *dev {
 		#[cfg(not(target_os = "linux"))]
 		DeviceArgument::ATA(_, ref id) => id,
@@ -234,7 +244,7 @@ fn attrs_ata(path: &Path, dev: &DeviceArgument, format: Format, drivedb: Option<
 
 	// for --format=prometheus (TODO? don't compose if other format is used)
 	let mut labels = HashMap::new();
-	labels.insert("dev", path.to_str().unwrap().to_string());
+	labels.insert("dev", path.to_string());
 	labels.insert("model", id.model.clone());
 	labels.insert("serial", id.serial.clone());
 	if let Some(ref entry) = dbentry {
@@ -452,7 +462,7 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 
 // TODO other formats
 // TODO prometheus: device id labels, just like in attrs_ata
-fn attrs_scsi(path: &Path, dev: &DeviceArgument, format: Format) {
+fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	let dev = match *dev {
 		#[cfg(not(target_os = "linux"))]
 		DeviceArgument::ATA(_, _) => unreachable!(),
@@ -465,7 +475,7 @@ fn attrs_scsi(path: &Path, dev: &DeviceArgument, format: Format) {
 	let mut json = serde_json::Map::new();
 
 	let mut labels = HashMap::new();
-	labels.insert("dev", path.to_str().unwrap().to_string());
+	labels.insert("dev", path.to_string());
 	if let Ok((_sense, data)) = dev.scsi_inquiry(false, 0) {
 		let inquiry = inquiry::parse_inquiry(&data);
 		labels.insert("vendor", inquiry.vendor_id.clone());
