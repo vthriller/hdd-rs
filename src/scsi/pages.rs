@@ -152,10 +152,13 @@ pub struct SCSIPages<'a, T: SCSICommon + 'a> {
 impl<'a> SCSIPages<'a, SCSIDevice> {
 	// TODO document error type
 	pub fn new(device: &'a SCSIDevice) -> Result<Self, Error> {
+		// no public method here can work without list of supported pages, so cache it right away or Err() out
+		info!("querying list of supported page");
+		let supported_pages = Self::get_page_unchecked(device, 0x00)?.data.to_vec();
+
 		Ok(Self {
 			device,
-			// no public method here can work without list of supported pages, so cache it right away or Err() out
-			supported_pages: Self::get_page_unchecked(device, 0x00)?.data.to_vec(),
+			supported_pages,
 		})
 	}
 
