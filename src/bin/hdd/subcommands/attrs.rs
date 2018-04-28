@@ -483,8 +483,6 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 		labels.insert("firmware", inquiry.product_rev.clone());
 	}
 
-	// XXX should check if page is supported in `trait Pages` methods themselves, not here
-
 	// TODO Err() returned by dev.*_error_counters()
 	let error_counters = vec![
 		("write",        pages.write_error_counters().ok()),
