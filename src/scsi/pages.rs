@@ -167,7 +167,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 	}
 
 	fn get_page(&mut self, page: u8) -> Result<log_page::Page, Error> {
-		if ! self.supported_pages().contains(&page) {
+		if ! self.supported_pages.contains(&page) {
 			info!("attemted to query unsupported page {}", page);
 			return Err(Error::NotSupported)
 		}
