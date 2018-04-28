@@ -460,7 +460,13 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 		DeviceArgument::SCSI(ref dev) => dev,
 	};
 
-	let mut pages = SCSIPages::new(dev);
+	let mut pages = match SCSIPages::new(dev) {
+		Ok(pages) => pages,
+		Err(e) => {
+			eprint!("cannot access SCSI log pages: {}\n", e);
+			return;
+		},
+	};
 
 	let mut json = serde_json::Map::new();
 
