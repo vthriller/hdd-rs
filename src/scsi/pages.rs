@@ -145,40 +145,35 @@ See [module documentation](index.html) for example.
 #[derive(Debug)]
 pub struct SCSIPages<'a, T: SCSICommon + 'a> {
 	device: &'a T,
-	supported_pages: Option<Vec<u8>>,
+	supported_pages: Vec<u8>,
 }
 
 // TODO non-empty autosense errors
 impl<'a> SCSIPages<'a, SCSIDevice> {
-	pub fn new(device: &'a SCSIDevice) -> Self {
-		Self { device, supported_pages: None }
+	// TODO document error type
+	pub fn new(device: &'a SCSIDevice) -> Result<Self, Error> {
+		Ok(Self {
+			device,
+			// no public method here can work without list of supported pages, so cache it right away or Err() out
+			supported_pages: Self::get_page_unchecked(device, 0x00)?.data.to_vec(),
+		})
 	}
 
-	pub fn supported_pages(&mut self) -> Result<Vec<u8>, Error> {
-		if self.supported_pages == None {
-			info!("querying supported log pages");
-
-			let page = self.get_page(0x00)?;
-			self.supported_pages = Some(page.data.to_vec());
-		} else {
-			// this one repeats way too often
-			//info!("(cached) querying supported log pages");
-		}
-
-		// unwrap is safe: list of pages is here, or function already returned after unsuccessful attempt to update this field
-		Ok(self.supported_pages.as_ref().unwrap().to_vec())
+	pub fn supported_pages(&mut self) -> &Vec<u8> {
+		&self.supported_pages
 	}
 
 	fn get_page(&mut self, page: u8) -> Result<log_page::Page, Error> {
-		// this very function is also used by self.supported_pages() so skip that
-		if page != 0x00 && ! self.supported_pages()?.contains(&page) {
-			// this is a little shortcut function, there is no general need to info!() here (log_sense() would do that for us)
-			// however we want to show whether we aborted early because page is not supported
+		if ! self.supported_pages().contains(&page) {
 			info!("attemted to query unsupported page {}", page);
 			return Err(Error::NotSupported)
 		}
 
-		let (_sense, data) = self.device.log_sense(
+		Self::get_page_unchecked(self.device, page)
+	}
+
+	fn get_page_unchecked(device: &SCSICommon, page: u8) -> Result<log_page::Page, Error> {
+		let (_sense, data) = device.log_sense(
 			false, // changed
 			false, // save_params
 			false, // default
