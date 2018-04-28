@@ -154,17 +154,16 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		Self { device, supported_pages: None }
 	}
 
-	pub fn supported_pages(&mut self) -> Result<&Vec<u8>, Error> {
+	pub fn supported_pages(&mut self) -> &Vec<u8> {
 		if self.supported_pages == None {
 			info!("querying supported log pages");
 
 			match self.get_page(0x00) {
 				Ok(page) => self.supported_pages = Some(page.data.to_vec()),
 				// we cannot tell what pages are supported, so cache empty list
-				Err(e) => {
-					self.supported_pages = Some(vec![]);
-					return Err(e);
-				},
+				// TODO cache the error and return it instead
+				// TODO (but wrap error into another enum variant to avoid confusion in methods that use `supported_pages()`, directly or indirectly)
+				Err(_) => self.supported_pages = Some(vec![]),
 			}
 		} else {
 			// this one repeats way too often
@@ -172,12 +171,12 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		}
 
 		// unwrap is safe: list of pages is here, or function already returned after unsuccessful attempt to update this field
-		Ok(self.supported_pages.as_ref().unwrap())
+		self.supported_pages.as_ref().unwrap()
 	}
 
 	fn get_page(&mut self, page: u8) -> Result<log_page::Page, Error> {
 		// this very function is also used by self.supported_pages() so skip that
-		if page != 0x00 && ! self.supported_pages()?.contains(&page) {
+		if page != 0x00 && ! self.supported_pages().contains(&page) {
 			// this is a little shortcut function, there is no general need to info!() here (log_sense() would do that for us)
 			// however we want to show whether we aborted early because page is not supported
 			info!("attemted to query unsupported page {}", page);
