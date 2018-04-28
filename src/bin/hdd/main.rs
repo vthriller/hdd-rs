@@ -43,6 +43,8 @@ extern crate env_logger;
 use log::LogLevelFilter;
 use env_logger::LogBuilder;
 
+use std::path::Path;
+
 #[macro_use]
 extern crate lazy_static;
 mod subcommands;
@@ -216,7 +218,7 @@ fn main() {
 	});
 	log.init().unwrap();
 
-	let path = args.value_of("device");
+	let path = args.value_of("device").map(|path| Path::new(path));
 	let dev = path.map(|p| Device::open(p).unwrap());
 
 	let dtype = args.value_of("type")

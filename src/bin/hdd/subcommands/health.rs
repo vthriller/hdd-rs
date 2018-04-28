@@ -12,6 +12,8 @@ use serde_json::value::ToJson;
 use ::{DeviceArgument, when_smart_enabled};
 use super::{Subcommand, arg_json};
 
+use std::path::Path;
+
 pub struct Health {}
 impl Subcommand for Health {
 	fn subcommand(&self) -> App<'static, 'static> {
@@ -22,7 +24,7 @@ impl Subcommand for Health {
 
 	fn run(
 		&self,
-		_: &Option<&str>,
+		_: &Option<&Path>,
 		dev: &Option<&DeviceArgument>,
 		args: &ArgMatches,
 	) {

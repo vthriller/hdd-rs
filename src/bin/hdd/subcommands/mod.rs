@@ -6,6 +6,7 @@ mod list;
 use std::collections::HashMap;
 use clap::{self, App, ArgMatches};
 use ::DeviceArgument;
+use std::path::Path;
 
 type Arg = clap::Arg<'static, 'static>;
 
@@ -34,7 +35,7 @@ pub fn arg_drivedb() -> Arg {
 
 pub trait Subcommand: Sync {
 	fn subcommand(&self) -> App<'static, 'static>;
-	fn run(&self, path: &Option<&str>, dev: &Option<&DeviceArgument>, args: &ArgMatches);
+	fn run(&self, path: &Option<&Path>, dev: &Option<&DeviceArgument>, args: &ArgMatches);
 }
 
 lazy_static! {

@@ -11,6 +11,8 @@ use serde_json;
 use ::DeviceArgument;
 use super::{Subcommand, arg_json};
 
+use std::path::Path;
+
 pub struct List {}
 impl Subcommand for List {
 	fn subcommand(&self) -> App<'static, 'static> {
@@ -21,7 +23,7 @@ impl Subcommand for List {
 
 	fn run(
 		&self,
-		_: &Option<&str>,
+		_: &Option<&Path>,
 		dev: &Option<&DeviceArgument>,
 		args: &ArgMatches,
 	) {

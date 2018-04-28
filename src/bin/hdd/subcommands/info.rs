@@ -18,6 +18,8 @@ use number_prefix::{decimal_prefix, binary_prefix, Standalone, Prefixed};
 use ::{DeviceArgument, open_drivedb};
 use super::{Subcommand, arg_json, arg_drivedb};
 
+use std::path::Path;
+
 fn bool_to_sup(b: bool) -> &'static str {
 	if b { "supported" }
 	else { "not supported" }
@@ -112,7 +114,7 @@ impl Subcommand for Info {
 
 	fn run(
 		&self,
-		_: &Option<&str>,
+		_: &Option<&Path>,
 		dev: &Option<&DeviceArgument>,
 		args: &ArgMatches,
 	) {
