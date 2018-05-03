@@ -127,8 +127,8 @@ pub fn open_drivedb(options: Option<Values>) -> Option<drivedb::DriveDB> {
 		}
 	}
 
-	let db = loader.db();
-	Some(db)
+	// TODO? show regex error to the world
+	loader.db().ok()
 }
 
 // cannot use #[cfg(…)] in arg_enum!, hence code duplication

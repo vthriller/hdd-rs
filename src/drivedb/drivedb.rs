@@ -1,5 +1,6 @@
 use super::{presets, Attribute};
 use super::parser::Entry;
+use regex;
 use regex::bytes::{RegexSet, RegexSetBuilder};
 use std::collections::HashSet;
 
@@ -26,7 +27,7 @@ pub struct DriveDB {
 }
 
 impl DriveDB {
-	pub(crate) fn new(entries: Vec<Entry>) -> Self {
+	pub(crate) fn new(entries: Vec<Entry>) -> Result<Self, regex::Error> {
 		let entries = entries.into_iter()
 			// USB ID entries are parsed differently; also, we don't support USB devices yet
 			.filter(|e| ! e.model.starts_with("USB:"));
@@ -42,7 +43,7 @@ impl DriveDB {
 		// hence `unicode(false)` and use of `regex::bytes::*` instead of `regex::*`
 		let model_regexes = RegexSetBuilder::new(entries.iter()
 			.map(|e| format!("^{}$", e.model))
-		).unicode(false).build().unwrap();
+		).unicode(false).build()?;
 		let firmware_regexes = RegexSetBuilder::new(entries.iter()
 			.map(|e|
 				if e.firmware.is_empty() {
@@ -51,14 +52,14 @@ impl DriveDB {
 					format!("^{}$", e.firmware)
 				}
 			)
-		).unicode(false).build().unwrap();
+		).unicode(false).build()?;
 
-		DriveDB {
+		Ok(DriveDB {
 			entries,
 			default,
 			model_regexes,
 			firmware_regexes,
-		}
+		})
 	}
 
 	fn find(&self, model: &str, firmware: &str) -> Option<&Entry> {

@@ -7,6 +7,8 @@ use std::io;
 
 use nom;
 
+use regex; // for Loader.db() error type
+
 quick_error! {
 	#[derive(Debug)]
 	pub enum Error {
@@ -83,7 +85,7 @@ impl Loader {
 		Ok(())
 	}
 	/// Returns actual drive database with all entries loaded beforehand.
-	pub fn db(self) -> DriveDB {
+	pub fn db(self) -> Result<DriveDB, regex::Error> {
 		let entries: Vec<_> = self.additional.into_iter()
 			.chain(self.entries.into_iter())
 			.collect();
