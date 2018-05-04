@@ -217,13 +217,7 @@ pub trait SCSICommon {
 		if sense.len() > 0 {
 			// only current senses are expected here
 			if let Some((true, sense)) = sense::parse(&sense) {
-				let k_asc_q = match sense {
-					sense::Sense::Fixed(sense::FixedData::Valid { key, asc, ascq, .. }) => Some((key, asc, ascq)),
-					sense::Sense::Fixed(sense::FixedData::Invalid(_)) => None,
-					sense::Sense::Descriptor(sense::DescriptorData { key, asc, ascq, .. }) => Some((key, asc, ascq)),
-				};
-
-				match k_asc_q {
+				match sense.kcq() {
 					// DEFECT LIST NOT FOUND
 					Some((_, 0x1c, 0x00)) => return Ok(Some(0)),
 					// PRIMARY DEFECT LIST NOT FOUND

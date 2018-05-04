@@ -12,6 +12,22 @@ pub enum Sense<'a> {
 	Descriptor(DescriptorData<'a>),
 }
 
+impl<'a> Sense<'a> {
+	/// Returns Key Code Qualifier for a valid sense
+	///
+	/// Returns tuple `(key, asc, ascq)`
+	pub fn kcq(&self) -> Option<(u8, u8, u8)> {
+		match self {
+			&Sense::Fixed(FixedData::Valid { key, asc, ascq, .. }) =>
+				Some((key, asc, ascq)),
+			&Sense::Fixed(FixedData::Invalid(_)) =>
+				None,
+			&Sense::Descriptor(DescriptorData { key, asc, ascq, .. }) =>
+				Some((key, asc, ascq)),
+		}
+	}
+}
+
 /**
 Parses sense data of any of the supported formats (70h–73h).
 
