@@ -38,7 +38,7 @@ quick_error! {
 		// XXX make sure only non-deferred senses are used here
 		// XXX it makes no sense (sorry!) to put informational senses here (i.e. sense::SenseKey::{Ok, Recovered, Completed})
 		Sense(key: sense::key::SenseKey, asc: u8, ascq: u8) { // XXX do we need additional sense data? descriptors? flags? probably not
-			// no from() here, as SCSI sense is also used for informational purposes
+			// FIXME no from() here due to sense::Sense lifetimes; for now use Error::from_sense() instead
 			description("SCSI error")
 			display("SCSI error: {:?} ({})",
 				key,
@@ -49,6 +49,17 @@ quick_error! {
 		// this is for Sense::Fixed(FixedData::Invalid(_))
 		// pun definitely intented at this point
 		Nonsense {}
+	}
+}
+
+impl Error {
+	fn from_sense(sense: &sense::Sense) -> Self {
+		match sense.kcq() {
+			Some((key, asc, ascq)) =>
+				Error::Sense(sense::key::SenseKey::from(key), asc, ascq),
+			None =>
+				Error::Nonsense,
+		}
 	}
 }
 
@@ -230,8 +241,7 @@ pub trait SCSICommon {
 						// XXX is it correct to just dismiss (WHATEVER) DEFECT LIST NOT FOUND if DefectList::Both is requested?
 					},
 					// unexpected sense
-					Some((key, asc, ascq)) => return Err(Error::Sense(sense::key::SenseKey::from(key), asc, ascq)),
-					None => return Err(Error::Nonsense),
+					s => return Err(Error::from_sense(&sense)),
 				}
 			}
 		}
@@ -374,7 +384,6 @@ pub trait SCSICommon {
 			},
 		};
 
-		// FIXME this block is full of super-awkward patterns
 		let descriptors = match sense {
 			// current sense in the descriptor format
 			sense::Sense::Descriptor(sense::DescriptorData {
@@ -393,21 +402,8 @@ pub trait SCSICommon {
 				return Err(ATAError::NotSupported);
 			},
 
-			sense::Sense::Fixed(sense::FixedData::Valid {
-				key, asc, ascq, ..
-			})
-			| sense::Sense::Descriptor(sense::DescriptorData {
-				key, asc, ascq, ..
-			})
-			=> {
-				// unexpected sense
-				return Err(Error::Sense(sense::key::SenseKey::from(key), asc, ascq))?;
-			},
-
-			sense::Sense::Fixed(sense::FixedData::Invalid(_)) => {
-				// invalid sense
-				return Err(Error::Nonsense)?;
-			},
+			// unexpected sense
+			sense => return Err(Error::from_sense(&sense))?,
 		};
 
 		for desc in descriptors {
