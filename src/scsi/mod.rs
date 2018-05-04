@@ -366,44 +366,47 @@ pub trait SCSICommon {
 
 		let (sense, data) = self.do_cmd(&ata_cmd, Direction::From, 32, 512)?;
 
+		let sense = match sense::parse(&sense) {
+			Some((true, sense)) => sense,
+			Some((false, _)) | None => {
+				// no (current) sense
+				return Err(ATAError::NoRegisters);
+			},
+		};
+
 		// FIXME this block is full of super-awkward patterns
-		let descriptors = match sense::parse(&sense) {
+		let descriptors = match sense {
 			// current sense in the descriptor format
-			Some((true, sense::Sense::Descriptor(sense::DescriptorData {
+			sense::Sense::Descriptor(sense::DescriptorData {
 				descriptors,
 				// Recovered Error / ATA PASS THROUGH INFORMATION AVAILABLE
 				key: 0x01, asc: 0x00, ascq: 0x1D,
 				..
-			}))) => {
+			}) => {
 				descriptors
 			},
 
-			Some((true, sense::Sense::Fixed(sense::FixedData::Valid {
+			sense::Sense::Fixed(sense::FixedData::Valid {
 				// Illegal Request / INVALID COMMAND OPERATION CODE
 				key: 0x05, asc: 0x20, ascq: 0x00, ..
-			}))) => {
+			}) => {
 				return Err(ATAError::NotSupported);
 			},
 
-			Some((true, sense::Sense::Fixed(sense::FixedData::Valid {
+			sense::Sense::Fixed(sense::FixedData::Valid {
 				key, asc, ascq, ..
-			})))
-			| Some((true, sense::Sense::Descriptor(sense::DescriptorData {
+			})
+			| sense::Sense::Descriptor(sense::DescriptorData {
 				key, asc, ascq, ..
-			})))
+			})
 			=> {
 				// unexpected sense
 				return Err(Error::Sense(sense::key::SenseKey::from(key), asc, ascq))?;
 			},
 
-			Some((true, sense::Sense::Fixed(sense::FixedData::Invalid(_)))) => {
+			sense::Sense::Fixed(sense::FixedData::Invalid(_)) => {
 				// invalid sense
 				return Err(Error::Nonsense)?;
-			},
-
-			Some((false, _)) | None => {
-				// no (current) sense
-				return Err(ATAError::NoRegisters);
 			},
 		};
 
