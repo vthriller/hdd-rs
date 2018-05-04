@@ -6,7 +6,7 @@ use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
 
 use hdd::scsi::pages::{SCSIPages, ErrorCounter};
-use hdd::scsi::SCSICommon;
+use hdd::scsi::{SCSICommon, DefectList};
 use hdd::scsi::data::inquiry;
 
 use clap::{
@@ -608,6 +608,27 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 				tmp.insert("load-unload".to_string(), values.to_json().unwrap());
 
 				json.insert("cycles".to_string(), tmp.to_json().unwrap());
+			},
+		}
+	}
+
+	// Grown Defect List
+
+	// again, TODO Err()
+	if let Ok(Some(defects)) = dev.read_defect_data_10(DefectList::Grown) {
+		match format {
+			Prometheus => {
+				labels.insert("list", "grown".to_string());
+				print!("{}\n", format_prom("scsi_defects", &labels, defects));
+			},
+			Plain => {
+				print!("\n");
+				print!("Elements in grown defect list: {}\n", defects);
+			},
+			JSON => {
+				let mut tmp = serde_json::Map::new();
+				tmp.insert("grown".to_string(), defects.to_json().unwrap());
+				json.insert("defect-list".to_string(), tmp.to_json().unwrap());
 			},
 		}
 	}
