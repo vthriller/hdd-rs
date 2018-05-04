@@ -569,6 +569,8 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	if let Some(Ok(cycles)) = pages.iter_mut().next().map(|p| p.dates_and_cycle_counters()) {
 		match format {
 			Prometheus => {
+				let mut labels = labels.clone();
+
 				labels.insert("action", "start-stop".to_string());
 				if let Some(t) = cycles.start_stop_cycles          { print!("{}\n", format_prom("scsi_cycles", &labels, t)) };
 				if let Some(t) = cycles.lifetime_start_stop_cycles { print!("{}\n", format_prom("scsi_lifetime_cycles", &labels, t)) };
