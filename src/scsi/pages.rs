@@ -230,7 +230,10 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 				let mut offset = 0;
 				if param.value.len() > 8 {
 					for i in 0..(param.value.len() - 8) {
-						if param.value[i] != 0 { return None; }
+						if param.value[i] != 0 {
+							warn!("page {} error counter does not fit u64", page);
+							return None;
+						}
 						offset += 1;
 					}
 				}
