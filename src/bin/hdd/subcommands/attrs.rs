@@ -470,13 +470,10 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 		DeviceArgument::SCSI(ref dev) => dev,
 	};
 
-	let mut pages = match SCSIPages::new(dev) {
-		Ok(pages) => pages,
-		Err(e) => {
-			eprint!("cannot access SCSI log pages: {}\n", e);
-			return;
-		},
-	};
+	let mut pages = SCSIPages::new(dev);
+	if let Err(ref e) = pages {
+		eprint!("cannot access SCSI log pages: {}\n", e);
+	}
 
 	let mut json = serde_json::Map::new();
 
@@ -489,40 +486,42 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 		labels.insert("firmware", inquiry.product_rev.clone());
 	}
 
-	// TODO Err() returned by dev.*_error_counters()
-	let error_counters = vec![
-		("write",        pages.write_error_counters().ok()),
-		("read",         pages.read_error_counters().ok()),
-		("read-reverse", pages.read_reverse_error_counters().ok()),
-		("verify",       pages.verify_error_counters().ok()),
-	];
+	if let Ok(ref mut pages) = pages {
+		// TODO Err() returned by dev.*_error_counters()
+		let error_counters = vec![
+			("write",        pages.write_error_counters().ok()),
+			("read",         pages.read_error_counters().ok()),
+			("read-reverse", pages.read_reverse_error_counters().ok()),
+			("verify",       pages.verify_error_counters().ok()),
+		];
 
-	match format {
-		Prometheus => {
-			for (name, counters) in error_counters {
-				counters.map(|counters| print_prom_scsi_error_counters(&labels, &counters, name));
-			}
-		},
-		Plain => {
-			let mut table = vec![];
-			for (name, counters) in error_counters {
-				counters.map(|counters| table.push((name, counters)));
-			}
-			print_human_scsi_error_counters(&table);
-		},
-		JSON => {
-			for (name, counters) in error_counters {
-				if let Some(counters) = counters {
-					json.insert(name.to_string(), scsi_error_counters_json(&counters));
+		match format {
+			Prometheus => {
+				for (name, counters) in error_counters {
+					counters.map(|counters| print_prom_scsi_error_counters(&labels, &counters, name));
 				}
-			}
-		},
+			},
+			Plain => {
+				let mut table = vec![];
+				for (name, counters) in error_counters {
+					counters.map(|counters| table.push((name, counters)));
+				}
+				print_human_scsi_error_counters(&table);
+			},
+			JSON => {
+				for (name, counters) in error_counters {
+					if let Some(counters) = counters {
+						json.insert(name.to_string(), scsi_error_counters_json(&counters));
+					}
+				}
+			},
+		}
 	}
 
 	// Non-medium errors
 
 	// also TODO Err()
-	if let Ok(x) = pages.non_medium_error_count() {
+	if let Some(Ok(x)) = pages.iter_mut().next().map(|p| p.non_medium_error_count()) {
 		match format {
 			Prometheus => {
 				print!("{}\n", format_prom("scsi_non_medium_errors", &labels, x));
@@ -539,7 +538,7 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 	// Temperature
 
 	// also TODO Err()
-	if let Ok((temp, ref_temp)) = pages.temperature() {
+	if let Some(Ok((temp, ref_temp))) = pages.iter_mut().next().map(|p| p.temperature()) {
 		match format {
 			Prometheus => {
 				if let Some(t) = temp     { print!("{}\n", format_prom("scsi_temperature", &labels, t)) };
@@ -567,7 +566,7 @@ fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
 
 	// also TODO Err()
 	// FIXME copy-paste: cycles.{,_lifetime}{start_stop,load_unload}_cycles
-	if let Ok(cycles) = pages.dates_and_cycle_counters() {
+	if let Some(Ok(cycles)) = pages.iter_mut().next().map(|p| p.dates_and_cycle_counters()) {
 		match format {
 			Prometheus => {
 				labels.insert("action", "start-stop".to_string());
