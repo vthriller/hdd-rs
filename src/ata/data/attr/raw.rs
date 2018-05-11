@@ -190,29 +190,19 @@ impl Raw {
 				TODO? we're also skipping WDC overheating counters here
 				*/
 
-				// #![feature(slice_patterns)] is only available in nightly Rust, so here goes some ugliness
-				let mut r = raw48.iter();
-				let r = (
-					*r.next().unwrap(),
-					*r.next().unwrap(),
-					*r.next().unwrap(),
-					*r.next().unwrap(),
-					*r.next().unwrap(),
-					*r.next().unwrap(),
-				);
-				match r {
-					(0, 0, 0, 0, 0, t) => Celsius(t as f32),
-					(0, 0, 0, x, y, t) => CelsiusMinMax {
+				match raw48[..] {
+					[0, 0, 0, 0, 0, t] => Celsius(t as f32),
+					[0, 0, 0, x, y, t] => CelsiusMinMax {
 						current: t,
 						min: min(x, y),
 						max: max(x, y),
 					},
-					(0, 0, x, y, 0, t) => CelsiusMinMax {
+					[0, 0, x, y, 0, t] => CelsiusMinMax {
 						current: t,
 						min: min(x, y),
 						max: max(x, y),
 					},
-					(0, x, 0, y, 0, t) => CelsiusMinMax {
+					[0, x, 0, y, 0, t] => CelsiusMinMax {
 						current: t,
 						min: min(x, y),
 						max: max(x, y),
