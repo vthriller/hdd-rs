@@ -92,7 +92,7 @@ impl SCSIDevice {
 	// thin wrapper against platform-specific implementation, mainly exists to provide consistent logging between platforms
 	/// Executes `cmd` and returns tuple of `(sense, data)`.
 	pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
-		info!("SCSI cmd: dir={:?} cmd={:?}", dir, cmd);
+		info!("SCSI cmd: dir={:?} cmd={:02x?}", dir, cmd);
 
 		// this one is implemented in `mod {linux,freebsd}`
 		let ret = Self::do_platform_cmd(self, cmd, dir, sense_len, data_len);
