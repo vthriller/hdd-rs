@@ -72,13 +72,13 @@ macro_rules! ata_do { ($Err:ty) => {
 
 		// this one is implemented in `mod {linux,freebsd}`, and here for `T: SCSIDevice`
 		let ret = Self::ata_platform_do(self, dir, regs);
-		match ret {
-			Ok((ref regs, ref data)) => {
+		match &ret {
+			Ok((regs, data)) => {
 				debug!("cmd reply: regs={:?}", regs);
 				// XXX does it make sense to use hexdump_16() instead of hexdump_8() if cmd is not IDENTIFY DEVICE?
 				debug!("cmd data: {}", ::utils::hexdump_16be(&::utils::bytes_to_be_words(data)));
 			},
-			ref err => {
+			err => {
 				debug!("cmd error: {:?}", err);
 			},
 		}

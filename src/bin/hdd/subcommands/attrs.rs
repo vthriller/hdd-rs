@@ -218,9 +218,9 @@ impl Subcommand for Attrs {
 		use DeviceArgument::*;
 		match dev {
 			#[cfg(not(target_os = "linux"))]
-			dev @ &ATA(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
-			dev @ &SAT(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
-			dev @ &SCSI(_) => attrs_scsi(path, dev, format),
+			dev @ ATA(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
+			dev @ SAT(_, _) => attrs_ata(path, dev, format, drivedb, user_attributes),
+			dev @ SCSI(_) => attrs_scsi(path, dev, format),
 		};
 	}
 }
@@ -230,10 +230,10 @@ enum Format { Plain, JSON, Prometheus }
 use self::Format::*;
 
 fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<drivedb::DriveDB>, user_attributes: Vec<drivedb::Attribute>) {
-	let id = match *dev {
+	let id = match dev {
 		#[cfg(not(target_os = "linux"))]
-		DeviceArgument::ATA(_, ref id) => id,
-		DeviceArgument::SAT(_, ref id) => id,
+		DeviceArgument::ATA(_, id) => id,
+		DeviceArgument::SAT(_, id) => id,
 		DeviceArgument::SCSI(_) => unreachable!(),
 	};
 
@@ -247,7 +247,7 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<d
 	labels.insert("dev", path.to_string());
 	labels.insert("model", id.model.clone());
 	labels.insert("serial", id.serial.clone());
-	if let Some(ref entry) = dbentry {
+	if let Some(entry) = &dbentry {
 		if let Some(family) = entry.family {
 			labels.insert("family", family.clone());
 		}
@@ -266,10 +266,10 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<d
 			print!("{}\n", format_prom("smart_enabled", &labels, 0)),
 
 		(format, Enabled) => {
-			let values = match *dev {
+			let values = match dev {
 				#[cfg(not(target_os = "linux"))]
-				DeviceArgument::ATA(ref dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
-				DeviceArgument::SAT(ref dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
+				DeviceArgument::ATA(dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
+				DeviceArgument::SAT(dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
 				DeviceArgument::SCSI(_) => unreachable!(),
 			};
 
@@ -295,7 +295,7 @@ fn print_prom_scsi_error_counters(labels: &HashMap<&str, String>, counters: &Has
 
 	use self::ErrorCounter::*;
 	for (k, v) in counters {
-		match *k {
+		match k {
 			CorrectedNoDelay => {
 				let mut labels = labels.clone();
 				labels.insert("with_delay", "1".to_string());
@@ -399,7 +399,7 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 	// FIXME this whole thing about unexpected keys is fragile AF, mainly because of all the unreachable!()s
 
 	let mut unexpected = vec![];
-	for &(_, ref values) in counters.iter() {
+	for (_, values) in counters.iter() {
 		for (key, _) in values {
 			match *key {
 				CorrectedNoDelay | CorrectedDelay | Total | ErrorsCorrected | Uncorrected | CRCProcessed | BytesProcessed
@@ -411,7 +411,7 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 	}
 	unexpected.sort_unstable_by(|a, b| {
 		use std::cmp::Ordering::*;
-		match (*a, *b) {
+		match (a, b) {
 			(VendorSpecific(a), VendorSpecific(b)) => a.cmp(&b),
 			(      Reserved(a),       Reserved(b)) => a.cmp(&b),
 			(VendorSpecific(_),       Reserved(_)) => Greater,
@@ -434,18 +434,18 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 
 		row.push(Cell::new(&name));
 
-		for &(_, ref values) in counters.iter() {
+		for (_, values) in counters.iter() {
 			#[allow(trivial_casts)] // closures in .map_or()
 			row.push(Cell::new(&values.get(&key)
 				.map_or(
 					"-".to_string(),
 					if key == BytesProcessed {
-						(|v| match binary_prefix(*v as f32) {
+						(|&v| match binary_prefix(v as f32) {
 							Prefixed(p, x) => format!("{:.1} {}B", x, p),
 							Standalone(x)  => format!("{} B", x),
 						}) as fn(&u64) -> String
 					} else {
-						(|v| match decimal_prefix(*v as f32) {
+						(|&v| match decimal_prefix(v as f32) {
 							Prefixed(p, x) => format!("{:.1}{}", x, p),
 							Standalone(x)  => format!("{}", x),
 						}) as fn(&u64) -> String
@@ -463,15 +463,15 @@ fn print_human_scsi_error_counters(counters: &Vec<(&str, HashMap<ErrorCounter, u
 // TODO other formats
 // TODO prometheus: device id labels, just like in attrs_ata
 fn attrs_scsi(path: &str, dev: &DeviceArgument, format: Format) {
-	let dev = match *dev {
+	let dev = match dev {
 		#[cfg(not(target_os = "linux"))]
 		DeviceArgument::ATA(_, _) => unreachable!(),
 		DeviceArgument::SAT(_, _) => unreachable!(),
-		DeviceArgument::SCSI(ref dev) => dev,
+		DeviceArgument::SCSI(dev) => dev,
 	};
 
 	let mut pages = SCSIPages::new(dev);
-	if let Err(ref e) = pages {
+	if let Err(e) = &pages {
 		eprint!("cannot access SCSI log pages: {}\n", e);
 	}
 

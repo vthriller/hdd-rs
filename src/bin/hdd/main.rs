@@ -51,7 +51,7 @@ mod subcommands;
 use subcommands::SUBCOMMANDS;
 
 pub fn when_smart_enabled<F>(status: &id::Ternary, action_name: &str, mut action: F) where F: FnMut() -> () {
-	match *status {
+	match status {
 		id::Ternary::Unsupported => eprint!("S.M.A.R.T. is not supported, cannot show {}\n", action_name),
 		id::Ternary::Disabled => eprint!("S.M.A.R.T. is disabled, cannot show {}\n", action_name),
 		id::Ternary::Enabled => action(),

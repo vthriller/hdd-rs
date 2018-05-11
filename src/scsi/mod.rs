@@ -96,12 +96,12 @@ impl SCSIDevice {
 
 		// this one is implemented in `mod {linux,freebsd}`
 		let ret = Self::do_platform_cmd(self, cmd, dir, sense_len, data_len);
-		match ret {
-			Ok((ref sense, ref data)) => {
+		match &ret {
+			Ok((sense, data)) => {
 				debug!("SCSI autosense: {}", hexdump_8(sense));
 				debug!("SCSI data: {}", hexdump_8(data));
 			},
-			ref err => {
+			err => {
 				debug!("SCSI err: {:?}", err);
 			}
 		}

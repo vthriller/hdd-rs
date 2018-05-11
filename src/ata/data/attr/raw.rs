@@ -40,22 +40,22 @@ where T: fmt::Display {
 impl fmt::Display for Raw {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		use self::Raw::*;
-		match *self {
-			Raw8(ref vals) => write_vec(f, &vals),
-			Raw16(ref vals) => write_vec(f, &vals),
+		match self {
+			Raw8(vals) => write_vec(f, &vals),
+			Raw16(vals) => write_vec(f, &vals),
 			Raw64(val) => write!(f, "{}", val),
-			Raw16opt16(ref x, ref y) => {
+			Raw16opt16(x, y) => {
 				write!(f, "{}", x)?;
-				if let &Some(ref vec) = y {
+				if let Some(vec) = y {
 					write!(f, " (")?;
 					write_vec(f, &vec)?;
 					write!(f, ")")?;
 				}
 				Ok(())
 			}
-			Raw24opt8(ref x, ref y) => {
+			Raw24opt8(x, y) => {
 				write!(f, "{}", x)?;
-				if let &Some(ref vec) = y {
+				if let Some(vec) = y {
 					write!(f, " (")?;
 					write_vec(f, &vec)?;
 					write!(f, ")")?;
@@ -79,7 +79,7 @@ impl fmt::Display for Raw {
 				write!(f, "{}d {:02}:{:02}:{:02}", d, h, m, s)
 			},
 			HoursMilliseconds(h, ms) => {
-				let s = ms as f32 / 1000.;
+				let s = *ms as f32 / 1000.;
 				let m = s as u32 / 60; let s = s - (m as f32) * 60.;
 				let d = h / 24; let h = h - d * 24;
 
