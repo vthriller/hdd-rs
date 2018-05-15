@@ -246,19 +246,7 @@ pub trait SCSICommon {
 			}
 		}
 
-		if data.len() >= 4 {
-			// byte 0: reserved
-
-			// > A device server unable to return the requested format shall return the defect list in its default format and indicate that format in the DEFECT LIST FORMAT field in the defect list header
-			let format = data[1] & 0b111;
-			let glistv = data[1] & 0b1000 != 0;
-			let plistv = data[1] & 0b10000 != 0;
-			// byte 1 bits 5..7: reserved
-
-			let len = (&data[2..4]).read_u16::<BigEndian>().unwrap();
-
-			// the rest is the address list itself
-
+		if let Some((format, glistv, plistv, len)) = parse_defect_data_10(&data) {
 			debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
 
 			match (list, plistv, glistv) {
@@ -352,21 +340,7 @@ pub trait SCSICommon {
 			}
 		}
 
-		if data.len() >= 8 {
-			// byte 0: reserved
-
-			// > A device server unable to return the requested format shall return the defect list in its default format and indicate that format in the DEFECT LIST FORMAT field in the defect list header
-			let format = data[1] & 0b111;
-			let glistv = data[1] & 0b1000 != 0;
-			let plistv = data[1] & 0b10000 != 0;
-			// byte 1 bits 5..7: reserved
-
-			// bytes 2, 3: reserved
-
-			let len = (&data[4..8]).read_u32::<BigEndian>().unwrap();
-
-			// the rest is the address list itself
-
+		if let Some((format, glistv, plistv, len)) = parse_defect_data_12(&data) {
 			debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
 
 			match (list, plistv, glistv) {
@@ -544,4 +518,46 @@ impl SCSICommon for SCSIDevice {
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		Self::do_cmd(self, cmd, dir, sense_len, data_len)
 	}
+}
+
+// The following return tuple of (format, glistv, plistv, len)
+fn parse_defect_data_10(data: &[u8]) -> Option<(u8, bool, bool, u16)> {
+	if data.len() >= 4 {
+		// byte 0: reserved
+
+		// > A device server unable to return the requested format shall return the defect list in its default format and indicate that format in the DEFECT LIST FORMAT field in the defect list header
+		let format = data[1] & 0b111;
+		let glistv = data[1] & 0b1000 != 0;
+		let plistv = data[1] & 0b10000 != 0;
+		// byte 1 bits 5..7: reserved
+
+		let len = (&data[2..4]).read_u16::<BigEndian>().unwrap();
+
+		// the rest is the address list itself
+
+		return Some((format, glistv, plistv, len));
+	}
+
+	None
+}
+fn parse_defect_data_12(data: &[u8]) -> Option<(u8, bool, bool, u32)> {
+	if data.len() >= 8 {
+		// byte 0: reserved
+
+		// > A device server unable to return the requested format shall return the defect list in its default format and indicate that format in the DEFECT LIST FORMAT field in the defect list header
+		let format = data[1] & 0b111;
+		let glistv = data[1] & 0b1000 != 0;
+		let plistv = data[1] & 0b10000 != 0;
+		// byte 1 bits 5..7: reserved
+
+		// bytes 2, 3: reserved
+
+		let len = (&data[4..8]).read_u32::<BigEndian>().unwrap();
+
+		// the rest is the address list itself
+
+		return Some((format, glistv, plistv, len));
+	}
+
+	None
 }
