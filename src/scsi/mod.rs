@@ -290,6 +290,114 @@ pub trait SCSICommon {
 		}
 	}
 
+	/**
+	Executes READ DEFECT DATA(12) command, returning the number of entries in the `list`.
+
+	Returns `None` if:
+
+	- device returns entries it wasn't asked to list (e.g. primary list for `DefectList::Grown`)
+	- device returns entries in unexpected format
+	- device returns malformed data
+	*/
+	fn read_defect_data_12(&self, list: DefectList) -> Result<Option<u32>, Error> {
+		// XXX see read_defect_data_10()
+		let format = AddrDescriptorFormat::BytesFromIndex;
+
+		let (plist, glist) = match list {
+			DefectList::Primary => (true,  false),
+			DefectList::Grown   => (false, true),
+			DefectList::Both    => (true,  true),
+		};
+
+		info!("issuing READ DEFECT DATA(12): plist={:?} glist={:?} format={:?}", plist, glist, format);
+
+		let plist = if plist { 1 } else { 0 };
+		let glist = if glist { 1 } else { 0 };
+
+		// we're only interested in the header, not the list itself
+		const alloc: usize = 8;
+
+		let cmd: [u8; 12] = [
+			0xb7, // opcode
+			(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
+			0, 0, 0, 0, // reserved
+			((alloc >> 24) & 0xff) as u8,
+			((alloc >> 16) & 0xff) as u8,
+			((alloc >>  8) & 0xff) as u8,
+			( alloc        & 0xff) as u8,
+			0, // reserved
+			0, // control (XXX what's that?!)
+		];
+
+		let (sense, data) = self.do_cmd(&cmd, Direction::From, 32, alloc)?;
+
+		if sense.len() > 0 {
+			// only current senses are expected here
+			if let Some((true, sense)) = sense::parse(&sense) {
+				match sense.kcq() {
+					// DEFECT LIST NOT FOUND
+					Some((_, 0x1c, 0x00)) => return Ok(Some(0)),
+					// PRIMARY DEFECT LIST NOT FOUND
+					Some((_, 0x1c, 0x01)) |
+					// GROWN DEFECT LIST NOT FOUND
+					Some((_, 0x1c, 0x02)) => {
+						if list != DefectList::Both {
+							return Ok(Some(0))
+						} // else fall through to the data parser
+						// XXX is it correct to just dismiss (WHATEVER) DEFECT LIST NOT FOUND if DefectList::Both is requested?
+					},
+					// unexpected sense
+					s => return Err(Error::from_sense(&sense)),
+				}
+			}
+		}
+
+		if data.len() >= 8 {
+			// byte 0: reserved
+
+			// > A device server unable to return the requested format shall return the defect list in its default format and indicate that format in the DEFECT LIST FORMAT field in the defect list header
+			let format = data[1] & 0b111;
+			let glistv = data[1] & 0b1000 != 0;
+			let plistv = data[1] & 0b10000 != 0;
+			// byte 1 bits 5..7: reserved
+
+			// bytes 2, 3: reserved
+
+			let len = (&data[4..8]).read_u32::<BigEndian>().unwrap();
+
+			// the rest is the address list itself
+
+			debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
+
+			match (list, plistv, glistv) {
+				(DefectList::Primary, true,  false) => (),
+				(DefectList::Grown,   false, true)  => (),
+				(DefectList::Both,    _,     _)     => (), // XXX match true/true?
+				_ => {
+					info!("device returned unexpected defect list");
+					return Ok(None);
+				},
+			}
+
+			// see SBC-3, 5.2.2.4
+			let entry_size = match format {
+				0b000 => 4, // ShortBlock
+				0b011 => 8, // LongBlock
+				0b100 => 8, // BytesFromIndex
+				0b101 => 8, // PhysSector
+				_ => {
+					info!("unexpected defect list entry format");
+					return Ok(None);
+				},
+			};
+
+			return Ok(Some(len / entry_size));
+		} else {
+			info!("defect list: not enough data");
+			return Ok(None);
+		}
+	}
+
 	// TODO? struct as a single argument, or maybe even resort to the builder pattern
 	/**
 	Executes LOG SENSE command.
