@@ -129,7 +129,7 @@ pub enum DefectList {
 }
 
 // TODO look for non-empty autosense and turn it into errors where appropriate
-pub trait SCSICommon {
+pub trait SCSICommon: Sized {
 	// XXX DRY
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
 
@@ -195,87 +195,7 @@ pub trait SCSICommon {
 	- device returns malformed data
 	*/
 	fn read_defect_data_10(&self, list: DefectList) -> Result<Option<u16>, Error> {
-		// XXX tried (Short|Long)Block on HUS723030ALS640, got GROWN DEFECT LIST NOT FOUND in return—why?
-		// for now use the same format smartmontools uses from time immemorial
-		let format = AddrDescriptorFormat::BytesFromIndex;
-
-		let (plist, glist) = match list {
-			DefectList::Primary => (true,  false),
-			DefectList::Grown   => (false, true),
-			DefectList::Both    => (true,  true),
-		};
-
-		info!("issuing READ DEFECT DATA(10): plist={:?} glist={:?} format={:?}", plist, glist, format);
-
-		let plist = if plist { 1 } else { 0 };
-		let glist = if glist { 1 } else { 0 };
-
-		// we're only interested in the header, not the list itself
-		const alloc: usize = 4;
-
-		let cmd: [u8; 10] = [
-			0x37, // opcode
-			0, // reserved
-			(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
-			0, 0, 0, 0, // reserved
-			(alloc >> 8) as u8,
-			(alloc & 0xff) as u8,
-			0, // control (XXX what's that?!)
-		];
-
-		let (sense, data) = self.do_cmd(&cmd, Direction::From, 32, alloc)?;
-
-		if sense.len() > 0 {
-			// only current senses are expected here
-			if let Some((true, sense)) = sense::parse(&sense) {
-				match sense.kcq() {
-					// DEFECT LIST NOT FOUND
-					Some((_, 0x1c, 0x00)) => return Ok(Some(0)),
-					// PRIMARY DEFECT LIST NOT FOUND
-					Some((_, 0x1c, 0x01)) |
-					// GROWN DEFECT LIST NOT FOUND
-					Some((_, 0x1c, 0x02)) => {
-						if list != DefectList::Both {
-							return Ok(Some(0))
-						} // else fall through to the data parser
-						// XXX is it correct to just dismiss (WHATEVER) DEFECT LIST NOT FOUND if DefectList::Both is requested?
-					},
-					// unexpected sense
-					s => return Err(Error::from_sense(&sense)),
-				}
-			}
-		}
-
-		if let Some((format, glistv, plistv, len)) = parse_defect_data_10(&data) {
-			debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
-
-			match (list, plistv, glistv) {
-				(DefectList::Primary, true,  false) => (),
-				(DefectList::Grown,   false, true)  => (),
-				(DefectList::Both,    _,     _)     => (), // XXX match true/true?
-				_ => {
-					info!("device returned unexpected defect list");
-					return Ok(None);
-				},
-			}
-
-			// see SBC-3, 5.2.2.4
-			let entry_size = match format {
-				0b000 => 4, // ShortBlock
-				0b011 => 8, // LongBlock
-				0b100 => 8, // BytesFromIndex
-				0b101 => 8, // PhysSector
-				_ => {
-					info!("unexpected defect list entry format");
-					return Ok(None);
-				},
-			};
-
-			return Ok(Some(len / entry_size));
-		} else {
-			info!("defect list: not enough data");
-			return Ok(None);
-		}
+		read_defect_data_10(self, list)
 	}
 
 	/**
@@ -288,88 +208,7 @@ pub trait SCSICommon {
 	- device returns malformed data
 	*/
 	fn read_defect_data_12(&self, list: DefectList) -> Result<Option<u32>, Error> {
-		// XXX see read_defect_data_10()
-		let format = AddrDescriptorFormat::BytesFromIndex;
-
-		let (plist, glist) = match list {
-			DefectList::Primary => (true,  false),
-			DefectList::Grown   => (false, true),
-			DefectList::Both    => (true,  true),
-		};
-
-		info!("issuing READ DEFECT DATA(12): plist={:?} glist={:?} format={:?}", plist, glist, format);
-
-		let plist = if plist { 1 } else { 0 };
-		let glist = if glist { 1 } else { 0 };
-
-		// we're only interested in the header, not the list itself
-		const alloc: usize = 8;
-
-		let cmd: [u8; 12] = [
-			0xb7, // opcode
-			(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
-			0, 0, 0, 0, // reserved
-			((alloc >> 24) & 0xff) as u8,
-			((alloc >> 16) & 0xff) as u8,
-			((alloc >>  8) & 0xff) as u8,
-			( alloc        & 0xff) as u8,
-			0, // reserved
-			0, // control (XXX what's that?!)
-		];
-
-		let (sense, data) = self.do_cmd(&cmd, Direction::From, 32, alloc)?;
-
-		if sense.len() > 0 {
-			// only current senses are expected here
-			if let Some((true, sense)) = sense::parse(&sense) {
-				match sense.kcq() {
-					// DEFECT LIST NOT FOUND
-					Some((_, 0x1c, 0x00)) => return Ok(Some(0)),
-					// PRIMARY DEFECT LIST NOT FOUND
-					Some((_, 0x1c, 0x01)) |
-					// GROWN DEFECT LIST NOT FOUND
-					Some((_, 0x1c, 0x02)) => {
-						if list != DefectList::Both {
-							return Ok(Some(0))
-						} // else fall through to the data parser
-						// XXX is it correct to just dismiss (WHATEVER) DEFECT LIST NOT FOUND if DefectList::Both is requested?
-					},
-					// unexpected sense
-					s => return Err(Error::from_sense(&sense)),
-				}
-			}
-		}
-
-		if let Some((format, glistv, plistv, len)) = parse_defect_data_12(&data) {
-			debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
-
-			match (list, plistv, glistv) {
-				(DefectList::Primary, true,  false) => (),
-				(DefectList::Grown,   false, true)  => (),
-				(DefectList::Both,    _,     _)     => (), // XXX match true/true?
-				_ => {
-					info!("device returned unexpected defect list");
-					return Ok(None);
-				},
-			}
-
-			// see SBC-3, 5.2.2.4
-			let entry_size = match format {
-				0b000 => 4, // ShortBlock
-				0b011 => 8, // LongBlock
-				0b100 => 8, // BytesFromIndex
-				0b101 => 8, // PhysSector
-				_ => {
-					info!("unexpected defect list entry format");
-					return Ok(None);
-				},
-			};
-
-			return Ok(Some(len / entry_size));
-		} else {
-			info!("defect list: not enough data");
-			return Ok(None);
-		}
+		read_defect_data_12(self, list)
 	}
 
 	// TODO? struct as a single argument, or maybe even resort to the builder pattern
@@ -517,6 +356,175 @@ impl SCSICommon for SCSIDevice {
 	// XXX DRY
 	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		Self::do_cmd(self, cmd, dir, sense_len, data_len)
+	}
+}
+
+fn read_defect_data_10<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u16>, Error> {
+	// XXX tried (Short|Long)Block on HUS723030ALS640, got GROWN DEFECT LIST NOT FOUND in return—why?
+	// for now use the same format smartmontools uses from time immemorial
+	let format = AddrDescriptorFormat::BytesFromIndex;
+
+	let (plist, glist) = match list {
+		DefectList::Primary => (true,  false),
+		DefectList::Grown   => (false, true),
+		DefectList::Both    => (true,  true),
+	};
+
+	info!("issuing READ DEFECT DATA(10): plist={:?} glist={:?} format={:?}", plist, glist, format);
+
+	let plist = if plist { 1 } else { 0 };
+	let glist = if glist { 1 } else { 0 };
+
+	// we're only interested in the header, not the list itself
+	const alloc: usize = 4;
+
+	let cmd: [u8; 10] = [
+		0x37, // opcode
+		0, // reserved
+		(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
+		0, 0, 0, 0, // reserved
+		(alloc >> 8) as u8,
+		(alloc & 0xff) as u8,
+		0, // control (XXX what's that?!)
+	];
+
+	let (sense, data) = dev.do_cmd(&cmd, Direction::From, 32, alloc)?;
+
+	if sense.len() > 0 {
+		// only current senses are expected here
+		if let Some((true, sense)) = sense::parse(&sense) {
+			match sense.kcq() {
+				// DEFECT LIST NOT FOUND
+				Some((_, 0x1c, 0x00)) => return Ok(Some(0)),
+				// PRIMARY DEFECT LIST NOT FOUND
+				Some((_, 0x1c, 0x01)) |
+				// GROWN DEFECT LIST NOT FOUND
+				Some((_, 0x1c, 0x02)) => {
+					if list != DefectList::Both {
+						return Ok(Some(0))
+					} // else fall through to the data parser
+					// XXX is it correct to just dismiss (WHATEVER) DEFECT LIST NOT FOUND if DefectList::Both is requested?
+				},
+				// unexpected sense
+				s => return Err(Error::from_sense(&sense)),
+			}
+		}
+	}
+
+	if let Some((format, glistv, plistv, len)) = parse_defect_data_10(&data) {
+		debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
+
+		match (list, plistv, glistv) {
+			(DefectList::Primary, true,  false) => (),
+			(DefectList::Grown,   false, true)  => (),
+			(DefectList::Both,    _,     _)     => (), // XXX match true/true?
+			_ => {
+				info!("device returned unexpected defect list");
+				return Ok(None);
+			},
+		}
+
+		// see SBC-3, 5.2.2.4
+		let entry_size = match format {
+			0b000 => 4, // ShortBlock
+			0b011 => 8, // LongBlock
+			0b100 => 8, // BytesFromIndex
+			0b101 => 8, // PhysSector
+			_ => {
+				info!("unexpected defect list entry format");
+				return Ok(None);
+			},
+		};
+
+		return Ok(Some(len / entry_size));
+	} else {
+		info!("defect list: not enough data");
+		return Ok(None);
+	}
+}
+
+fn read_defect_data_12<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u32>, Error> {
+	// XXX see read_defect_data_10()
+	let format = AddrDescriptorFormat::BytesFromIndex;
+
+	let (plist, glist) = match list {
+		DefectList::Primary => (true,  false),
+		DefectList::Grown   => (false, true),
+		DefectList::Both    => (true,  true),
+	};
+
+	info!("issuing READ DEFECT DATA(12): plist={:?} glist={:?} format={:?}", plist, glist, format);
+
+	let plist = if plist { 1 } else { 0 };
+	let glist = if glist { 1 } else { 0 };
+
+	// we're only interested in the header, not the list itself
+	const alloc: usize = 8;
+
+	let cmd: [u8; 12] = [
+		0xb7, // opcode
+		(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
+		0, 0, 0, 0, // reserved
+		((alloc >> 24) & 0xff) as u8,
+		((alloc >> 16) & 0xff) as u8,
+		((alloc >>  8) & 0xff) as u8,
+		( alloc        & 0xff) as u8,
+		0, // reserved
+		0, // control (XXX what's that?!)
+	];
+
+	let (sense, data) = dev.do_cmd(&cmd, Direction::From, 32, alloc)?;
+
+	if sense.len() > 0 {
+		// only current senses are expected here
+		if let Some((true, sense)) = sense::parse(&sense) {
+			match sense.kcq() {
+				// DEFECT LIST NOT FOUND
+				Some((_, 0x1c, 0x00)) => return Ok(Some(0)),
+				// PRIMARY DEFECT LIST NOT FOUND
+				Some((_, 0x1c, 0x01)) |
+				// GROWN DEFECT LIST NOT FOUND
+				Some((_, 0x1c, 0x02)) => {
+					if list != DefectList::Both {
+						return Ok(Some(0))
+					} // else fall through to the data parser
+					// XXX is it correct to just dismiss (WHATEVER) DEFECT LIST NOT FOUND if DefectList::Both is requested?
+				},
+				// unexpected sense
+				s => return Err(Error::from_sense(&sense)),
+			}
+		}
+	}
+
+	if let Some((format, glistv, plistv, len)) = parse_defect_data_12(&data) {
+		debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
+
+		match (list, plistv, glistv) {
+			(DefectList::Primary, true,  false) => (),
+			(DefectList::Grown,   false, true)  => (),
+			(DefectList::Both,    _,     _)     => (), // XXX match true/true?
+			_ => {
+				info!("device returned unexpected defect list");
+				return Ok(None);
+			},
+		}
+
+		// see SBC-3, 5.2.2.4
+		let entry_size = match format {
+			0b000 => 4, // ShortBlock
+			0b011 => 8, // LongBlock
+			0b100 => 8, // BytesFromIndex
+			0b101 => 8, // PhysSector
+			_ => {
+				info!("unexpected defect list entry format");
+				return Ok(None);
+			},
+		};
+
+		return Ok(Some(len / entry_size));
+	} else {
+		info!("defect list: not enough data");
+		return Ok(None);
 	}
 }
 

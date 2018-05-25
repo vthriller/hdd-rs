@@ -175,7 +175,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		Self::get_page_unchecked(self.device, page)
 	}
 
-	fn get_page_unchecked(device: &SCSICommon, page: u8) -> Result<log_page::Page, Error> {
+	fn get_page_unchecked<D: SCSICommon>(device: &D, page: u8) -> Result<log_page::Page, Error> {
 		let (_sense, data) = device.log_sense(
 			false, // changed
 			false, // save_params
