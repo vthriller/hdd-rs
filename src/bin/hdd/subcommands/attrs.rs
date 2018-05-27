@@ -253,6 +253,12 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<d
 		}
 	};
 
+	if let Some(ref entry) = dbentry {
+		if let Some(_) = entry.warning {
+			print!("{}\n", format_prom("smart_drivedb_warning", &labels, 1));
+		}
+	};
+
 	use id::Ternary::*;
 	match (format, id.smart) {
 		(Plain, Unsupported) | (JSON, Unsupported) =>
