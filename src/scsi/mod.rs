@@ -359,7 +359,7 @@ impl SCSICommon for SCSIDevice {
 	}
 }
 
-fn read_defect_data_10<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u16>, Error> {
+fn read_defect_data<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u16>, Error> {
 	// XXX tried (Short|Long)Block on HUS723030ALS640, got GROWN DEFECT LIST NOT FOUND in return—why?
 	// for now use the same format smartmontools uses from time immemorial
 	let format = AddrDescriptorFormat::BytesFromIndex;
@@ -371,11 +371,13 @@ fn read_defect_data_10<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Optio
 	};
 
 	info!("issuing READ DEFECT DATA(10): plist={:?} glist={:?} format={:?}", plist, glist, format);
+	//info!("issuing READ DEFECT DATA(12): plist={:?} glist={:?} format={:?}", plist, glist, format);
 
 	let plist = if plist { 1 } else { 0 };
 	let glist = if glist { 1 } else { 0 };
 
 	let (cmd, alloc) = read_defect_data_10_cmd(plist, glist, format);
+	//let (cmd, alloc) = read_defect_data_12_cmd(plist, glist, format);
 	let (sense, data) = dev.do_cmd(&cmd, Direction::From, 32, alloc)?;
 
 	if sense.len() > 0 {
@@ -400,77 +402,7 @@ fn read_defect_data_10<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Optio
 	}
 
 	if let Some((format, glistv, plistv, len)) = parse_defect_data_10(&data) {
-		debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
-
-		match (list, plistv, glistv) {
-			(DefectList::Primary, true,  false) => (),
-			(DefectList::Grown,   false, true)  => (),
-			(DefectList::Both,    _,     _)     => (), // XXX match true/true?
-			_ => {
-				info!("device returned unexpected defect list");
-				return Ok(None);
-			},
-		}
-
-		// see SBC-3, 5.2.2.4
-		let entry_size = match format {
-			0b000 => 4, // ShortBlock
-			0b011 => 8, // LongBlock
-			0b100 => 8, // BytesFromIndex
-			0b101 => 8, // PhysSector
-			_ => {
-				info!("unexpected defect list entry format");
-				return Ok(None);
-			},
-		};
-
-		return Ok(Some(len / entry_size));
-	} else {
-		info!("defect list: not enough data");
-		return Ok(None);
-	}
-}
-
-fn read_defect_data_12<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u32>, Error> {
-	// XXX see read_defect_data_10()
-	let format = AddrDescriptorFormat::BytesFromIndex;
-
-	let (plist, glist) = match list {
-		DefectList::Primary => (true,  false),
-		DefectList::Grown   => (false, true),
-		DefectList::Both    => (true,  true),
-	};
-
-	info!("issuing READ DEFECT DATA(12): plist={:?} glist={:?} format={:?}", plist, glist, format);
-
-	let plist = if plist { 1 } else { 0 };
-	let glist = if glist { 1 } else { 0 };
-
-	let (cmd, alloc) = read_defect_data_12_cmd(plist, glist, format);
-	let (sense, data) = dev.do_cmd(&cmd, Direction::From, 32, alloc)?;
-
-	if sense.len() > 0 {
-		// only current senses are expected here
-		if let Some((true, sense)) = sense::parse(&sense) {
-			match sense.kcq() {
-				// DEFECT LIST NOT FOUND
-				Some((_, 0x1c, 0x00)) => return Ok(Some(0)),
-				// PRIMARY DEFECT LIST NOT FOUND
-				Some((_, 0x1c, 0x01)) |
-				// GROWN DEFECT LIST NOT FOUND
-				Some((_, 0x1c, 0x02)) => {
-					if list != DefectList::Both {
-						return Ok(Some(0))
-					} // else fall through to the data parser
-					// XXX is it correct to just dismiss (WHATEVER) DEFECT LIST NOT FOUND if DefectList::Both is requested?
-				},
-				// unexpected sense
-				s => return Err(Error::from_sense(&sense)),
-			}
-		}
-	}
-
-	if let Some((format, glistv, plistv, len)) = parse_defect_data_12(&data) {
+	//if let Some((format, glistv, plistv, len)) = parse_defect_data_12(&data) {
 		debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
 
 		match (list, plistv, glistv) {
