@@ -375,19 +375,7 @@ fn read_defect_data_10<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Optio
 	let plist = if plist { 1 } else { 0 };
 	let glist = if glist { 1 } else { 0 };
 
-	// we're only interested in the header, not the list itself
-	const alloc: usize = 4;
-
-	let cmd: [u8; 10] = [
-		0x37, // opcode
-		0, // reserved
-		(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
-		0, 0, 0, 0, // reserved
-		(alloc >> 8) as u8,
-		(alloc & 0xff) as u8,
-		0, // control (XXX what's that?!)
-	];
-
+	let (cmd, alloc) = read_defect_data_10_cmd(plist, glist, format);
 	let (sense, data) = dev.do_cmd(&cmd, Direction::From, 32, alloc)?;
 
 	if sense.len() > 0 {
@@ -458,21 +446,7 @@ fn read_defect_data_12<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Optio
 	let plist = if plist { 1 } else { 0 };
 	let glist = if glist { 1 } else { 0 };
 
-	// we're only interested in the header, not the list itself
-	const alloc: usize = 8;
-
-	let cmd: [u8; 12] = [
-		0xb7, // opcode
-		(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
-		0, 0, 0, 0, // reserved
-		((alloc >> 24) & 0xff) as u8,
-		((alloc >> 16) & 0xff) as u8,
-		((alloc >>  8) & 0xff) as u8,
-		( alloc        & 0xff) as u8,
-		0, // reserved
-		0, // control (XXX what's that?!)
-	];
-
+	let (cmd, alloc) = read_defect_data_12_cmd(plist, glist, format);
 	let (sense, data) = dev.do_cmd(&cmd, Direction::From, 32, alloc)?;
 
 	if sense.len() > 0 {
@@ -526,6 +500,38 @@ fn read_defect_data_12<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Optio
 		info!("defect list: not enough data");
 		return Ok(None);
 	}
+}
+
+fn read_defect_data_10_cmd(plist: u8, glist: u8, format: AddrDescriptorFormat) -> (Vec<u8>, usize) {
+	// we're only interested in the header, not the list itself
+	let alloc = 4;
+	let cmd = vec![
+		0x37, // opcode
+		0, // reserved
+		(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
+		0, 0, 0, 0, // reserved
+		(alloc >> 8) as u8,
+		(alloc & 0xff) as u8,
+		0, // control (XXX what's that?!)
+	];
+	(cmd, alloc)
+}
+
+fn read_defect_data_12_cmd(plist: u8, glist: u8, format: AddrDescriptorFormat) -> (Vec<u8>, usize) {
+	// we're only interested in the header, not the list itself
+	let alloc = 8;
+	let cmd = vec![
+		0xb7, // opcode
+		(plist << 4) + (glist << 3) + (format as u8), // reserved (3 bits), req_plist, req_glist, defect list format (3 bits)
+		0, 0, 0, 0, // reserved
+		((alloc >> 24) & 0xff) as u8,
+		((alloc >> 16) & 0xff) as u8,
+		((alloc >>  8) & 0xff) as u8,
+		( alloc        & 0xff) as u8,
+		0, // reserved
+		0, // control (XXX what's that?!)
+	];
+	(cmd, alloc)
 }
 
 // The following return tuple of (format, glistv, plistv, len)
