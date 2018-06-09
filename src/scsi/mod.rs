@@ -195,7 +195,10 @@ pub trait SCSICommon: Sized {
 	- device returns malformed data
 	*/
 	fn read_defect_data_10(&self, list: DefectList) -> Result<Option<u16>, Error> {
-		read_defect_data_10(self, list)
+		read_defect_data(10, self, list, 0,
+			read_defect_data_10_cmd,
+			parse_defect_data_10,
+		)
 	}
 
 	/**
@@ -208,7 +211,10 @@ pub trait SCSICommon: Sized {
 	- device returns malformed data
 	*/
 	fn read_defect_data_12(&self, list: DefectList) -> Result<Option<u32>, Error> {
-		read_defect_data_12(self, list)
+		read_defect_data(12, self, list, 0,
+			read_defect_data_12_cmd,
+			parse_defect_data_12,
+		)
 	}
 
 	// TODO? struct as a single argument, or maybe even resort to the builder pattern
@@ -359,7 +365,15 @@ impl SCSICommon for SCSIDevice {
 	}
 }
 
-fn read_defect_data<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u16>, Error> {
+fn read_defect_data<D: SCSICommon, C>(
+	log_detail: usize,
+	dev: &D,
+	list: DefectList,
+	empty: C,
+	cmd: fn(u8, u8, AddrDescriptorFormat) -> (Vec<u8>, usize),
+	parse: fn(&[u8]) -> Option<(u8, bool, bool, C)>
+) -> Result<Option<C>, Error>
+where C: ::std::ops::Div<Output = C> + ::std::convert::From<u8> + ::std::fmt::Display {
 	// XXX tried (Short|Long)Block on HUS723030ALS640, got GROWN DEFECT LIST NOT FOUND in return—why?
 	// for now use the same format smartmontools uses from time immemorial
 	let format = AddrDescriptorFormat::BytesFromIndex;
@@ -370,14 +384,12 @@ fn read_defect_data<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u
 		DefectList::Both    => (true,  true),
 	};
 
-	info!("issuing READ DEFECT DATA(10): plist={:?} glist={:?} format={:?}", plist, glist, format);
-	//info!("issuing READ DEFECT DATA(12): plist={:?} glist={:?} format={:?}", plist, glist, format);
+	info!("issuing READ DEFECT DATA({}): plist={:?} glist={:?} format={:?}", log_detail, plist, glist, format);
 
 	let plist = if plist { 1 } else { 0 };
 	let glist = if glist { 1 } else { 0 };
 
-	let (cmd, alloc) = read_defect_data_10_cmd(plist, glist, format);
-	//let (cmd, alloc) = read_defect_data_12_cmd(plist, glist, format);
+	let (cmd, alloc) = cmd(plist, glist, format);
 	let (sense, data) = dev.do_cmd(&cmd, Direction::From, 32, alloc)?;
 
 	if sense.len() > 0 {
@@ -385,13 +397,13 @@ fn read_defect_data<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u
 		if let Some((true, sense)) = sense::parse(&sense) {
 			match sense.kcq() {
 				// DEFECT LIST NOT FOUND
-				Some((_, 0x1c, 0x00)) => return Ok(Some(0)),
+				Some((_, 0x1c, 0x00)) => return Ok(Some(empty)),
 				// PRIMARY DEFECT LIST NOT FOUND
 				Some((_, 0x1c, 0x01)) |
 				// GROWN DEFECT LIST NOT FOUND
 				Some((_, 0x1c, 0x02)) => {
 					if list != DefectList::Both {
-						return Ok(Some(0))
+						return Ok(Some(empty))
 					} // else fall through to the data parser
 					// XXX is it correct to just dismiss (WHATEVER) DEFECT LIST NOT FOUND if DefectList::Both is requested?
 				},
@@ -401,8 +413,7 @@ fn read_defect_data<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u
 		}
 	}
 
-	if let Some((format, glistv, plistv, len)) = parse_defect_data_10(&data) {
-	//if let Some((format, glistv, plistv, len)) = parse_defect_data_12(&data) {
+	if let Some((format, glistv, plistv, len)) = parse(&data) {
 		debug!("defect list: format={} glistv={} plistv={} len={}\n", format, glistv, plistv, len);
 
 		match (list, plistv, glistv) {
@@ -416,7 +427,7 @@ fn read_defect_data<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u
 		}
 
 		// see SBC-3, 5.2.2.4
-		let entry_size = match format {
+		let entry_size = ::std::convert::From::from(match format {
 			0b000 => 4, // ShortBlock
 			0b011 => 8, // LongBlock
 			0b100 => 8, // BytesFromIndex
@@ -425,7 +436,7 @@ fn read_defect_data<D: SCSICommon>(dev: &D, list: DefectList) -> Result<Option<u
 				info!("unexpected defect list entry format");
 				return Ok(None);
 			},
-		};
+		});
 
 		return Ok(Some(len / entry_size));
 	} else {
