@@ -14,13 +14,14 @@ use scsi::SCSIDevice;
 
 use std::cmp::max;
 
-// see scsi/sg.h
+// SG_IO
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[cfg(not(any(target_env = "musl")))]
-const SG_IO: c_ulong = 0x2285;
+const SG_IO: c_ulong = bindgen_SG_IO as u64;
 
 #[cfg(any(target_env = "musl"))]
-const SG_IO: c_int = 0x2285;
+const SG_IO: c_int = bindgen_SG_IO;
 
 #[repr(C)]
 #[derive(Debug)]

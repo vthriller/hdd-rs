@@ -1,11 +1,8 @@
 // XXX seems like Cargo has no support for target-specific build scripts…
 
-#[cfg(target_os = "freebsd")]
 extern crate bindgen;
 
-#[cfg(target_os = "freebsd")]
 use std::env;
-#[cfg(target_os = "freebsd")]
 use std::path::PathBuf;
 
 #[cfg(target_os = "freebsd")]
@@ -41,6 +38,16 @@ fn main() {
 		.expect("Couldn't write bindings!");
 }
 
-#[cfg(not(target_os = "freebsd"))]
+#[cfg(target_os = "linux")]
 fn main() {
+	let bindings = bindgen::Builder::default()
+		.header("bindgen-linux.h")
+		.whitelisted_var("bindgen_SG_IO")
+		.generate()
+		.expect("Unable to generate bindings");
+
+	let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+	bindings
+		.write_to_file(out_path.join("bindings.rs"))
+		.expect("Couldn't write bindings!");
 }
