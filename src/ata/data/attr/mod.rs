@@ -59,8 +59,8 @@ pub fn parse_smart_values(data: &Vec<u8>, raw_thresh: &Vec<u8>, meta: &Option<dr
 		attrs.push(SmartAttribute {
 			id: id,
 
-			name: match attr {
-				Some(ref a) => a.name.clone(),
+			name: match &attr {
+				Some(a) => a.name.clone(),
 				None => None
 			},
 
@@ -82,7 +82,7 @@ pub fn parse_smart_values(data: &Vec<u8>, raw_thresh: &Vec<u8>, meta: &Option<dr
 			raw: raw::Raw::from_raw_entry(&data[offset .. offset + 12], &attr),
 
 			// .get() returns Option<&T>, but threshs would not live long enough, and it's just easier to copy u8 using this map
-			thresh: threshs.get(&data[offset]).map(|t| *t),
+			thresh: threshs.get(&data[offset]).map(|&t| t),
 		})
 	}
 	attrs

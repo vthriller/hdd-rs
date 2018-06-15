@@ -95,13 +95,13 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 
 			let mut buf = BufReader::new(uevent);
 			for line in buf.lines() {
-				match line {
-					Ok(ref s) if s.as_str() == "DEVTYPE=disk" => {
+				match &line {
+					Ok(s) if s.as_str() == "DEVTYPE=disk" => {
 						debug!("    {}", s);
 						is_disk = true;
 						break;
 					}
-					Ok(ref s) if s.starts_with("DEVTYPE=") => {
+					Ok(s) if s.starts_with("DEVTYPE=") => {
 						debug!("    {}", s);
 						is_disk = false; // see first match arm
 						break;

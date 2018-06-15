@@ -41,7 +41,7 @@ fn print_ata_id(id: &id::Id, meta: &Option<drivedb::DriveMeta>) {
 	print!("Serial:   {}\n", id.serial);
 	// TODO: id.wwn_supported is cool, but actual WWN ID is better
 
-	if let Some(ref meta) = *meta {
+	if let Some(meta) = meta {
 		if let Some(family) = meta.family {
 			print!("Model family according to drive database:\n  {}\n", family);
 		} else {
@@ -124,16 +124,16 @@ impl Subcommand for Info {
 			::std::process::exit(1);
 		});
 
-		let ata_id = match *dev {
+		let ata_id = match dev {
 			#[cfg(not(target_os = "linux"))]
-			DeviceArgument::ATA(_, ref id) => Some(id),
-			DeviceArgument::SAT(_, ref id) => Some(id),
+			DeviceArgument::ATA(_, id) => Some(id),
+			DeviceArgument::SAT(_, id) => Some(id),
 			DeviceArgument::SCSI(_) => None,
 		};
 
 		let use_json = args.is_present("json");
 
-		if let DeviceArgument::SCSI(ref dev) = *dev {
+		if let DeviceArgument::SCSI(dev) = dev {
 			let (_sense, data) = dev.scsi_inquiry(false, 0).unwrap();
 			let inquiry = inquiry::parse_inquiry(&data);
 
@@ -157,7 +157,7 @@ impl Subcommand for Info {
 			if use_json {
 				let mut info = id.to_json().unwrap();
 
-				if let Some(ref meta) = meta {
+				if let Some(meta) = &meta {
 					if let Some(family) = meta.family {
 						info.as_object_mut().unwrap().insert("family".to_string(), family.to_json().unwrap());
 					}

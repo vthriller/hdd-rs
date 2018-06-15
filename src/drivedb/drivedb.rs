@@ -69,7 +69,7 @@ impl DriveDB {
 		// find the first match (if any)
 		models.intersection(&firmwares)
 			.min()
-			.map(|index| &self.entries[*index])
+			.map(|&index| &self.entries[index])
 	}
 
 	/**
@@ -86,7 +86,7 @@ impl DriveDB {
 		};
 
 		// TODO show somehow whether default entry was found or not, or ask caller for the default entry
-		if let Some(ref default) = self.default {
+		if let Some(default) = &self.default {
 			// TODO show somehow whether preset is valid or not
 			if let Some(presets) = presets::parse(&default.presets) {
 				m.presets.extend(presets);
@@ -121,15 +121,15 @@ fn filter_presets(id: &id::Id, preset: Vec<Attribute>) -> Vec<Attribute> {
 	};
 
 	#[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
-	preset.into_iter().filter(|attr| match (&attr.drivetype, &drivetype) {
+	preset.into_iter().filter(|attr| match (attr.drivetype, drivetype) {
 		// this attribute is not type-specific
-		(&None, _) => true,
+		(None, _) => true,
 		// drive type match
-		(&Some(ref a), &Some(ref b)) if a == b => true,
+		(Some(a), Some(b)) if a == b => true,
 		// drive type does not match
-		(&Some(_), &Some(_)) => false,
+		(Some(_), Some(_)) => false,
 		// applying drive-type-specific attributes to drives of unknown type makes no sense
-		(&Some(_), &None) => false,
+		(Some(_), None) => false,
 	}).collect()
 }
 

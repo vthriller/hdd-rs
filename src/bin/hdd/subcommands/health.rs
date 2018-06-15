@@ -34,20 +34,20 @@ impl Subcommand for Health {
 			::std::process::exit(1);
 		});
 
-		let id = match *dev {
+		let id = match dev {
 			#[cfg(not(target_os = "linux"))]
-			DeviceArgument::ATA(_, ref id) => id,
-			DeviceArgument::SAT(_, ref id) => id,
+			DeviceArgument::ATA(_, id) => id,
+			DeviceArgument::SAT(_, id) => id,
 			DeviceArgument::SCSI(_) => unimplemented!(),
 		};
 
 		let use_json = args.is_present("json");
 
 		when_smart_enabled(&id.smart, "health status", || {
-			let status = match *dev {
+			let status = match dev {
 				#[cfg(not(target_os = "linux"))]
-				DeviceArgument::ATA(ref dev, _) => dev.get_smart_health().unwrap(),
-				DeviceArgument::SAT(ref dev, _) => dev.get_smart_health().unwrap(),
+				DeviceArgument::ATA(dev, _) => dev.get_smart_health().unwrap(),
+				DeviceArgument::SAT(dev, _) => dev.get_smart_health().unwrap(),
 				DeviceArgument::SCSI(_) => unimplemented!(),
 			};
 

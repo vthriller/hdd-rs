@@ -21,7 +21,7 @@ pub enum Ternary {
 
 impl fmt::Display for Ternary {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match *self {
+		match self {
 			Ternary::Unsupported => write!(f, "not supported"),
 			Ternary::Disabled    => write!(f, "supported, disabled"),
 			Ternary::Enabled     => write!(f, "supported, enabled"),

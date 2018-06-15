@@ -17,12 +17,12 @@ impl<'a> Sense<'a> {
 	///
 	/// Returns tuple `(key, asc, ascq)`
 	pub fn kcq(&self) -> Option<(u8, u8, u8)> {
-		match self {
-			&Sense::Fixed(FixedData::Valid { key, asc, ascq, .. }) =>
+		match *self {
+			Sense::Fixed(FixedData::Valid { key, asc, ascq, .. }) =>
 				Some((key, asc, ascq)),
-			&Sense::Fixed(FixedData::Invalid(_)) =>
+			Sense::Fixed(FixedData::Invalid(_)) =>
 				None,
-			&Sense::Descriptor(DescriptorData { key, asc, ascq, .. }) =>
+			Sense::Descriptor(DescriptorData { key, asc, ascq, .. }) =>
 				Some((key, asc, ascq)),
 		}
 	}
