@@ -1,5 +1,7 @@
 use std::fs::{self, File};
 use std::io;
+use std::fs::OpenOptions;
+use std::os::unix::fs::OpenOptionsExt;
 
 use std::path::{Path, PathBuf};
 use std::io::{BufRead, BufReader};
@@ -17,7 +19,15 @@ pub enum Type { SCSI }
 impl Device {
 	pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, io::Error> {
 		Ok(Device {
-			file: File::open(path)?,
+			file: OpenOptions::new()
+				.read(true)
+				// > Under Linux, the O_NONBLOCK flag indicates that one wants to open but does not necessarily have the intention to read or write.
+				// > This is typically used to open devices in order to get a file descriptor for use with ioctl(2).
+				// ~ open(2)
+				// this fixes access to optical drives and other ejectable media
+				// (https://github.com/vthriller/hdd-rs/issues/1)
+				.custom_flags(libc::O_NONBLOCK)
+				.open(path)?,
 		})
 	}
 
