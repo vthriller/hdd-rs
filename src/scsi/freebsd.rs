@@ -31,10 +31,9 @@ impl SCSIDevice {
 				use self::Direction::*;
 				use self::ccb_flags::*;
 				match dir {
-					// TODO &[u8] arg → data → csio.data_ptr for Direction::{To,Both}
+					// TODO &[u8] arg → data → csio.data_ptr for Direction::To
 					From => CAM_DIR_IN,
 					To => unimplemented!(), //CAM_DIR_OUT,
-					Both => unimplemented!(), //CAM_DIR_BOTH,
 					None => CAM_DIR_NONE,
 				}
 			} as u32;

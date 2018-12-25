@@ -71,8 +71,19 @@ extern crate byteorder;
 extern crate libc;
 
 /// Data transfer direction
+/*
+re: Direction::Both:
+- freebsd: as of SVN rev 342456 (2018-12-25),
+  CAM_DIR_BOTH doesn't seem to be used neither in the kernel nor in the userspace tools like camcontrol,
+  except for occasional EINVAL
+  (https://github.com/freebsd/freebsd/search?q=CAM_DIR_BOTH)
+- linux:
+  > The value SG_DXFER_TO_FROM_DEV is only relevant to indirect IO (otherwise it is treated like SG_DXFER_FROM_DEV).
+  ~ http://www.tldp.org/HOWTO/SCSI-Generic-HOWTO/x166.html
+- 3rd party utils (e.g. smartmontools, sdparm, sg3_utils, libatasmart) have no use for CAM_DIR_BOTH or SG_DXFER_TO_FROM_DEV
+*/
 #[derive(Debug, Clone, Copy)]
-pub enum Direction { None, From, To, Both }
+pub enum Direction { None, From, To }
 
 pub mod device;
 pub use device::*;

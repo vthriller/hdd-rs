@@ -278,7 +278,6 @@ pub trait SCSICommon: Sized {
 			Direction::None => 3, // Non-data
 			Direction::From => 4, // PIO Data-In
 			Direction::To => unimplemented!(), //5, // PIO Data-Out
-			_ => unimplemented!(),
 		};
 		let multiple_count = 0; // TODO
 		let ata_cmd: [u8; 16] = [
