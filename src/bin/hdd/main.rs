@@ -80,17 +80,11 @@ pub fn open_drivedb(options: Option<Values>) -> Option<drivedb::DriveDB> {
 	// trim leading '+'
 	let paths_add: Vec<&str> = paths_add.iter().map(|path| &path[1..]).collect();
 
-
-	let mut show_warn_main = true;
 	let mut show_warn_add = true;
 
-	/*
-	if some list is empty:
-	- apply defaults
-	- silence warnings
-	*/
+	// apply defaults if one of the lists is not provided
+	// also silence warnings for default additional file
 	let (paths_main, paths_add) = if paths_main.is_empty() {
-		show_warn_main = false;
 		let paths_main = drivedb_default.to_vec();
 
 		let paths_add = if paths_add.is_empty() {
@@ -121,9 +115,7 @@ pub fn open_drivedb(options: Option<Values>) -> Option<drivedb::DriveDB> {
 			Ok(()) => {
 				break; // we only need one 'main' file, the first valid one
 			},
-			Err(e) => if show_warn_main {
-				eprint!("Cannot open drivedb file {}: {}\n", f, e);
-			},
+			Err(e) => eprint!("Cannot open drivedb file {}: {}\n", f, e),
 		}
 	}
 
