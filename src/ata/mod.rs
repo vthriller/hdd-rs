@@ -67,7 +67,7 @@ impl<T> ATADevice<T> {
 // which is an implementation detail that would leak everywhere as part of a public interface
 // besides, we really only need this method for just, like, two types: `ATADevice<Device>` and `ATADevice<SCSIDevice>`
 macro_rules! ata_do { ($Err:ty) => {
-	pub fn ata_do(&self, dir: Direction, regs: &::ata::RegistersWrite) -> Result<(::ata::RegistersRead, Vec<u8>), $Err> {
+	pub fn ata_do(&self, dir: &mut Direction, regs: &::ata::RegistersWrite) -> Result<(::ata::RegistersRead, Vec<u8>), $Err> {
 		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
 
 		// this one is implemented in `mod {linux,freebsd}`, and here for `T: SCSIDevice`
@@ -103,7 +103,7 @@ pub use self::freebsd::*;
 
 impl ATADevice<SCSIDevice> {
 	ata_do!(scsi::ATAError);
-	fn ata_platform_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), scsi::ATAError> {
+	fn ata_platform_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), scsi::ATAError> {
 		self.device.ata_pass_through_16(dir, regs)
 	}
 
