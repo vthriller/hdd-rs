@@ -145,7 +145,7 @@ pub trait SCSICommon: Sized {
 
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
-		let mut data = vec![0; alloc];
+		let mut data = Vec::with_capacity(alloc);
 
 		let cmd: [u8; 6] = [
 			0x12, // opcode: INQUIRY
@@ -253,7 +253,7 @@ pub trait SCSICommon: Sized {
 
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
-		let mut data = vec![0; alloc];
+		let mut data = Vec::with_capacity(alloc);
 
 		// Page Control field
 		let pc = match (default, threshold) {
@@ -312,7 +312,7 @@ pub trait SCSICommon: Sized {
 			0, // control (XXX what's that?!)
 		];
 
-		let mut data = vec![0; 512];
+		let mut data = Vec::with_capacity(512);
 		let sense = self.do_cmd(&ata_cmd, &mut Direction::From(&mut data), 32)?;
 
 		let sense = match sense::parse(&sense) {
@@ -402,7 +402,7 @@ where C: ::std::ops::Div<Output = C> + ::std::convert::From<u8> + ::std::fmt::Di
 	let glist = if glist { 1 } else { 0 };
 
 	let (cmd, alloc) = cmd(plist, glist, format);
-	let mut data = vec![0; alloc];
+	let mut data = Vec::with_capacity(alloc);
 	let sense = dev.do_cmd(&cmd, &mut Direction::From(&mut data), 32)?;
 
 	if sense.len() > 0 {
