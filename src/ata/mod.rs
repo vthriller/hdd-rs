@@ -76,7 +76,9 @@ macro_rules! ata_do { ($Err:ty) => {
 			Ok((regs, data)) => {
 				debug!("cmd reply: regs={:?}", regs);
 				// XXX does it make sense to use hexdump_16() instead of hexdump_8() if cmd is not IDENTIFY DEVICE?
-				debug!("cmd data: {}", ::utils::hexdump_16be(&::utils::bytes_to_be_words(data)));
+				if let Direction::From(_) = dir {
+					debug!("cmd data: {}", ::utils::hexdump_16be(&::utils::bytes_to_be_words(data)));
+				}
 			},
 			err => {
 				debug!("cmd error: {:?}", err);
