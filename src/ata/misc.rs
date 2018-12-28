@@ -69,7 +69,7 @@ pub trait Misc {
 	fn get_device_id(&self) -> Result<id::Id, Error> {
 		info!("reading device identification packet");
 
-		let (_, data) = self.ata_do(Direction::From, &RegistersWrite {
+		let (_, data) = self.ata_do(Direction::From(512), &RegistersWrite {
 			command: Command::Identify as u8,
 			sector: 1,
 			features: 0,
@@ -102,7 +102,7 @@ pub trait Misc {
 	fn get_smart_attributes(&self, meta: &Option<drivedb::DriveMeta>) -> Result<Vec<attr::SmartAttribute>, Error> {
 		info!("reading SMART attributes and thresholds");
 
-		let (_, data) = self.ata_do(Direction::From, &RegistersWrite {
+		let (_, data) = self.ata_do(Direction::From(512), &RegistersWrite {
 			command: Command::SMART as u8,
 			sector: 0,
 			features: SMARTFeature::ReadValues as u8,
@@ -111,7 +111,7 @@ pub trait Misc {
 			cyl_high: 0xc2,
 			device: 0,
 		})?;
-		let (_, thresh) = self.ata_do(Direction::From, &RegistersWrite {
+		let (_, thresh) = self.ata_do(Direction::From(512), &RegistersWrite {
 			command: Command::SMART as u8,
 			sector: 0,
 			features: SMARTFeature::ReadThresholds as u8,

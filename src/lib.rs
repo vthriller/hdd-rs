@@ -83,7 +83,12 @@ re: Direction::Both:
 - 3rd party utils (e.g. smartmontools, sdparm, sg3_utils, libatasmart) have no use for CAM_DIR_BOTH or SG_DXFER_TO_FROM_DEV
 */
 #[derive(Debug, Clone, Copy)]
-pub enum Direction { None, From, To }
+pub enum Direction<'a> {
+	None,
+	/// How many bytes to expect from the device.
+	From(usize),
+	To(&'a [u8]),
+}
 
 pub mod device;
 pub use device::*;
