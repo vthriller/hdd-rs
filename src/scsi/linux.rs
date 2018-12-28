@@ -50,7 +50,7 @@ struct sg_io_hdr {
 }
 
 impl SCSIDevice {
-	pub(crate) fn do_platform_cmd(&self, cmd: &[u8], dir: &mut Direction, sense_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+	pub(crate) fn do_platform_cmd(&self, cmd: &[u8], dir: &mut Direction, sense_len: usize) -> Result<Vec<u8>, io::Error> {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len];
@@ -114,11 +114,9 @@ impl SCSIDevice {
 		// TODO? return overrun flag
 		// XXX sg_io set resid to 0 for SATA disks, and Hitachi SAS disks behind Adaptec also set this to 0 for things like LOG SENSE 0fh/00h—need more reading/testing
 		let data_len = hdr.dxfer_len - max(hdr.resid, 0) as u32;
+		// TODO shrink `data`
+		// we were returning `data.unwrap()[ .. data_len as usize].to_vec()` in the past
 
-		Ok((
-			sense[ .. hdr.sb_len_wr as usize].to_vec(),
-			// FIXME unwrap() vs Direction::{None,To}
-			data.unwrap()[ .. data_len as usize].to_vec(),
-		))
+		Ok(sense[ .. hdr.sb_len_wr as usize].to_vec())
 	}
 }
