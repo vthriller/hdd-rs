@@ -99,7 +99,9 @@ impl SCSIDevice {
 		match &ret {
 			Ok((sense, data)) => {
 				debug!("SCSI autosense: {}", hexdump_8(sense));
-				debug!("SCSI data: {}", hexdump_8(data));
+				if let Direction::From(_) = dir {
+					debug!("SCSI data: {}", hexdump_8(data));
+				}
 			},
 			err => {
 				debug!("SCSI err: {:?}", err);
