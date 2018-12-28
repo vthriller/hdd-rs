@@ -183,7 +183,7 @@ pub trait SCSICommon: Sized {
 			0, // control (XXX what's that?!)
 		];
 
-		let mut data = [0; 8];
+		let mut data = Vec::with_capacity(8);
 		let sense = self.do_cmd(&cmd, &mut Direction::From(&mut data), 32)?;
 
 		Ok((
