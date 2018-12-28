@@ -88,7 +88,13 @@ pub enum Direction<'a> {
 	// `From(usize)` makes functions like do_cmd() unconvenient, as they're required to return Option depending on whether data was requested (`Some(data)`) or not (`None`).
 	// This results in unnecessary and potentially dangerous unwrapping, or unnecessary and a tad too verbose checks, copied and scattered all over the code.
 	// Pre-allocated buffers greatly simplify consumer's code by removing aforementioned checks and unwraps.
-	From(&'a mut [u8]),
+	// The reason this is &Vec<> and not &[] is because we need to truncate it after the operation.
+	/**
+	Request `vec.capacity()` (*not* `len`!) bytes from the device.
+
+	After an operation completion `vec` is going to be of the actual length of the data transfer.
+	*/
+	From(&'a mut Vec<u8>),
 	To(&'a [u8]),
 }
 

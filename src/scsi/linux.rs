@@ -75,7 +75,7 @@ impl SCSIDevice {
 				None => ptr::null_mut(),
 			},
 			dxfer_len:	match data {
-				Some(ref data) => data.len() as c_uint,
+				Some(ref data) => data.capacity() as c_uint,
 				None => 0,
 			},
 			resid:	0,
@@ -113,9 +113,10 @@ impl SCSIDevice {
 		// but I'd still not cast i32 to u32 blindly, just to be sure
 		// TODO? return overrun flag
 		// XXX sg_io set resid to 0 for SATA disks, and Hitachi SAS disks behind Adaptec also set this to 0 for things like LOG SENSE 0fh/00h—need more reading/testing
-		let data_len = hdr.dxfer_len - max(hdr.resid, 0) as u32;
-		// TODO shrink `data`
-		// we were returning `data.unwrap()[ .. data_len as usize].to_vec()` in the past
+		if let Some(data) = data {
+			let data_len = hdr.dxfer_len - max(hdr.resid, 0) as u32;
+			unsafe { data.set_len(data_len as usize); }
+		}
 
 		Ok(sense[ .. hdr.sb_len_wr as usize].to_vec())
 	}
