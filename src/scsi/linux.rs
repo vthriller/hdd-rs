@@ -50,12 +50,12 @@ struct sg_io_hdr {
 }
 
 impl SCSIDevice {
-	pub(crate) fn do_platform_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+	pub(crate) fn do_platform_cmd(&self, cmd: &[u8], dir: &mut Direction, sense_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len];
-		let mut data = if let Direction::From(len) = dir {
-			Some(vec![0; len])
+		let mut data = if let Direction::From(buf) = dir {
+			Some(buf)
 		} else {
 			None
 		};
@@ -75,7 +75,7 @@ impl SCSIDevice {
 				None => ptr::null_mut(),
 			},
 			dxfer_len:	match data {
-				Some(ref data) => data.capacity() as c_uint,
+				Some(ref data) => data.len() as c_uint,
 				None => 0,
 			},
 			resid:	0,

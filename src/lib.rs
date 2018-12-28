@@ -82,11 +82,13 @@ re: Direction::Both:
   ~ http://www.tldp.org/HOWTO/SCSI-Generic-HOWTO/x166.html
 - 3rd party utils (e.g. smartmontools, sdparm, sg3_utils, libatasmart) have no use for CAM_DIR_BOTH or SG_DXFER_TO_FROM_DEV
 */
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum Direction<'a> {
 	None,
-	/// How many bytes to expect from the device.
-	From(usize),
+	// `From(usize)` makes functions like do_cmd() unconvenient, as they're required to return Option depending on whether data was requested (`Some(data)`) or not (`None`).
+	// This results in unnecessary and potentially dangerous unwrapping, or unnecessary and a tad too verbose checks, copied and scattered all over the code.
+	// Pre-allocated buffers greatly simplify consumer's code by removing aforementioned checks and unwraps.
+	From(&'a mut [u8]),
 	To(&'a [u8]),
 }
 
