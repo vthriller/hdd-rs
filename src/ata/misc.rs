@@ -63,14 +63,14 @@ quick_error! {
 /// See [module documentation](index.html).
 pub trait Misc {
 	// This one not only invokes ata_do() from `ATADevice<Whatever>`, but also converts into our own error type.
-	fn ata_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error>;
+	fn ata_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<RegistersRead, Error>;
 
 	/// Issues IDENTIFY DEVICE command, returning a wide range of data, from model name to status of various features.
 	fn get_device_id(&self) -> Result<id::Id, Error> {
 		info!("reading device identification packet");
 
 		let mut data = Vec::with_capacity(512);
-		let (_, data) = self.ata_do(&mut Direction::From(&mut data), &RegistersWrite {
+		let _ = self.ata_do(&mut Direction::From(&mut data), &RegistersWrite {
 			command: Command::Identify as u8,
 			sector: 1,
 			features: 0,
@@ -87,7 +87,7 @@ pub trait Misc {
 	fn get_smart_health(&self) -> Result<Option<bool>, Error> {
 		info!("reading SMART status");
 
-		let (regs, _) = self.ata_do(&mut Direction::None, &RegistersWrite {
+		let regs = self.ata_do(&mut Direction::None, &RegistersWrite {
 			command: Command::SMART as u8,
 			features: SMARTFeature::ReturnStatus as u8,
 			sector_count: 0,
@@ -104,7 +104,7 @@ pub trait Misc {
 		info!("reading SMART attributes and thresholds");
 
 		let mut data = Vec::with_capacity(512);
-		let (_, data) = self.ata_do(&mut Direction::From(&mut data), &RegistersWrite {
+		let _ = self.ata_do(&mut Direction::From(&mut data), &RegistersWrite {
 			command: Command::SMART as u8,
 			sector: 0,
 			features: SMARTFeature::ReadValues as u8,
@@ -114,7 +114,7 @@ pub trait Misc {
 			device: 0,
 		})?;
 		let mut thresh = Vec::with_capacity(512);
-		let (_, thresh) = self.ata_do(&mut Direction::From(&mut thresh), &RegistersWrite {
+		let _ = self.ata_do(&mut Direction::From(&mut thresh), &RegistersWrite {
 			command: Command::SMART as u8,
 			sector: 0,
 			features: SMARTFeature::ReadThresholds as u8,
@@ -130,12 +130,12 @@ pub trait Misc {
 
 #[cfg(not(target_os = "linux"))]
 impl Misc for ATADevice<Device> {
-	fn ata_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+	fn ata_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<RegistersRead, Error> {
 		Ok(Self::ata_do(self, dir, regs)?)
 	}
 }
 impl Misc for ATADevice<SCSIDevice> {
-	fn ata_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), Error> {
+	fn ata_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<RegistersRead, Error> {
 		Ok(Self::ata_do(self, dir, regs)?)
 	}
 }

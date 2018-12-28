@@ -67,16 +67,16 @@ impl<T> ATADevice<T> {
 // which is an implementation detail that would leak everywhere as part of a public interface
 // besides, we really only need this method for just, like, two types: `ATADevice<Device>` and `ATADevice<SCSIDevice>`
 macro_rules! ata_do { ($Err:ty) => {
-	pub fn ata_do(&self, dir: &mut Direction, regs: &::ata::RegistersWrite) -> Result<(::ata::RegistersRead, Vec<u8>), $Err> {
+	pub fn ata_do(&self, dir: &mut Direction, regs: &::ata::RegistersWrite) -> Result<::ata::RegistersRead, $Err> {
 		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
 
 		// this one is implemented in `mod {linux,freebsd}`, and here for `T: SCSIDevice`
 		let ret = Self::ata_platform_do(self, dir, regs);
 		match &ret {
-			Ok((regs, data)) => {
+			Ok(regs) => {
 				debug!("cmd reply: regs={:?}", regs);
 				// XXX does it make sense to use hexdump_16() instead of hexdump_8() if cmd is not IDENTIFY DEVICE?
-				if let Direction::From(_) = dir {
+				if let Direction::From(data) = dir {
 					debug!("cmd data: {}", ::utils::hexdump_16be(&::utils::bytes_to_be_words(data)));
 				}
 			},
@@ -103,7 +103,7 @@ pub use self::freebsd::*;
 
 impl ATADevice<SCSIDevice> {
 	ata_do!(scsi::ATAError);
-	fn ata_platform_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), scsi::ATAError> {
+	fn ata_platform_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<RegistersRead, scsi::ATAError> {
 		self.device.ata_pass_through_16(dir, regs)
 	}
 
