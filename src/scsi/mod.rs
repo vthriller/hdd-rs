@@ -281,7 +281,8 @@ pub trait SCSICommon: Sized {
 			.map(|sense| (sense, data))
 	}
 
-	fn ata_pass_through_16(&self, dir: &mut Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), ATAError> {
+	// data, if any, is returned through `dir`
+	fn ata_pass_through_16(&self, dir: &mut Direction, regs: &ata::RegistersWrite) -> Result<ata::RegistersRead, ATAError> {
 		info!("issuing ATA PASS-THROUGH (16): dir={:?} regs={:?}", dir, regs);
 
 		// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
@@ -312,8 +313,7 @@ pub trait SCSICommon: Sized {
 			0, // control (XXX what's that?!)
 		];
 
-		let mut data = Vec::with_capacity(512);
-		let sense = self.do_cmd(&ata_cmd, &mut Direction::From(&mut data), 32)?;
+		let sense = self.do_cmd(&ata_cmd, dir, 32)?;
 
 		let sense = match sense::parse(&sense) {
 			Some((true, sense)) => sense,
@@ -352,7 +352,7 @@ pub trait SCSICommon: Sized {
 			let d = desc.data;
 
 			// TODO? EXTEND bit, ATA PASS-THROUGH 12 vs 16
-			return Ok((ata::RegistersRead {
+			return Ok(ata::RegistersRead {
 				error: d[1],
 
 				sector_count: d[3],
@@ -363,7 +363,7 @@ pub trait SCSICommon: Sized {
 				device: d[10],
 
 				status: d[11],
-			}, data))
+			})
 		}
 
 		return Err(ATAError::NoRegisters);
