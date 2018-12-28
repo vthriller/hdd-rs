@@ -13,7 +13,11 @@ impl SCSIDevice {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len];
-		let mut data = vec![0; data_len];
+		let mut data = if let Direction::From(len) = dir {
+			Some(vec![0; len])
+		} else {
+			None
+		};
 
 		let timeout = 10; // in seconds; TODO configurable
 
@@ -32,16 +36,23 @@ impl SCSIDevice {
 				use self::ccb_flags::*;
 				match dir {
 					// TODO &[u8] arg → data → csio.data_ptr for Direction::To
-					From => CAM_DIR_IN,
-					To => unimplemented!(), //CAM_DIR_OUT,
+					From(_) => CAM_DIR_IN,
+					To(_) => unimplemented!(), //CAM_DIR_OUT,
 					None => CAM_DIR_NONE,
 				}
 			} as u32;
 			csio.ccb_h.xflags = 0;
 			csio.ccb_h.retry_count = 1;
 			csio.ccb_h.timeout = timeout*1000;
-			csio.data_ptr = data.as_mut_ptr();
-			csio.dxfer_len = data.capacity() as u32;
+
+			csio.data_ptr = match data {
+				Some(ref mut data) => data.as_mut_ptr(),
+				None => ptr::null_mut(),
+			};
+			csio.dxfer_len = match data {
+				Some(ref data) => data.capacity() as u32,
+				None => 0,
+			};
 			csio.sense_len = sense.capacity() as u8;
 			csio.tag_action = MSG_SIMPLE_Q_TAG as u8;
 
@@ -93,7 +104,8 @@ impl SCSIDevice {
 
 		Ok((
 			sense[ .. sense_len as usize].to_vec(),
-			data[ .. data_len as usize].to_vec(),
+			// FIXME unwrap() vs Direction::{None,To}
+			data.unwrap()[ .. data_len as usize].to_vec(),
 		))
 	}
 }

@@ -25,8 +25,8 @@ impl ATADevice<Device> {
 				use self::Direction::*;
 				use self::ccb_flags::*;
 				match dir {
-					From => CAM_DIR_IN,
-					To => unimplemented!(), //CAM_DIR_OUT,
+					From(_) => CAM_DIR_IN,
+					To(_) => unimplemented!(), //CAM_DIR_OUT,
 					None => CAM_DIR_NONE,
 				}
 			} as u32;

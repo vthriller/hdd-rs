@@ -50,11 +50,15 @@ struct sg_io_hdr {
 }
 
 impl SCSIDevice {
-	pub(crate) fn do_platform_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+	pub(crate) fn do_platform_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len];
-		let mut data = vec![0; data_len];
+		let mut data = if let Direction::From(len) = dir {
+			Some(vec![0; len])
+		} else {
+			None
+		};
 
 		let hdr = sg_io_hdr {
 			interface_id:	'S' as c_int,
@@ -63,11 +67,17 @@ impl SCSIDevice {
 				// see scsi/sg.h, constants SG_DXFER_{NONE,{TO,FROM,TO_FROM}_DEV}
 				// TODO &[u8] arg → data → sg_io_hdr.dxferp for Direction::To
 				Direction::None => -1,
-				Direction::To => unimplemented!(), //-2,
-				Direction::From => -3,
+				Direction::To(_) => unimplemented!(), //-2,
+				Direction::From(_) => -3,
 			},
-			dxferp:	data.as_mut_ptr() as *mut c_void,
-			dxfer_len:	data.capacity() as c_uint,
+			dxferp:	match data {
+				Some(ref mut data) => data.as_mut_ptr() as *mut c_void,
+				None => ptr::null_mut(),
+			},
+			dxfer_len:	match data {
+				Some(ref data) => data.capacity() as c_uint,
+				None => 0,
+			},
 			resid:	0,
 
 			sbp:	sense.as_mut_ptr(),
@@ -107,7 +117,8 @@ impl SCSIDevice {
 
 		Ok((
 			sense[ .. hdr.sb_len_wr as usize].to_vec(),
-			data[ .. data_len as usize].to_vec(),
+			// FIXME unwrap() vs Direction::{None,To}
+			data.unwrap()[ .. data_len as usize].to_vec(),
 		))
 	}
 }
