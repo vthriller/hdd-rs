@@ -1,6 +1,8 @@
 pub mod raw;
 
+#[cfg(feature = "drivedb-parser")]
 use std::collections::HashMap;
+#[cfg(feature = "drivedb-parser")]
 use drivedb;
 
 #[derive(Debug)]
@@ -31,6 +33,7 @@ pub struct SmartAttribute {
 	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 }
 
+#[cfg(feature = "drivedb-parser")]
 pub fn parse_smart_values(data: &Vec<u8>, raw_thresh: &Vec<u8>, meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
 	// TODO cover bytes 0..1 362..511 of data
 	// XXX what if some drive reports the same attribute multiple times?
