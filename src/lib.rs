@@ -63,8 +63,10 @@ extern crate quick_error;
 #[macro_use]
 extern crate log;
 
+#[cfg(feature = "drivedb-parser")]
 #[macro_use]
 extern crate nom;
+#[cfg(feature = "drivedb-parser")]
 extern crate regex;
 extern crate byteorder;
 
@@ -107,6 +109,7 @@ mod cam;
 pub mod ata;
 pub mod scsi;
 
+#[cfg(feature = "drivedb-parser")]
 pub mod drivedb;
 
 mod utils;
