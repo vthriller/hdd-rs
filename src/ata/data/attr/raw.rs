@@ -1,4 +1,6 @@
+#[cfg(feature = "drivedb-parser")]
 use std::cmp::{min, max};
+#[cfg(feature = "drivedb-parser")]
 use drivedb;
 use std::fmt;
 
@@ -112,6 +114,7 @@ fn reorder(data: &[u8], byte_order: &str) -> Vec<u8> {
 	}).collect()
 }
 
+#[cfg(feature = "drivedb-parser")]
 impl Raw {
 	// `data`: see above
 	pub fn from_raw_entry(data: &[u8], attr: &Option<drivedb::Attribute>) -> Self {
