@@ -10,6 +10,11 @@ use drivedb;
 pub struct SmartAttribute {
 	pub id: u8,
 
+	// XXX make sure it's exactly 12 bytes
+	// FIXME extra allocations
+	#[serde(skip_serializing)]
+	_data: Vec<u8>,
+
 	pub name: Option<String>, // comes from the drivedb
 
 	pub pre_fail: bool, // if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
@@ -86,6 +91,8 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 
 		attrs.push(SmartAttribute {
 			id: id,
+
+			_data: entry.to_vec(),
 
 			name: match &attr {
 				Some(a) => a.name.clone(),
