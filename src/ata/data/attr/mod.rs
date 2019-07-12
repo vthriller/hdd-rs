@@ -12,7 +12,7 @@ pub struct SmartAttribute {
 
 	// XXX make sure it's exactly 12 bytes
 	// FIXME extra allocations
-	#[serde(skip_serializing)]
+	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
 	_data: Vec<u8>,
 
 	pub name: Option<String>, // comes from the drivedb
@@ -23,7 +23,7 @@ pub struct SmartAttribute {
 	// contains None if `raw` is rendered using byte that usually covers this value
 	pub worst: Option<u8>,
 
-	#[serde(skip_serializing)]
+	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
 	_attr_meta: Option<drivedb::vendor_attribute::Attribute>,
 
 	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
