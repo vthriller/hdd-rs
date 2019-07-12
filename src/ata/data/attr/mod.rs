@@ -65,14 +65,21 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 
 	let threshs = parse_thresholds(raw_thresh);
 
+	// skip (XXX check?) data struct revision number
+	let data = &data[2..];
+
+	// there are 30 entries, each 12-byte wide
+	// TODO chunks_exact (rust >= 1.31)
+	let data = data.chunks(12).take(30);
+
 	let mut attrs = vec![];
-	for i in 0..30 {
-		let offset = 2 + i * 12;
-		if data[offset] == 0 { continue } // attribute table entry of id 0x0 is invalid
+	for entry in data {
+		let id = entry[0];
 
-		let flags = (data[offset + 1] as u16) + ((data[offset + 2] as u16) << 8); // XXX endianness?
+		// attribute table entry of id 0x0 is invalid
+		if id == 0 { continue }
 
-		let id = data[offset];
+		let flags = (entry[1] as u16) + ((entry[2] as u16) << 8); // XXX endianness?
 
 		let attr = meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None);
 		let is_in_raw = |c| attr.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false);
@@ -94,16 +101,16 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 			flags:           flags & (!0b11_1111),
 
 			value: if !is_in_raw('v') {
-				Some(data[offset + 3])
+				Some(entry[3])
 			} else { None },
 			worst: if !is_in_raw('w') {
-				Some(data[offset + 4])
+				Some(entry[4])
 			} else { None },
 
-			raw: raw::Raw::from_raw_entry(&data[offset .. offset + 12], &attr),
+			raw: raw::Raw::from_raw_entry(&entry, &attr),
 
 			// .get() returns Option<&T>, but threshs would not live long enough, and it's just easier to copy u8 using this map
-			thresh: threshs.get(&data[offset]).map(|&t| t),
+			thresh: threshs.get(&id).map(|&t| t),
 		})
 	}
 	attrs
