@@ -15,8 +15,6 @@ pub struct SmartAttribute {
 	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
 	_data: Vec<u8>,
 
-	pub name: Option<String>, // comes from the drivedb
-
 	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
 	_attr_meta: Option<drivedb::vendor_attribute::Attribute>,
 
@@ -24,6 +22,16 @@ pub struct SmartAttribute {
 }
 
 impl SmartAttribute {
+	// drivedb name
+	#[cfg(feature = "drivedb-parser")]
+	pub fn name(&self) -> Option<&str> {
+		self._attr_meta.as_ref()
+			.map(|a| a.name.as_ref().map(
+				|n| n.as_ref()
+			))
+			.unwrap_or(None)
+	}
+
 	#[cfg(feature = "drivedb-parser")]
 	pub fn raw(&self) -> raw::Raw {
 		raw::Raw::from_raw_entry(&self._data, &self._attr_meta)
@@ -119,11 +127,6 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 			id: id,
 
 			_data: entry.to_vec(),
-
-			name: match &attr {
-				Some(a) => a.name.clone(),
-				None => None
-			},
 
 			_attr_meta: attr,
 

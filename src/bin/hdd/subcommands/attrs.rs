@@ -54,7 +54,7 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 		// > The NAME … should not exceed 23 characters
 		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {}   {}    {} {} {}\n",
 			val.id,
-			val.name.as_ref().unwrap_or(&"?".to_string()),
+			val.name().unwrap_or(&"?".to_string()),
 			bool_to_flag(val.pre_fail(), 'P'),
 			bool_to_flag(!val.online(), 'O'),
 			bool_to_flag(val.performance(), 'S'),
@@ -117,7 +117,7 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 	for val in values {
 		let mut labels = labels.clone();
 		labels.insert("id", val.id.to_string());
-		labels.insert("name", val.name.as_ref().unwrap_or(&"?".to_string()).to_string());
+		labels.insert("name", val.name().unwrap_or(&"?".to_string()).to_string());
 		labels.insert("pre_fail", val.pre_fail().to_string());
 
 		val.value().map(|v| print!("{}\n", format_prom("smart_value", &labels, v)));
