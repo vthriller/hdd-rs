@@ -17,12 +17,6 @@ pub struct SmartAttribute {
 
 	pub name: Option<String>, // comes from the drivedb
 
-	// contains None if `raw` is rendered using byte that usually covers this value
-	// TODO? 0x00 | 0xfe | 0xff are invalid
-	pub value: Option<u8>,
-	// contains None if `raw` is rendered using byte that usually covers this value
-	pub worst: Option<u8>,
-
 	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
 	_attr_meta: Option<drivedb::vendor_attribute::Attribute>,
 
@@ -33,6 +27,27 @@ impl SmartAttribute {
 	#[cfg(feature = "drivedb-parser")]
 	pub fn raw(&self) -> raw::Raw {
 		raw::Raw::from_raw_entry(&self._data, &self._attr_meta)
+	}
+
+	fn is_used_in_raw(&self, c: char) -> bool {
+		self._attr_meta.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false)
+	}
+
+	// contains None if `raw` is rendered using byte that usually covers this value
+	// TODO? 0x00 | 0xfe | 0xff are invalid
+	#[cfg(feature = "drivedb-parser")]
+	pub fn value(&self) -> Option<u8> {
+		if !self.is_used_in_raw('v') {
+			Some(self._data[3])
+		} else { None }
+	}
+
+	// contains None if `raw` is rendered using byte that usually covers this value
+	#[cfg(feature = "drivedb-parser")]
+	pub fn worst(&self) -> Option<u8> {
+		if !self.is_used_in_raw('w') {
+			Some(self._data[4])
+		} else { None }
 	}
 
 	#[inline]
@@ -76,10 +91,6 @@ fn parse_thresholds(raw: &[u8]) -> HashMap<u8, u8> {
 	threshs
 }
 
-fn is_in_raw(attr: &Option<drivedb::vendor_attribute::Attribute>, c: char) -> bool {
-	attr.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false)
-}
-
 #[cfg(feature = "drivedb-parser")]
 pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
 	// TODO cover bytes 0..1 362..511 of data
@@ -113,13 +124,6 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 				Some(a) => a.name.clone(),
 				None => None
 			},
-
-			value: if !is_in_raw(&attr, 'v') {
-				Some(entry[3])
-			} else { None },
-			worst: if !is_in_raw(&attr, 'w') {
-				Some(entry[4])
-			} else { None },
 
 			_attr_meta: attr,
 
