@@ -53,14 +53,14 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {}   {}    {} {} {}\n",
 			val.id,
 			val.name.as_ref().unwrap_or(&"?".to_string()),
-			bool_to_flag(val.pre_fail, 'P'),
-			bool_to_flag(!val.online, 'O'),
-			bool_to_flag(val.performance, 'S'),
-			bool_to_flag(val.error_rate, 'R'),
-			bool_to_flag(val.event_count, 'C'),
-			bool_to_flag(val.self_preserving, 'K'),
-			if val.flags == 0 { "     ".to_string() }
-				else { format!("+{:04x}", val.flags) },
+			bool_to_flag(val.pre_fail(), 'P'),
+			bool_to_flag(!val.online(), 'O'),
+			bool_to_flag(val.performance(), 'S'),
+			bool_to_flag(val.error_rate(), 'R'),
+			bool_to_flag(val.event_count(), 'C'),
+			bool_to_flag(val.self_preserving(), 'K'),
+			if val.misc_flags() == 0 { "     ".to_string() }
+				else { format!("+{:04x}", val.misc_flags()) },
 			val.value.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
 			val.worst.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
 			val.thresh.map(|v| format!("{:3}", v)).unwrap_or("(?)".to_string()),
@@ -116,7 +116,7 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 		let mut labels = labels.clone();
 		labels.insert("id", val.id.to_string());
 		labels.insert("name", val.name.as_ref().unwrap_or(&"?".to_string()).to_string());
-		labels.insert("pre_fail", val.pre_fail.to_string());
+		labels.insert("pre_fail", val.pre_fail().to_string());
 
 		val.value.map(|v| print!("{}\n", format_prom("smart_value", &labels, v)));
 		val.worst.map(|v| print!("{}\n", format_prom("smart_worst", &labels, v)));
