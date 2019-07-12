@@ -72,7 +72,7 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 				// or value never was below the threshold
 				_ => "-   ",
 			},
-			val.raw,
+			val.raw(),
 		);
 	}
 	// based on the output of 'smartctl -A -f brief' (part of 'smartctl -x')
@@ -115,7 +115,7 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 	for val in values {
 		let mut labels = labels.clone();
 		labels.insert("id", val.id.to_string());
-		labels.insert("name", val.name.unwrap_or("?".to_string()));
+		labels.insert("name", val.name.as_ref().unwrap_or(&"?".to_string()).to_string());
 		labels.insert("pre_fail", val.pre_fail.to_string());
 
 		val.value.map(|v| print!("{}\n", format_prom("smart_value", &labels, v)));
@@ -123,7 +123,7 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 		val.thresh.map(|v| print!("{}\n", format_prom("smart_thresh", &labels, v)));
 		print!("{}\n", format_prom("smart_raw", &labels, {
 			use self::Raw::*;
-			match val.raw {
+			match val.raw() {
 				// TODO what should we do with these vecs from Raw{8,16}?
 				Raw8(_) => NAN,
 				Raw16(_) => NAN,
