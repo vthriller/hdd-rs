@@ -65,8 +65,10 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 			val.worst.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
 			val.thresh.map(|v| format!("{:3}", v)).unwrap_or("(?)".to_string()),
 			match (val.value, val.worst, val.thresh) {
-				(Some(v), _, Some(t)) if v <= t => "NOW ",
-				(_, Some(w), Some(t)) if w <= t => "past",
+				// threshold of 0x00 means "always passing", 0xff is "always failing"
+				// (TODO move this logic into the lib?)
+				(Some(v), _, Some(t)) if (v <= t && t != 0) || t == 0xff => "NOW ",
+				(_, Some(w), Some(t)) if (w <= t && t != 0) || t == 0xff => "past",
 				// either value/worst are part of the `val.row`,
 				// or threshold is not available,
 				// or value never was below the threshold
