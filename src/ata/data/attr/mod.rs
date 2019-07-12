@@ -34,13 +34,25 @@ pub struct SmartAttribute {
 }
 
 #[cfg(feature = "drivedb-parser")]
-fn parse_thresholds(raw_thresh: &[u8]) -> HashMap<u8, u8> {
+fn parse_thresholds(raw: &[u8]) -> HashMap<u8, u8> {
 	let mut threshs = HashMap::<u8, u8>::new();
-	for i in 0..30 {
-		let offset = 2 + i * 12;
-		if raw_thresh[offset] == 0 { continue } // attribute table entry of id 0x0 is invalid
-		threshs.insert(raw_thresh[offset], raw_thresh[offset+1]);
+
+	// skip (XXX check?) data struct revision number
+	let raw = &raw[2..];
+
+	// there are 30 entries, each 12-byte wide
+	// TODO chunks_exact (rust >= 1.31)
+	let raw = raw.chunks(12).take(30);
+
+	for entry in raw {
+		let attr = entry[0];
+		let thresh = entry[1];
 		// fields 2..11 are reserved
+
+		// attribute table entry of id 0x0 is invalid
+		if attr == 0 { continue }
+
+		threshs.insert(attr, thresh);
 	}
 	threshs
 }

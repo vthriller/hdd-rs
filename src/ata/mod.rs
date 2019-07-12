@@ -20,7 +20,7 @@ pub enum Command {
 #[derive(Debug, Clone, Copy)]
 pub enum SMARTFeature {
 	ReadValues = 0xd0, // in ATA8-ACS it's called 'SMART READ DATA', which is a bit unclear to people not familiar with ATA… or sometimes even to some who knows ATA well
-	ReadThresholds = 0xd1,
+	ReadThresholds = 0xd1, // "obsolete" in ATA8-ACS; consult SFF-8035i instead
 	ReturnStatus = 0xda,
 }
 
