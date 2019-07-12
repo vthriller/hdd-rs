@@ -62,6 +62,10 @@ fn parse_thresholds(raw: &[u8]) -> HashMap<u8, u8> {
 	threshs
 }
 
+fn is_in_raw(attr: &Option<drivedb::vendor_attribute::Attribute>, c: char) -> bool {
+	attr.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false)
+}
+
 #[cfg(feature = "drivedb-parser")]
 pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
 	// TODO cover bytes 0..1 362..511 of data
@@ -87,7 +91,6 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 		let flags = (entry[1] as u16) + ((entry[2] as u16) << 8); // XXX endianness?
 
 		let attr = meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None);
-		let is_in_raw = |c| attr.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false);
 
 		attrs.push(SmartAttribute {
 			id: id,
@@ -107,10 +110,10 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 			self_preserving: flags & (1<<5) != 0,
 			flags:           flags & (!0b11_1111),
 
-			value: if !is_in_raw('v') {
+			value: if !is_in_raw(&attr, 'v') {
 				Some(entry[3])
 			} else { None },
-			worst: if !is_in_raw('w') {
+			worst: if !is_in_raw(&attr, 'w') {
 				Some(entry[4])
 			} else { None },
 
