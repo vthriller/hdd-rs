@@ -17,16 +17,6 @@ pub struct SmartAttribute {
 
 	pub name: Option<String>, // comes from the drivedb
 
-	pub pre_fail: bool, // if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
-	pub online: bool,
-	// In SFF-8035i rev 2, bits 2-5 are defined as vendor-specific, and 6-15 are reserved;
-	// however, these days the following seems to be universally interpreted the way it was once (probably) established by IBM, Maxtor and Quantum
-	pub performance: bool,
-	pub error_rate: bool,
-	pub event_count: bool,
-	pub self_preserving: bool,
-	pub flags: u16,
-
 	// contains None if `raw` is rendered using byte that usually covers this value
 	// TODO? 0x00 | 0xfe | 0xff are invalid
 	pub value: Option<u8>,
@@ -44,6 +34,22 @@ impl SmartAttribute {
 	pub fn raw(&self) -> raw::Raw {
 		raw::Raw::from_raw_entry(&self._data, &self._attr_meta)
 	}
+
+	#[inline]
+	fn flags(&self) -> u16 {
+		(self._data[1] as u16) + ((self._data[2] as u16) << 8) // XXX endianness?
+	}
+
+	// if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
+	pub fn pre_fail(&self)        -> bool { self.flags() & (1<<0) != 0 }
+	pub fn online(&self)          -> bool { self.flags() & (1<<1) != 0 }
+	// In SFF-8035i rev 2, bits 2-5 are defined as vendor-specific, and 6-15 are reserved;
+	// however, these days the following seems to be universally interpreted the way it was once (probably) established by IBM, Maxtor and Quantum
+	pub fn performance(&self)     -> bool { self.flags() & (1<<2) != 0 }
+	pub fn error_rate(&self)      -> bool { self.flags() & (1<<3) != 0 }
+	pub fn event_count(&self)     -> bool { self.flags() & (1<<4) != 0 }
+	pub fn self_preserving(&self) -> bool { self.flags() & (1<<5) != 0 }
+	pub fn misc_flags(&self)      -> u16  { self.flags() & (!0b11_1111) }
 }
 
 #[cfg(feature = "drivedb-parser")]
@@ -96,8 +102,6 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 		// attribute table entry of id 0x0 is invalid
 		if id == 0 { continue }
 
-		let flags = (entry[1] as u16) + ((entry[2] as u16) << 8); // XXX endianness?
-
 		let attr = meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None);
 
 		attrs.push(SmartAttribute {
@@ -109,14 +113,6 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 				Some(a) => a.name.clone(),
 				None => None
 			},
-
-			pre_fail:        flags & (1<<0) != 0,
-			online:          flags & (1<<1) != 0,
-			performance:     flags & (1<<2) != 0,
-			error_rate:      flags & (1<<3) != 0,
-			event_count:     flags & (1<<4) != 0,
-			self_preserving: flags & (1<<5) != 0,
-			flags:           flags & (!0b11_1111),
 
 			value: if !is_in_raw(&attr, 'v') {
 				Some(entry[3])
