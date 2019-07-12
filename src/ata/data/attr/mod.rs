@@ -34,11 +34,7 @@ pub struct SmartAttribute {
 }
 
 #[cfg(feature = "drivedb-parser")]
-pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
-	// TODO cover bytes 0..1 362..511 of data
-	// XXX what if some drive reports the same attribute multiple times?
-	// TODO return None if data.len() < 512
-
+fn parse_thresholds(raw_thresh: &[u8]) -> HashMap<u8, u8> {
 	let mut threshs = HashMap::<u8, u8>::new();
 	for i in 0..30 {
 		let offset = 2 + i * 12;
@@ -46,6 +42,16 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 		threshs.insert(raw_thresh[offset], raw_thresh[offset+1]);
 		// fields 2..11 are reserved
 	}
+	threshs
+}
+
+#[cfg(feature = "drivedb-parser")]
+pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
+	// TODO cover bytes 0..1 362..511 of data
+	// XXX what if some drive reports the same attribute multiple times?
+	// TODO return None if data.len() < 512
+
+	let threshs = parse_thresholds(raw_thresh);
 
 	let mut attrs = vec![];
 	for i in 0..30 {
