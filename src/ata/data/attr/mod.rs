@@ -33,9 +33,17 @@ pub struct SmartAttribute {
 	// contains None if `raw` is rendered using byte that usually covers this value
 	pub worst: Option<u8>,
 
-	pub raw: raw::Raw,
+	#[serde(skip_serializing)]
+	_attr_meta: Option<drivedb::vendor_attribute::Attribute>,
 
 	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
+}
+
+impl SmartAttribute {
+	#[cfg(feature = "drivedb-parser")]
+	pub fn raw(&self) -> raw::Raw {
+		raw::Raw::from_raw_entry(&self._data, &self._attr_meta)
+	}
 }
 
 #[cfg(feature = "drivedb-parser")]
@@ -117,7 +125,7 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 				Some(entry[4])
 			} else { None },
 
-			raw: raw::Raw::from_raw_entry(&entry, &attr),
+			_attr_meta: attr,
 
 			// .get() returns Option<&T>, but threshs would not live long enough, and it's just easier to copy u8 using this map
 			thresh: threshs.get(&id).map(|&t| t),
