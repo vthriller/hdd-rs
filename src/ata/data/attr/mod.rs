@@ -34,7 +34,7 @@ pub struct SmartAttribute {
 }
 
 #[cfg(feature = "drivedb-parser")]
-pub fn parse_smart_values(data: &Vec<u8>, raw_thresh: &Vec<u8>, meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
+pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
 	// TODO cover bytes 0..1 362..511 of data
 	// XXX what if some drive reports the same attribute multiple times?
 	// TODO return None if data.len() < 512
