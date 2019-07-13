@@ -97,7 +97,6 @@ impl AnnotatedSmartAttribute {
 
 	// contains None if `raw` is rendered using byte that usually covers this value
 	// TODO? 0x00 | 0xfe | 0xff are invalid
-	#[cfg(feature = "drivedb-parser")]
 	pub fn value(&self) -> Option<u8> {
 		if !self.is_used_in_raw('v') {
 			Some(self.attr.value())
@@ -105,7 +104,6 @@ impl AnnotatedSmartAttribute {
 	}
 
 	// contains None if `raw` is rendered using byte that usually covers this value
-	#[cfg(feature = "drivedb-parser")]
 	pub fn worst(&self) -> Option<u8> {
 		if !self.is_used_in_raw('w') {
 			Some(self.attr.worst())
