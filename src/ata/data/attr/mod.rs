@@ -34,6 +34,15 @@ impl SmartAttribute {
 	pub fn event_count(&self)     -> bool { self.flags() & (1<<4) != 0 }
 	pub fn self_preserving(&self) -> bool { self.flags() & (1<<5) != 0 }
 	pub fn misc_flags(&self)      -> u16  { self.flags() & (!0b11_1111) }
+
+	#[cfg(feature = "drivedb-parser")]
+	pub fn annotate(self, meta: &Option<drivedb::DriveMeta>) -> AnnotatedSmartAttribute {
+		let id = self.id;
+		AnnotatedSmartAttribute {
+			attr: self,
+			_attr_meta: meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None),
+		}
+	}
 }
 
 #[cfg(feature = "drivedb-parser")]
@@ -108,7 +117,7 @@ fn parse_thresholds(raw: &[u8]) -> HashMap<u8, u8> {
 }
 
 #[cfg(feature = "drivedb-parser")]
-pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb::DriveMeta>) -> Vec<SmartAttribute> {
+pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8]) -> Vec<SmartAttribute> {
 	// TODO cover bytes 0..1 362..511 of data
 	// XXX what if some drive reports the same attribute multiple times?
 	// TODO return None if data.len() < 512
@@ -129,14 +138,10 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8], meta: &Option<drivedb:
 		// attribute table entry of id 0x0 is invalid
 		if id == 0 { continue }
 
-		let attr = meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None);
-
 		attrs.push(SmartAttribute {
 			id: id,
 
 			_data: entry.to_vec(),
-
-			_attr_meta: attr,
 
 			// .get() returns Option<&T>, but threshs would not live long enough, and it's just easier to copy u8 using this map
 			thresh: threshs.get(&id).map(|&t| t),
