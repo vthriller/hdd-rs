@@ -24,6 +24,28 @@ impl SmartAttribute {
 		(self._data[1] as u16) + ((self._data[2] as u16) << 8) // XXX endianness?
 	}
 
+	/**
+	Returns attribute's normalized value.
+
+	If `drivedb` feature is enabled, consider using
+	[`AnnotatedSmartAttribute's method of the same name`](struct.AnnotatedSmartAttribute.html#method.value),
+	which will return `None` if attribute data need to be interpreted in a special way.
+	*/
+	pub fn value(&self) -> u8 {
+		self._data[3]
+	}
+
+	/**
+	Returns attribute's historically worst normalized value.
+
+	If `drivedb` feature is enabled, consider using
+	[`AnnotatedSmartAttribute's method of the same name`](struct.AnnotatedSmartAttribute.html#method.worst),
+	which will return `None` if attribute data need to be interpreted in a special way.
+	*/
+	pub fn worst(&self) -> u8 {
+		self._data[4]
+	}
+
 	// if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
 	pub fn pre_fail(&self)        -> bool { self.flags() & (1<<0) != 0 }
 	pub fn online(&self)          -> bool { self.flags() & (1<<1) != 0 }
@@ -67,7 +89,7 @@ impl AnnotatedSmartAttribute {
 	}
 
 	pub fn raw(&self) -> raw::Raw {
-		raw::Raw::from_raw_entry(&self._data, &self._attr_meta)
+		raw::Raw::from_raw_entry(&self.attr._data, &self._attr_meta)
 	}
 
 	fn is_used_in_raw(&self, c: char) -> bool {
@@ -79,7 +101,7 @@ impl AnnotatedSmartAttribute {
 	#[cfg(feature = "drivedb-parser")]
 	pub fn value(&self) -> Option<u8> {
 		if !self.is_used_in_raw('v') {
-			Some(self._data[3])
+			Some(self.attr.value())
 		} else { None }
 	}
 
@@ -87,7 +109,7 @@ impl AnnotatedSmartAttribute {
 	#[cfg(feature = "drivedb-parser")]
 	pub fn worst(&self) -> Option<u8> {
 		if !self.is_used_in_raw('w') {
-			Some(self._data[4])
+			Some(self.attr.worst())
 		} else { None }
 	}
 }
