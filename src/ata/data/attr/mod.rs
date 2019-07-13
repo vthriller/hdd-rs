@@ -1,6 +1,5 @@
 pub mod raw;
 
-#[cfg(feature = "drivedb-parser")]
 use std::collections::HashMap;
 #[cfg(feature = "drivedb-parser")]
 use drivedb;
@@ -114,7 +113,6 @@ impl AnnotatedSmartAttribute {
 	}
 }
 
-#[cfg(feature = "drivedb-parser")]
 fn parse_thresholds(raw: &[u8]) -> HashMap<u8, u8> {
 	let mut threshs = HashMap::<u8, u8>::new();
 
@@ -138,7 +136,6 @@ fn parse_thresholds(raw: &[u8]) -> HashMap<u8, u8> {
 	threshs
 }
 
-#[cfg(feature = "drivedb-parser")]
 pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8]) -> Vec<SmartAttribute> {
 	// TODO cover bytes 0..1 362..511 of data
 	// XXX what if some drive reports the same attribute multiple times?
