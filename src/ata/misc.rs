@@ -39,6 +39,7 @@ use ata::{ATADevice, RegistersRead, RegistersWrite, Command, SMARTFeature};
 use scsi::{self, SCSIDevice};
 
 use ata::data::{id, health, attr};
+#[cfg(feature = "drivedb-parser")]
 use drivedb;
 
 use std::io;
@@ -99,8 +100,8 @@ pub trait Misc {
 		Ok(health::parse_smart_status(&regs))
 	}
 
-	/// Issues SMART READ DATA and SMART READ THRESHOLDS commands, then renders their answers using optional [drivedb](../../drivedb/index.html) entry.
-	fn get_smart_attributes(&self, meta: &Option<drivedb::DriveMeta>) -> Result<Vec<attr::SmartAttribute>, Error> {
+	/// Issues SMART READ DATA and SMART READ THRESHOLDS commands, then renders their answers.
+	fn get_smart_attributes(&self) -> Result<Vec<attr::SmartAttribute>, Error> {
 		info!("reading SMART attributes and thresholds");
 
 		let mut data = Vec::with_capacity(512);
@@ -124,7 +125,7 @@ pub trait Misc {
 			device: 0,
 		})?;
 
-		Ok(attr::parse_smart_values(&data, &thresh, &meta))
+		Ok(attr::parse_smart_values(&data, &thresh))
 	}
 }
 
