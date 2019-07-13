@@ -15,15 +15,40 @@ pub struct SmartAttribute {
 	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
 	_data: Vec<u8>,
 
-	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
-	_attr_meta: Option<drivedb::vendor_attribute::Attribute>,
-
 	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 }
 
 impl SmartAttribute {
+	#[inline]
+	fn flags(&self) -> u16 {
+		(self._data[1] as u16) + ((self._data[2] as u16) << 8) // XXX endianness?
+	}
+
+	// if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
+	pub fn pre_fail(&self)        -> bool { self.flags() & (1<<0) != 0 }
+	pub fn online(&self)          -> bool { self.flags() & (1<<1) != 0 }
+	// In SFF-8035i rev 2, bits 2-5 are defined as vendor-specific, and 6-15 are reserved;
+	// however, these days the following seems to be universally interpreted the way it was once (probably) established by IBM, Maxtor and Quantum
+	pub fn performance(&self)     -> bool { self.flags() & (1<<2) != 0 }
+	pub fn error_rate(&self)      -> bool { self.flags() & (1<<3) != 0 }
+	pub fn event_count(&self)     -> bool { self.flags() & (1<<4) != 0 }
+	pub fn self_preserving(&self) -> bool { self.flags() & (1<<5) != 0 }
+	pub fn misc_flags(&self)      -> u16  { self.flags() & (!0b11_1111) }
+}
+
+#[cfg(feature = "drivedb-parser")]
+#[derive(Debug)]
+#[cfg_attr(feature = "serializable", derive(Serialize))]
+pub struct AnnotatedSmartAttribute {
+	pub attr: SmartAttribute,
+
+	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
+	_attr_meta: Option<drivedb::vendor_attribute::Attribute>,
+}
+
+#[cfg(feature = "drivedb-parser")]
+impl AnnotatedSmartAttribute {
 	// drivedb name
-	#[cfg(feature = "drivedb-parser")]
 	pub fn name(&self) -> Option<&str> {
 		self._attr_meta.as_ref()
 			.map(|a| a.name.as_ref().map(
@@ -32,7 +57,6 @@ impl SmartAttribute {
 			.unwrap_or(None)
 	}
 
-	#[cfg(feature = "drivedb-parser")]
 	pub fn raw(&self) -> raw::Raw {
 		raw::Raw::from_raw_entry(&self._data, &self._attr_meta)
 	}
@@ -57,22 +81,6 @@ impl SmartAttribute {
 			Some(self._data[4])
 		} else { None }
 	}
-
-	#[inline]
-	fn flags(&self) -> u16 {
-		(self._data[1] as u16) + ((self._data[2] as u16) << 8) // XXX endianness?
-	}
-
-	// if true, failure is predicted within 24h; otherwise, attribute indicates drive's exceeded intended design life period
-	pub fn pre_fail(&self)        -> bool { self.flags() & (1<<0) != 0 }
-	pub fn online(&self)          -> bool { self.flags() & (1<<1) != 0 }
-	// In SFF-8035i rev 2, bits 2-5 are defined as vendor-specific, and 6-15 are reserved;
-	// however, these days the following seems to be universally interpreted the way it was once (probably) established by IBM, Maxtor and Quantum
-	pub fn performance(&self)     -> bool { self.flags() & (1<<2) != 0 }
-	pub fn error_rate(&self)      -> bool { self.flags() & (1<<3) != 0 }
-	pub fn event_count(&self)     -> bool { self.flags() & (1<<4) != 0 }
-	pub fn self_preserving(&self) -> bool { self.flags() & (1<<5) != 0 }
-	pub fn misc_flags(&self)      -> u16  { self.flags() & (!0b11_1111) }
 }
 
 #[cfg(feature = "drivedb-parser")]
