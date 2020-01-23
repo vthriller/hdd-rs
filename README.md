@@ -1,5 +1,14 @@
 # `hdd`: instruments for querying ATA and SCSI disks
 
+> ### This repo is dormant.
+>
+> This code still works as of January 2020 (and I even keep using it to monitor pretty significant number of disk drives), but it is practically unmaintained at this point. The reasons are:
+>
+> - [smartmontools finally gained support for JSON output with its 7.0 release](https://www.smartmontools.org/browser/tags/RELEASE_7_0/smartmontools/NEWS?rev=5031),
+> - I have no time for boring things in an unpopular crate, simple as that. This crate already does what it initially was supposed to do (namely, it enables SMART and SCSI log page monitoring on Linux and FreeBSD systems without unreliable parsing scripts); sure it would be nice to support other ATA/SCSI commands, implement drive-specific hacks from smartmontools, or take time to figure out a nicer way to deal with devices that implement `ATA PASSTHROUGH` than current struct/trait mess, but there is practically no demand for any change whatsoever.
+>
+> Feel free to send patches or file issues though: even if would not turn out to be a quick 5-minute fix, that will at least show what degree of interest in the crate the audience maintains.
+
 [Documentation](https://docs.rs/hdd/).
 
 This is [work in progress](#to-do).
@@ -9,7 +18,7 @@ This is [work in progress](#to-do).
 Mainly because I was disappointed in all the available options for putting SMART and SCSI log info into various monitoring systems.
 
 * Scripts that parse `smartctl` output (usually with regexes) are slow, ugly, unreliable hacks.
-* To add support for different, programming-friendly output format into `smartctl` (e.g. JSON), one basically needs to rewrite a lot of ad-hoc `printf`s scattered all over the source files, and it's not much easier if you decide to drop the idea of implementing some command-line switch in favour of simply changing the output format altogether. (Things are only getting more complex with `smartd`.)
+* ~~To add support for different, programming-friendly output format into `smartctl` (e.g. JSON), one basically needs to rewrite a lot of ad-hoc `printf`s scattered all over the source files, and it's not much easier if you decide to drop the idea of implementing some command-line switch in favour of simply changing the output format altogether. (Things are only getting more complex with `smartd`.)~~
 * `libatasmart` (and tools that it powers) can only work with ATA devices, and only on Linux, and expecting more from that library is simply naïve.
 
 ## How?
