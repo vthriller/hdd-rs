@@ -122,21 +122,23 @@ fn main() {
 		}
 	}
 
-	let mut pages = SCSIPages::new(&dev);
-	if let Ok(supported_pages) = pages.supported_pages() {
-		for p in supported_pages {
-			if p == 00 { continue; }
+	let mut pages = SCSIPages::new(&dev).unwrap();
+	let supported_pages = pages.supported_pages()
+	    .iter()
+	    .cloned()
+	    .collect::<Vec<_>>();
+	for p in supported_pages {
+		if p == 00 { continue; }
 
-			print!("=== [{:02x}] {} ===\n", p, page_name(p));
-			match p {
-				// already in cli
-				0x02...0x06 | 0x0d | 0x0e => (),
-				0x10 => print!("{:#?}\n", pages.self_test_results()),
-				0x2f => print!("{:#?}\n", pages.informational_exceptions()),
-				_ => (),
-			}
+		print!("=== [{:02x}] {} ===\n", p, page_name(p));
+		match p {
+			// already in cli
+			0x02...0x06 | 0x0d | 0x0e => (),
+			0x10 => print!("{:#?}\n", pages.self_test_results()),
+			0x2f => print!("{:#?}\n", pages.informational_exceptions()),
+			_ => (),
 		}
-	};
+	}
 
 	/*
 	// TODO tell whether subpages are supported at all
