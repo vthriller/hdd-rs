@@ -1,6 +1,6 @@
 use std::mem;
 
-use cam::*;
+use cam::{*, bindings::*};
 
 use ata;
 use ata::ATADevice;
@@ -20,17 +20,16 @@ impl ATADevice<Device> {
 
 		unsafe {
 			let h = ccb.ccb_h();
-			h.func_code = xpt_opcode::XPT_ATA_IO;
+			h.func_code = xpt_opcode_XPT_ATA_IO;
 			h.flags = {
 				use self::Direction::*;
-				use self::ccb_flags::*;
 				match dir {
-					From => CAM_DIR_IN,
+					From => ccb_flags_CAM_DIR_IN,
 					To => unimplemented!(), //CAM_DIR_OUT,
 					Both => unimplemented!(), //CAM_DIR_BOTH,
-					None => CAM_DIR_NONE,
+					None => ccb_flags_CAM_DIR_NONE,
 				}
-			} as u32;
+			};
 			h.retry_count = 0;
 			h.timeout = timeout * 1000;
 
@@ -52,12 +51,12 @@ impl ATADevice<Device> {
 
 			ataio.cmd.flags = (CAM_ATAIO_NEEDRESULT | CAM_ATAIO_48BIT) as u8;
 
-			h.flags |= ccb_flags::CAM_DEV_QFRZDIS as u32;
+			h.flags |= ccb_flags_CAM_DEV_QFRZDIS;
 		}
 
 		self.device.dev.send_ccb(&ccb)?;
 
-		if ccb.get_status() != (cam_status::CAM_REQ_CMP as u32) {
+		if ccb.get_status() != cam_status_CAM_REQ_CMP {
 			Err(error::from_status(&self.device.dev, &ccb))?
 		}
 
