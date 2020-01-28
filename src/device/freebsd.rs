@@ -1,5 +1,5 @@
 use cam::{CAMDevice, CCB, error};
-use cam::bindings::{xpt_opcode, cam_status, cam_proto};
+use cam::bindings::*;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -22,19 +22,17 @@ impl Device {
 	pub fn get_type(&self) -> Result<Type, io::Error> {
 		unsafe {
 			let ccb: CCB = CCB::new(&self.dev);
-			ccb.ccb_h().func_code = xpt_opcode::XPT_PATH_INQ;
+			ccb.ccb_h().func_code = xpt_opcode_XPT_PATH_INQ;
 
 			self.dev.send_ccb(&ccb)?;
 
-			if ccb.get_status() != cam_status::CAM_REQ_CMP as u32 {
+			if ccb.get_status() != cam_status_CAM_REQ_CMP as u32 {
 				Err(error::from_status(&self.dev, &ccb))?
 			}
 
-			use self::cam_proto::*;
-
 			Ok(match ccb.cpi().protocol {
 				// TODO USB, SATA port multipliers and whatnot
-				PROTO_ATA => Type::ATA,
+				cam_proto_PROTO_ATA => Type::ATA,
 				_ => Type::SCSI,
 			})
 		}
@@ -45,13 +43,6 @@ impl Device {
 // TODO? smartmontools also try to probe /dev/ata; should we do the same, or is it just some deprecated thing?
 /// Lists paths to devices currently presented in the system.
 pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
-	use cam::bindings::{
-		ccb,
-		CAMIOCOMMAND, XPT_DEVICE,
-		CAM_XPT_PATH_ID, CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD,
-		cam_status_CAM_STATUS_MASK, cam_status,
-		ccb_dev_match_status, dev_match_result,
-	};
 	use libc::ioctl;
 	use std::mem;
 	use std::ffi::CStr;
@@ -96,21 +87,21 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 	let mut ccb = unsafe {
 		let mut ccb = mem::zeroed::<ccb>();
 
-		ccb.ccb_h.as_mut().path_id = CAM_XPT_PATH_ID;
-		ccb.ccb_h.as_mut().target_id = CAM_TARGET_WILDCARD;
+		ccb.ccb_h.path_id = CAM_XPT_PATH_ID;
+		ccb.ccb_h.target_id = CAM_TARGET_WILDCARD;
 		// XXX without .into(): 'expected u64, found u32'
 		// CAM_LUN_WILDCARD is defined as u_int, target_lun though is lun_id_t, which in turn is u_int64_t. Oh boy :\
-		ccb.ccb_h.as_mut().target_lun = CAM_LUN_WILDCARD.into();
+		ccb.ccb_h.target_lun = CAM_LUN_WILDCARD.into();
 
-		ccb.ccb_h.as_mut().func_code = xpt_opcode::XPT_DEV_MATCH;
+		ccb.ccb_h.func_code = xpt_opcode_XPT_DEV_MATCH;
 
-		ccb.cdm.as_mut().match_buf_len = (matches.capacity() * mem::size_of::<dev_match_result>()) as u32;
-		ccb.cdm.as_mut().matches = matches.as_mut_ptr();
+		ccb.cdm.match_buf_len = (matches.capacity() * mem::size_of::<dev_match_result>()) as u32;
+		ccb.cdm.matches = matches.as_mut_ptr();
 		// smartmontools also bzero()es `matches` here; camcontrol, however, doesn't
 
-		ccb.cdm.as_mut().num_matches = 0;
-		ccb.cdm.as_mut().num_patterns = 0;
-		ccb.cdm.as_mut().pattern_buf_len = 0;
+		ccb.cdm.num_matches = 0;
+		ccb.cdm.num_patterns = 0;
+		ccb.cdm.pattern_buf_len = 0;
 
 		ccb
 	};
@@ -152,8 +143,8 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 			return Err(io::Error::last_os_error());
 		}
 
-		let cam_status = unsafe { ccb.ccb_h.as_ref().status };
-		let cdm_status = unsafe { ccb.cdm.as_ref().status };
+		let cam_status = unsafe { ccb.ccb_h.status };
+		let cdm_status = unsafe { ccb.cdm.status };
 		let err = || Err(io::Error::new(io::ErrorKind::Other,
 			format!("CAM error 0x{:x}, CDM error {}\n",
 				cam_status,
@@ -162,22 +153,20 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 		));
 
 		// see also CCB.get_status()
-		if (cam_status & cam_status_CAM_STATUS_MASK as u32) != (cam_status::CAM_REQ_CMP as u32) {
+		if (cam_status & cam_status_CAM_STATUS_MASK as u32) != (cam_status_CAM_REQ_CMP as u32) {
 			return err();
 		}
 		match cdm_status {
-			ccb_dev_match_status::CAM_DEV_MATCH_LAST => (),
-			ccb_dev_match_status::CAM_DEV_MATCH_MORE => (),
+			ccb_dev_match_status_CAM_DEV_MATCH_LAST => (),
+			ccb_dev_match_status_CAM_DEV_MATCH_MORE => (),
 			_ => return err(),
 		}
 
-		unsafe { matches.set_len(ccb.cdm.as_ref().num_matches as usize) }
+		unsafe { matches.set_len(ccb.cdm.num_matches as usize) }
 
 		let mut skip_bus = false;
 		let mut skip_dev = false;
 		for m in matches.iter() { // don't consume it, we'll fill it with another page
-			use cam::bindings::dev_match_type::*;
-			use cam::bindings::dev_result_flags::DEV_RESULT_UNCONFIGURED;
 			match m.type_ {
 				/*
 				`CStr::from_ptr(whatever.as_ref().as_ptr())` might seem weird and a bit redundant,
@@ -189,9 +178,9 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 				`unsafe { CStr::from_ptr() }` is safe: `matches` outlives any of the pointers passed in.
 				HOWEVER, any string that should survive consecutive CAMIOCOMMANDs must be cloned because of reused `matches`.
 				*/
-				DEV_MATCH_BUS => {
-					let bus = unsafe { m.result.bus_result.as_ref() };
-					let bus_name = unsafe { CStr::from_ptr(bus.dev_name.as_ref().as_ptr()) };
+				dev_match_type_DEV_MATCH_BUS => {
+					let bus = unsafe { m.result.bus_result };
+					let bus_name = unsafe { CStr::from_ptr(bus.dev_name.as_ptr()) };
 					debug!("bus {:?}", bus_name);
 
 					skip_bus = match bus_name.to_str() {
@@ -204,24 +193,24 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 					};
 					if skip_bus { debug!("  skip"); }
 				},
-				DEV_MATCH_DEVICE => {
-					let dev = unsafe { m.result.device_result.as_ref() };
+				dev_match_type_DEV_MATCH_DEVICE => {
+					let dev = unsafe { m.result.device_result };
 					debug!("  dev flags=0x{:x}", dev.flags as usize);
 
 					devices.push(vec![]);
 
 					// TODO? skip devices based on dev.protocol value
-					skip_dev = skip_bus || (dev.flags as usize & DEV_RESULT_UNCONFIGURED as usize != 0);
+					skip_dev = skip_bus || (dev.flags as usize & dev_result_flags_DEV_RESULT_UNCONFIGURED as usize != 0);
 					if skip_dev { debug!("    skip"); }
 				},
-				DEV_MATCH_PERIPH => {
-					let pdev = unsafe { m.result.periph_result.as_ref() };
+				dev_match_type_DEV_MATCH_PERIPH => {
+					let pdev = unsafe { m.result.periph_result };
 					let pname = unsafe { CStr::from_ptr(pdev.periph_name.as_ref().as_ptr()) };
 					debug!("    periph {:?} {}", pname, pdev.unit_number);
 
 					if ! skip_dev {
 						match pname.to_str() {
-							Ok(pname) => match devices.last_mut() { // latest device added in DEV_MATCH_DEVICE match arm
+							Ok(pname) => match devices.last_mut() { // latest device added in dev_match_type_DEV_MATCH_DEVICE match arm
 								Some(last_dev) =>
 									last_dev.push((pname.to_string(), pdev.unit_number)),
 								None => {
@@ -236,10 +225,11 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 						debug!("      skipped");
 					}
 				},
+				_ => panic!("Unknown match type {}", m.type_)
 			}
 		}
 
-		if cdm_status == ccb_dev_match_status::CAM_DEV_MATCH_LAST { break }
+		if cdm_status == ccb_dev_match_status_CAM_DEV_MATCH_LAST { break }
 	}
 
 	// and now, cherry-picking device names
