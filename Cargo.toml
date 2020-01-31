@@ -12,11 +12,13 @@ members = ["sample-scsi", "drivedb-bench"]
 
 [dependencies]
 libc = "0.2"
-nom = "^2.2"
-regex = "0.2"
 byteorder = "1"
 quick-error = "1.2"
 log = "0.4"
+
+# feature: drivedb-parser
+nom = { version = "^2.2", optional = true }
+regex = { version = "0.2", optional = true }
 
 # feature: serializable
 serde = { version = "0.9", optional = true }
@@ -32,7 +34,8 @@ env_logger = { version = "0.5", optional = true }
 lazy_static = { version = "1.0", optional = true }
 
 [features]
-default = []
+default = ["drivedb-parser"]
+drivedb-parser = ["nom", "regex"]
 serializable = ["serde", "serde_derive"]
 # XXX 'bin' feature depends on 'serializable'; for now this is reflected in [bin].required-features
 bin = ["clap", "serde_json", "separator", "number_prefix", "prettytable-rs", "env_logger", "lazy_static"]

@@ -27,7 +27,6 @@ impl ATADevice<Device> {
 				match dir {
 					From => CAM_DIR_IN,
 					To => unimplemented!(), //CAM_DIR_OUT,
-					Both => unimplemented!(), //CAM_DIR_BOTH,
 					None => CAM_DIR_NONE,
 				}
 			} as u32;

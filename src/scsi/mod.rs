@@ -90,16 +90,23 @@ impl SCSIDevice {
 	}
 
 	// thin wrapper against platform-specific implementation, mainly exists to provide consistent logging between platforms
-	/// Executes `cmd` and returns tuple of `(sense, data)`.
-	pub fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+	/**
+	Executes `cmd`.
+
+	Returns sense as a Vec<u8>.
+	If data was requested with `Direction::From(…)`, it is also written into a buffer passed with that `dir`.
+	*/
+	pub fn do_cmd(&self, cmd: &[u8], dir: &mut Direction, sense_len: usize) -> Result<Vec<u8>, io::Error> {
 		info!("SCSI cmd: dir={:?} cmd={:02x?}", dir, cmd);
 
 		// this one is implemented in `mod {linux,freebsd}`
-		let ret = Self::do_platform_cmd(self, cmd, dir, sense_len, data_len);
+		let ret = Self::do_platform_cmd(self, cmd, dir, sense_len);
 		match &ret {
-			Ok((sense, data)) => {
+			Ok(sense) => {
 				debug!("SCSI autosense: {}", hexdump_8(sense));
-				debug!("SCSI data: {}", hexdump_8(data));
+				if let Direction::From(ref data) = dir {
+					debug!("SCSI data: {}", hexdump_8(data));
+				}
 			},
 			err => {
 				debug!("SCSI err: {:?}", err);
@@ -131,13 +138,14 @@ pub enum DefectList {
 // TODO look for non-empty autosense and turn it into errors where appropriate
 pub trait SCSICommon: Sized {
 	// XXX DRY
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error>;
+	fn do_cmd(&self, cmd: &[u8], dir: &mut Direction, sense_len: usize) -> Result<Vec<u8>, io::Error>;
 
 	fn scsi_inquiry(&self, vital: bool, code: u8) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		info!("issuing INQUIRY: code={:?} vital={:?}", code, vital);
 
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
+		let mut data = Vec::with_capacity(alloc);
 
 		let cmd: [u8; 6] = [
 			0x12, // opcode: INQUIRY
@@ -148,7 +156,8 @@ pub trait SCSICommon: Sized {
 			0, // control (XXX what's that?!)
 		];
 
-		Ok(self.do_cmd(&cmd, Direction::From, 32, alloc)?)
+		Ok(self.do_cmd(&cmd, &mut Direction::From(&mut data), 32)?)
+			.map(|sense| (sense, data))
 	}
 
 	/// returns tuple of (sense, logical block address, block length in bytes)
@@ -174,7 +183,8 @@ pub trait SCSICommon: Sized {
 			0, // control (XXX what's that?!)
 		];
 
-		let (sense, data) = self.do_cmd(&cmd, Direction::From, 32, 8)?;
+		let mut data = Vec::with_capacity(8);
+		let sense = self.do_cmd(&cmd, &mut Direction::From(&mut data), 32)?;
 
 		Ok((
 			sense,
@@ -243,6 +253,7 @@ pub trait SCSICommon: Sized {
 
 		// TODO as u16 argument, not const
 		const alloc: usize = 4096;
+		let mut data = Vec::with_capacity(alloc);
 
 		// Page Control field
 		let pc = match (default, threshold) {
@@ -266,19 +277,20 @@ pub trait SCSICommon: Sized {
 			0, // control (XXX what's that?!)
 		];
 
-		Ok(self.do_cmd(&cmd, Direction::From, 32, alloc)?)
+		Ok(self.do_cmd(&cmd, &mut Direction::From(&mut data), 32)?)
+			.map(|sense| (sense, data))
 	}
 
-	fn ata_pass_through_16(&self, dir: Direction, regs: &ata::RegistersWrite) -> Result<(ata::RegistersRead, Vec<u8>), ATAError> {
+	// data, if any, is returned through `dir`
+	fn ata_pass_through_16(&self, dir: &mut Direction, regs: &ata::RegistersWrite) -> Result<ata::RegistersRead, ATAError> {
 		info!("issuing ATA PASS-THROUGH (16): dir={:?} regs={:?}", dir, regs);
 
 		// see T10/04-262r8a ATA Command Pass-Through, 3.2.3
 		let extend = 0; // TODO
 		let protocol = match dir {
 			Direction::None => 3, // Non-data
-			Direction::From => 4, // PIO Data-In
-			Direction::To => unimplemented!(), //5, // PIO Data-Out
-			_ => unimplemented!(),
+			Direction::From(_) => 4, // PIO Data-In
+			Direction::To(_) => unimplemented!(), //5, // PIO Data-Out
 		};
 		let multiple_count = 0; // TODO
 		let ata_cmd: [u8; 16] = [
@@ -301,7 +313,7 @@ pub trait SCSICommon: Sized {
 			0, // control (XXX what's that?!)
 		];
 
-		let (sense, data) = self.do_cmd(&ata_cmd, Direction::From, 32, 512)?;
+		let sense = self.do_cmd(&ata_cmd, dir, 32)?;
 
 		let sense = match sense::parse(&sense) {
 			Some((true, sense)) => sense,
@@ -340,7 +352,7 @@ pub trait SCSICommon: Sized {
 			let d = desc.data;
 
 			// TODO? EXTEND bit, ATA PASS-THROUGH 12 vs 16
-			return Ok((ata::RegistersRead {
+			return Ok(ata::RegistersRead {
 				error: d[1],
 
 				sector_count: d[3],
@@ -351,7 +363,7 @@ pub trait SCSICommon: Sized {
 				device: d[10],
 
 				status: d[11],
-			}, data))
+			})
 		}
 
 		return Err(ATAError::NoRegisters);
@@ -360,8 +372,8 @@ pub trait SCSICommon: Sized {
 
 impl SCSICommon for SCSIDevice {
 	// XXX DRY
-	fn do_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
-		Self::do_cmd(self, cmd, dir, sense_len, data_len)
+	fn do_cmd(&self, cmd: &[u8], dir: &mut Direction, sense_len: usize) -> Result<Vec<u8>, io::Error> {
+		Self::do_cmd(self, cmd, dir, sense_len)
 	}
 }
 
@@ -390,7 +402,8 @@ where C: ::std::ops::Div<Output = C> + ::std::convert::From<u8> + ::std::fmt::Di
 	let glist = if glist { 1 } else { 0 };
 
 	let (cmd, alloc) = cmd(plist, glist, format);
-	let (sense, data) = dev.do_cmd(&cmd, Direction::From, 32, alloc)?;
+	let mut data = Vec::with_capacity(alloc);
+	let sense = dev.do_cmd(&cmd, &mut Direction::From(&mut data), 32)?;
 
 	if sense.len() > 0 {
 		// only current senses are expected here

@@ -49,22 +49,24 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 	print!("S.M.A.R.T. attribute values:\n");
 	print!(" ID name                     flags        value worst thresh fail raw\n");
 	for val in values {
+		let value = val.value();
+		let worst = val.worst();
 		// > The NAME … should not exceed 23 characters
 		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {}   {}    {} {} {}\n",
 			val.id,
-			val.name.as_ref().unwrap_or(&"?".to_string()),
-			bool_to_flag(val.pre_fail, 'P'),
-			bool_to_flag(!val.online, 'O'),
-			bool_to_flag(val.performance, 'S'),
-			bool_to_flag(val.error_rate, 'R'),
-			bool_to_flag(val.event_count, 'C'),
-			bool_to_flag(val.self_preserving, 'K'),
-			if val.flags == 0 { "     ".to_string() }
-				else { format!("+{:04x}", val.flags) },
-			val.value.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
-			val.worst.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
+			val.name().unwrap_or(&"?".to_string()),
+			bool_to_flag(val.pre_fail(), 'P'),
+			bool_to_flag(!val.online(), 'O'),
+			bool_to_flag(val.performance(), 'S'),
+			bool_to_flag(val.error_rate(), 'R'),
+			bool_to_flag(val.event_count(), 'C'),
+			bool_to_flag(val.self_preserving(), 'K'),
+			if val.misc_flags() == 0 { "     ".to_string() }
+				else { format!("+{:04x}", val.misc_flags()) },
+			value.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
+			worst.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
 			val.thresh.map(|v| format!("{:3}", v)).unwrap_or("(?)".to_string()),
-			match (val.value, val.worst, val.thresh) {
+			match (value, worst, val.thresh) {
 				(Some(v), _, Some(t)) if v <= t => "NOW ",
 				(_, Some(w), Some(t)) if w <= t => "past",
 				// either value/worst are part of the `val.row`,
@@ -72,7 +74,7 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 				// or value never was below the threshold
 				_ => "-   ",
 			},
-			val.raw,
+			val.raw(),
 		);
 	}
 	// based on the output of 'smartctl -A -f brief' (part of 'smartctl -x')
@@ -115,15 +117,15 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 	for val in values {
 		let mut labels = labels.clone();
 		labels.insert("id", val.id.to_string());
-		labels.insert("name", val.name.unwrap_or("?".to_string()));
-		labels.insert("pre_fail", val.pre_fail.to_string());
+		labels.insert("name", val.name().unwrap_or(&"?".to_string()).to_string());
+		labels.insert("pre_fail", val.pre_fail().to_string());
 
-		val.value.map(|v| print!("{}\n", format_prom("smart_value", &labels, v)));
-		val.worst.map(|v| print!("{}\n", format_prom("smart_worst", &labels, v)));
+		val.value().map(|v| print!("{}\n", format_prom("smart_value", &labels, v)));
+		val.worst().map(|v| print!("{}\n", format_prom("smart_worst", &labels, v)));
 		val.thresh.map(|v| print!("{}\n", format_prom("smart_thresh", &labels, v)));
 		print!("{}\n", format_prom("smart_raw", &labels, {
 			use self::Raw::*;
-			match val.raw {
+			match val.raw() {
 				// TODO what should we do with these vecs from Raw{8,16}?
 				Raw8(_) => NAN,
 				Raw16(_) => NAN,
@@ -253,13 +255,17 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<d
 		}
 	};
 
-	if let Some(ref entry) = dbentry {
-		if let Some(_) = entry.warning {
-			print!("{}\n", format_prom("smart_drivedb_warning", &labels, 1));
-		}
-	};
-
 	use id::Ternary::*;
+
+	match (&format, &dbentry) {
+		(Prometheus, Some(ref entry)) => {
+			if let Some(_) = entry.warning {
+				print!("{}\n", format_prom("smart_drivedb_warning", &labels, 1));
+			}
+		},
+		_ => (),
+	}
+
 	match (format, id.smart) {
 		(Plain, Unsupported) | (JSON, Unsupported) =>
 			eprint!("S.M.A.R.T. is not supported, cannot show attributes\n"),

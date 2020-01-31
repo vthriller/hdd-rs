@@ -50,25 +50,31 @@ struct sg_io_hdr {
 }
 
 impl SCSIDevice {
-	pub(crate) fn do_platform_cmd(&self, cmd: &[u8], dir: Direction, sense_len: usize, data_len: usize) -> Result<(Vec<u8>, Vec<u8>), io::Error> {
+	pub(crate) fn do_platform_cmd(&self, cmd: &[u8], dir: &mut Direction, sense_len: usize) -> Result<Vec<u8>, io::Error> {
 		// might've used Vec::with_capacity(), but this requires rebuilding with Vec::from_raw_parts() later on to hint actual size of data in buffer vecs,
 		// and we're not expecting this function to be someone's bottleneck
 		let mut sense = vec![0; sense_len];
-		let mut data = vec![0; data_len];
+
+		// dxfer_direction: see scsi/sg.h, constants SG_DXFER_{NONE,{TO,FROM,TO_FROM}_DEV}
+		let (dxfer_direction, mut data) = match dir {
+			Direction::None => (-1, None),
+			// TODO &[u8] arg → data → sg_io_hdr.dxferp for Direction::To
+			Direction::To(_) => unimplemented!(), //-2,
+			Direction::From(buf) => (-3, Some(buf)),
+		};
 
 		let hdr = sg_io_hdr {
 			interface_id:	'S' as c_int,
 
-			dxfer_direction: match dir {
-				// see scsi/sg.h, constants SG_DXFER_{NONE,{TO,FROM,TO_FROM}_DEV}
-				// TODO &[u8] arg → data → sg_io_hdr.dxferp for Direction::{To,Both}
-				Direction::None => -1,
-				Direction::To => unimplemented!(), //-2,
-				Direction::From => -3,
-				Direction::Both => unimplemented!(), //-4,
+			dxfer_direction,
+			dxferp:	match data {
+				Some(ref mut data) => data.as_mut_ptr() as *mut c_void,
+				None => ptr::null_mut(),
 			},
-			dxferp:	data.as_mut_ptr() as *mut c_void,
-			dxfer_len:	data.capacity() as c_uint,
+			dxfer_len:	match data {
+				Some(ref data) => data.capacity() as c_uint,
+				None => 0,
+			},
 			resid:	0,
 
 			sbp:	sense.as_mut_ptr(),
@@ -104,11 +110,11 @@ impl SCSIDevice {
 		// but I'd still not cast i32 to u32 blindly, just to be sure
 		// TODO? return overrun flag
 		// XXX sg_io set resid to 0 for SATA disks, and Hitachi SAS disks behind Adaptec also set this to 0 for things like LOG SENSE 0fh/00h—need more reading/testing
-		let data_len = hdr.dxfer_len - max(hdr.resid, 0) as u32;
+		if let Some(data) = data {
+			let data_len = hdr.dxfer_len - max(hdr.resid, 0) as u32;
+			unsafe { data.set_len(data_len as usize); }
+		}
 
-		Ok((
-			sense[ .. hdr.sb_len_wr as usize].to_vec(),
-			data[ .. data_len as usize].to_vec(),
-		))
+		Ok(sense[ .. hdr.sb_len_wr as usize].to_vec())
 	}
 }

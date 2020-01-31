@@ -20,7 +20,7 @@ pub enum Command {
 #[derive(Debug, Clone, Copy)]
 pub enum SMARTFeature {
 	ReadValues = 0xd0, // in ATA8-ACS it's called 'SMART READ DATA', which is a bit unclear to people not familiar with ATA… or sometimes even to some who knows ATA well
-	ReadThresholds = 0xd1,
+	ReadThresholds = 0xd1, // "obsolete" in ATA8-ACS; consult SFF-8035i instead
 	ReturnStatus = 0xda,
 }
 
@@ -67,16 +67,18 @@ impl<T> ATADevice<T> {
 // which is an implementation detail that would leak everywhere as part of a public interface
 // besides, we really only need this method for just, like, two types: `ATADevice<Device>` and `ATADevice<SCSIDevice>`
 macro_rules! ata_do { ($Err:ty) => {
-	pub fn ata_do(&self, dir: Direction, regs: &::ata::RegistersWrite) -> Result<(::ata::RegistersRead, Vec<u8>), $Err> {
+	pub fn ata_do(&self, dir: &mut Direction, regs: &::ata::RegistersWrite) -> Result<::ata::RegistersRead, $Err> {
 		info!("issuing cmd: dir={:?} regs={:?}", dir, regs);
 
 		// this one is implemented in `mod {linux,freebsd}`, and here for `T: SCSIDevice`
 		let ret = Self::ata_platform_do(self, dir, regs);
 		match &ret {
-			Ok((regs, data)) => {
+			Ok(regs) => {
 				debug!("cmd reply: regs={:?}", regs);
 				// XXX does it make sense to use hexdump_16() instead of hexdump_8() if cmd is not IDENTIFY DEVICE?
-				debug!("cmd data: {}", ::utils::hexdump_16be(&::utils::bytes_to_be_words(data)));
+				if let Direction::From(data) = dir {
+					debug!("cmd data: {}", ::utils::hexdump_16be(&::utils::bytes_to_be_words(data)));
+				}
 			},
 			err => {
 				debug!("cmd error: {:?}", err);
@@ -101,7 +103,7 @@ pub use self::freebsd::*;
 
 impl ATADevice<SCSIDevice> {
 	ata_do!(scsi::ATAError);
-	fn ata_platform_do(&self, dir: Direction, regs: &RegistersWrite) -> Result<(RegistersRead, Vec<u8>), scsi::ATAError> {
+	fn ata_platform_do(&self, dir: &mut Direction, regs: &RegistersWrite) -> Result<RegistersRead, scsi::ATAError> {
 		self.device.ata_pass_through_16(dir, regs)
 	}
 
