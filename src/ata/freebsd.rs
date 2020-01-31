@@ -16,7 +16,7 @@ impl ATADevice<Device> {
 
 		let mut data: [u8; 512] = [0; 512];
 
-		let ccb = CCB(&mut unsafe { mem::zeroed() });
+		let ccb = CCB::new(&self.device.dev);
 
 		unsafe {
 			let h = ccb.ccb_h();
