@@ -38,7 +38,7 @@ serializable = ["serde", "serde_derive"]
 bin = ["clap", "serde_json", "separator", "number_prefix", "prettytable-rs", "env_logger", "lazy_static"]
 
 [target.'cfg(target_os = "freebsd")'.build-dependencies]
-bindgen = "0.26.3"
+bindgen = "0.31.0"
 
 [[bin]]
 name = "hdd"

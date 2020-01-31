@@ -43,8 +43,8 @@ pub fn from_status(dev: &CAMDevice, ccb: &CCB) -> io::Error {
 		let err = bindings::cam_error_string(
 			dev.0, ccb.0,
 			s.as_mut_ptr(), s.capacity() as i32,
-			bindings::cam_error_string_flags::CAM_ESF_ALL,
-			bindings::cam_error_proto_flags::CAM_EPF_ALL,
+			bindings::cam_error_string_flags_CAM_ESF_ALL,
+			bindings::cam_error_proto_flags_CAM_EPF_ALL,
 		);
 
 		io::Error::new(io::ErrorKind::Other,

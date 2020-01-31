@@ -1,6 +1,6 @@
 use libc::{c_void, memcpy};
 
-use cam::*;
+use cam::{*, bindings::*};
 
 use Direction;
 use scsi::SCSIDevice;
@@ -26,18 +26,17 @@ impl SCSIDevice {
 
 			// cannot use cam_fill_csio() here: it is defined right in cam/cam_ccb.h
 			// besides, it is a pretty simple function of dubious benefit: sure it's less things to type, but with huge number of arguments it's less clear what's actually filled in a struct
-			csio.ccb_h.func_code = xpt_opcode::XPT_SCSI_IO;
+			csio.ccb_h.func_code = xpt_opcode_XPT_SCSI_IO;
 			csio.ccb_h.flags = {
 				use self::Direction::*;
-				use self::ccb_flags::*;
 				match dir {
 					// TODO &[u8] arg → data → csio.data_ptr for Direction::{To,Both}
-					From => CAM_DIR_IN,
+					From => ccb_flags_CAM_DIR_IN,
 					To => unimplemented!(), //CAM_DIR_OUT,
 					Both => unimplemented!(), //CAM_DIR_BOTH,
-					None => CAM_DIR_NONE,
+					None => ccb_flags_CAM_DIR_NONE,
 				}
-			} as u32;
+			};
 			csio.ccb_h.xflags = 0;
 			csio.ccb_h.retry_count = 1;
 			csio.ccb_h.timeout = timeout*1000;
@@ -58,14 +57,14 @@ impl SCSIDevice {
 		dev.send_ccb(&ccb)?;
 
 		let status = ccb.get_status();
-		if !(status == cam_status::CAM_REQ_CMP as u32 || status == cam_status::CAM_SCSI_STATUS_ERROR as u32) {
+		if !(status == cam_status_CAM_REQ_CMP || status == cam_status_CAM_SCSI_STATUS_ERROR) {
 			Err(error::from_status(dev, &ccb))?
 		}
 
 		// TODO ccb.csio.scsi_status
 
 		let sense_len =
-			if (ccb.get_status_flags() & cam_status::CAM_AUTOSNS_VALID as u32) != 0 {
+			if (ccb.get_status_flags() & cam_status_CAM_AUTOSNS_VALID) != 0 {
 				unsafe {
 					let csio = ccb.csio();
 
