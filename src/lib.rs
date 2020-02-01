@@ -78,7 +78,7 @@ pub mod device;
 pub use device::*;
 
 #[cfg(target_os = "freebsd")]
-mod cam;
+extern crate cam;
 
 pub mod ata;
 pub mod scsi;

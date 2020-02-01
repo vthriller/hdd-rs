@@ -1,0 +1,11 @@
+[package]
+name = "cam"
+description = "Thin wrapper against FreeBSD's libcam"
+version = "0.10.0"
+authors = ["vthriller <unixway.drive+rs@gmail.com>"]
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+bindgen = "0.26.3"

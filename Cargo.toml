@@ -8,7 +8,7 @@ license = "MPL-2.0"
 readme = "README.md"
 
 [workspace]
-members = ["sample-scsi", "drivedb-bench"]
+members = ["cam", "sample-scsi", "drivedb-bench"]
 
 [dependencies]
 libc = "0.2"
@@ -31,14 +31,14 @@ prettytable-rs = { version = "^0.6", optional = true }
 env_logger = { version = "0.4", optional = true }
 lazy_static = { version = "1.0", optional = true }
 
+[target.'cfg(target_os = "freebsd")'.dependencies]
+cam = { path = "cam" }
+
 [features]
 default = []
 serializable = ["serde", "serde_derive"]
 # XXX 'bin' feature depends on 'serializable'; for now this is reflected in [bin].required-features
 bin = ["clap", "serde_json", "separator", "number_prefix", "prettytable-rs", "env_logger", "lazy_static"]
-
-[target.'cfg(target_os = "freebsd")'.build-dependencies]
-bindgen = "0.26.3"
 
 [[bin]]
 name = "hdd"
