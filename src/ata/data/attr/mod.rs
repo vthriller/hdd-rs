@@ -65,11 +65,9 @@ impl SmartAttribute {
 		let id = self.id;
 		self._attr_meta = meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None);
 	}
-}
 
-#[cfg(feature = "drivedb-parser")]
-impl SmartAttribute {
 	// drivedb name
+	#[cfg(feature = "drivedb-parser")]
 	pub fn name(&self) -> Option<&str> {
 		self._attr_meta.as_ref()
 			.map(|a| a.name.as_ref().map(
@@ -78,16 +76,19 @@ impl SmartAttribute {
 			.unwrap_or(None)
 	}
 
+	#[cfg(feature = "drivedb-parser")]
 	pub fn raw(&self) -> raw::Raw {
 		raw::Raw::from_raw_entry(&self._data, &self._attr_meta)
 	}
 
+	#[cfg(feature = "drivedb-parser")]
 	fn is_used_in_raw(&self, c: char) -> bool {
 		self._attr_meta.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false)
 	}
 
 	// contains None if `raw` is rendered using byte that usually covers this value
 	// TODO? 0x00 | 0xfe | 0xff are invalid
+	#[cfg(feature = "drivedb-parser")]
 	pub fn value(&self) -> Option<u8> {
 		if !self.is_used_in_raw('v') {
 			Some(self.value())
@@ -95,6 +96,7 @@ impl SmartAttribute {
 	}
 
 	// contains None if `raw` is rendered using byte that usually covers this value
+	#[cfg(feature = "drivedb-parser")]
 	pub fn worst(&self) -> Option<u8> {
 		if !self.is_used_in_raw('w') {
 			Some(self.worst())
