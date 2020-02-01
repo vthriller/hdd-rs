@@ -79,7 +79,7 @@ impl SmartAttribute {
 	}
 
 	pub fn raw(&self) -> raw::Raw {
-		raw::Raw::from_raw_entry(&self.attr._data, &self._attr_meta)
+		raw::Raw::from_raw_entry(&self._data, &self._attr_meta)
 	}
 
 	fn is_used_in_raw(&self, c: char) -> bool {
@@ -90,14 +90,14 @@ impl SmartAttribute {
 	// TODO? 0x00 | 0xfe | 0xff are invalid
 	pub fn value(&self) -> Option<u8> {
 		if !self.is_used_in_raw('v') {
-			Some(self.attr.value())
+			Some(self.value())
 		} else { None }
 	}
 
 	// contains None if `raw` is rendered using byte that usually covers this value
 	pub fn worst(&self) -> Option<u8> {
 		if !self.is_used_in_raw('w') {
-			Some(self.attr.worst())
+			Some(self.worst())
 		} else { None }
 	}
 }
