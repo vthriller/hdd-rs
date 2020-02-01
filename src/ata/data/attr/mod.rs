@@ -15,6 +15,10 @@ pub struct SmartAttribute {
 	_data: Vec<u8>,
 
 	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
+
+	#[cfg(feature = "drivedb-parser")]
+	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
+	_attr_meta: Option<drivedb::vendor_attribute::Attribute>,
 }
 
 impl SmartAttribute {
@@ -67,17 +71,7 @@ impl SmartAttribute {
 }
 
 #[cfg(feature = "drivedb-parser")]
-#[derive(Debug)]
-#[cfg_attr(feature = "serializable", derive(Serialize))]
-pub struct AnnotatedSmartAttribute {
-	pub attr: SmartAttribute,
-
-	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
-	_attr_meta: Option<drivedb::vendor_attribute::Attribute>,
-}
-
-#[cfg(feature = "drivedb-parser")]
-impl AnnotatedSmartAttribute {
+impl SmartAttribute {
 	// drivedb name
 	pub fn name(&self) -> Option<&str> {
 		self._attr_meta.as_ref()
@@ -162,6 +156,9 @@ pub fn parse_smart_values(data: &[u8], raw_thresh: &[u8]) -> Vec<SmartAttribute>
 
 			// .get() returns Option<&T>, but threshs would not live long enough, and it's just easier to copy u8 using this map
 			thresh: threshs.get(&id).map(|&t| t),
+
+			#[cfg(feature = "drivedb-parser")]
+			_attr_meta: None,
 		})
 	}
 	attrs
