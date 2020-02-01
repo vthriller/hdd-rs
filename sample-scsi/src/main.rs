@@ -122,9 +122,10 @@ fn main() {
 		}
 	}
 
-	let mut pages = SCSIPages::new(&dev);
-	if let Ok(supported_pages) = pages.supported_pages() {
-			for p in supported_pages {
+	match SCSIPages::new(&dev) {
+		Err(e) => eprint!("failed to query supported pages: {}", e),
+		Ok(mut pages) => {
+			for p in pages.supported_pages().to_owned() {
 				if p == 00 { continue; }
 
 				print!("=== [{:02x}] {} ===\n", p, page_name(p));
@@ -136,7 +137,8 @@ fn main() {
 					_ => (),
 				}
 			}
-	};
+		}
+	}
 
 	/*
 	// TODO tell whether subpages are supported at all
