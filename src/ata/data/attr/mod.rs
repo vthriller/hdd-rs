@@ -61,12 +61,9 @@ impl SmartAttribute {
 	pub fn misc_flags(&self)      -> u16  { self.flags() & (!0b11_1111) }
 
 	#[cfg(feature = "drivedb-parser")]
-	pub fn annotate(self, meta: &Option<drivedb::DriveMeta>) -> AnnotatedSmartAttribute {
+	pub fn annotate(&mut self, meta: &Option<drivedb::DriveMeta>) {
 		let id = self.id;
-		AnnotatedSmartAttribute {
-			attr: self,
-			_attr_meta: meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None),
-		}
+		self._attr_meta = meta.as_ref().map(|meta| meta.render_attribute(id)).unwrap_or(None);
 	}
 }
 
