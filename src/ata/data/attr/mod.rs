@@ -64,9 +64,14 @@ impl SmartAttribute {
 		self._attr_meta.as_ref().map(|a| a.byte_order.contains(c)).unwrap_or(false)
 	}
 
+	#[cfg(not(feature = "drivedb-parser"))]
+	#[inline]
+	fn is_used_in_raw(&self, _: char) -> bool {
+		false
+	}
+
 	// contains None if `raw` is rendered using byte that usually covers this value
 	// TODO? 0x00 | 0xfe | 0xff are invalid
-	#[cfg(feature = "drivedb-parser")]
 	pub fn value(&self) -> Option<u8> {
 		if !self.is_used_in_raw('v') {
 			Some(self._data[3])
@@ -74,7 +79,6 @@ impl SmartAttribute {
 	}
 
 	// contains None if `raw` is rendered using byte that usually covers this value
-	#[cfg(feature = "drivedb-parser")]
 	pub fn worst(&self) -> Option<u8> {
 		if !self.is_used_in_raw('w') {
 			Some(self._data[4])
