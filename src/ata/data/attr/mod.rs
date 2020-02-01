@@ -14,7 +14,7 @@ pub struct SmartAttribute {
 	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
 	_data: Vec<u8>,
 
-	pub thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
+	thresh: Option<u8>, // requested separately; TODO? 0x00 is "always passing", 0xff is "always failing", 0xfe is invalid
 
 	#[cfg(feature = "drivedb-parser")]
 	#[cfg_attr(feature = "serializable", serde(skip_serializing))]
@@ -83,6 +83,11 @@ impl SmartAttribute {
 		if !self.is_used_in_raw('w') {
 			Some(self._data[4])
 		} else { None }
+	}
+
+	// this one is hidden behind getter just to make the whole thing look more uniform
+	pub fn thresh(&self) -> Option<u8> {
+		self.thresh
 	}
 }
 

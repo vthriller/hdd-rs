@@ -51,6 +51,7 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 	for val in values {
 		let value = val.value();
 		let worst = val.worst();
+		let thresh = val.thresh();
 		// > The NAME … should not exceed 23 characters
 		print!("{:3} {:.<24} {}{}{}{}{}{}{}    {}   {}    {} {} {}\n",
 			val.id,
@@ -65,8 +66,8 @@ fn print_attributes(values: Vec<attr::SmartAttribute>) {
 				else { format!("+{:04x}", val.misc_flags()) },
 			value.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
 			worst.map(|v| format!("{:3}", v)).unwrap_or("---".to_string()),
-			val.thresh.map(|v| format!("{:3}", v)).unwrap_or("(?)".to_string()),
-			match (value, worst, val.thresh) {
+			thresh.map(|v| format!("{:3}", v)).unwrap_or("(?)".to_string()),
+			match (value, worst, thresh) {
 				(Some(v), _, Some(t)) if v <= t => "NOW ",
 				(_, Some(w), Some(t)) if w <= t => "past",
 				// either value/worst are part of the `val.row`,
@@ -122,7 +123,7 @@ fn print_prometheus_values(labels: &HashMap<&str, String>, values: Vec<attr::Sma
 
 		val.value().map(|v| print!("{}\n", format_prom("smart_value", &labels, v)));
 		val.worst().map(|v| print!("{}\n", format_prom("smart_worst", &labels, v)));
-		val.thresh.map(|v| print!("{}\n", format_prom("smart_thresh", &labels, v)));
+		val.thresh().map(|v| print!("{}\n", format_prom("smart_thresh", &labels, v)));
 		print!("{}\n", format_prom("smart_raw", &labels, {
 			use self::Raw::*;
 			match val.raw() {
