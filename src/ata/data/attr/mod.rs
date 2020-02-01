@@ -38,6 +38,7 @@ impl SmartAttribute {
 	pub fn self_preserving(&self) -> bool { self.flags() & (1<<5) != 0 }
 	pub fn misc_flags(&self)      -> u16  { self.flags() & (!0b11_1111) }
 
+	/// Annotate attribute using optional [drivedb](../../../drivedb/index.html) entry.
 	#[cfg(feature = "drivedb-parser")]
 	pub fn annotate(&mut self, meta: &Option<drivedb::DriveMeta>) {
 		let id = self.id;
@@ -103,6 +104,7 @@ all in addition to hosting the annotate() function as a method.
 
 #[cfg(feature = "drivedb-parser")]
 pub trait SmartAttributes {
+	/// Annotate attributes using optional [drivedb](../../../drivedb/index.html) entry.
 	fn annotate(&mut self, meta: &Option<drivedb::DriveMeta>);
 }
 
