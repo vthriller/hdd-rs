@@ -1,5 +1,5 @@
-use cam::bindings;
-use cam::device::CAMDevice;
+use bindings;
+use device::CAMDevice;
 
 use std::mem;
 

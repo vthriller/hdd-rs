@@ -1,6 +1,6 @@
-use cam::bindings;
-use cam::ccb::CCB;
-use cam::error;
+use bindings;
+use ccb::CCB;
+use error;
 use std::io;
 
 use std::ffi::{OsStr, CString};

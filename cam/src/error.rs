@@ -1,6 +1,6 @@
-use cam::bindings;
-use cam::device::CAMDevice;
-use cam::ccb::CCB;
+use bindings;
+use device::CAMDevice;
+use ccb::CCB;
 
 use std::ffi::CStr;
 use std::io;

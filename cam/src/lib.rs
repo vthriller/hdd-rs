@@ -16,6 +16,8 @@ For more on CAM, see:
 * or just lurk around [source files in e.g. /usr/src/sbin/camcontrol/](https://svnweb.freebsd.org/base/stable/11/sbin/camcontrol/).
 */
 
+extern crate libc;
+
 pub mod bindings;
 pub use self::bindings::{
 	CAM_ATAIO_48BIT,
