@@ -91,6 +91,30 @@ impl SmartAttribute {
 	}
 }
 
+/*
+TODO? Wrapper type over Vec<SmartAttribute> (or any other container),
+which might get handy in the future for things like:
+
+- getting attribute by its id,
+- getting attribute by its drivedb name,
+
+all in addition to hosting the annotate() function as a method.
+*/
+
+#[cfg(feature = "drivedb-parser")]
+pub trait SmartAttributes {
+	fn annotate(&mut self, meta: &Option<drivedb::DriveMeta>);
+}
+
+#[cfg(feature = "drivedb-parser")]
+impl SmartAttributes for Vec<SmartAttribute> {
+	fn annotate(&mut self, meta: &Option<drivedb::DriveMeta>) {
+		for attr in self.iter_mut() {
+			attr.annotate(&meta);
+		}
+	}
+}
+
 fn parse_thresholds(raw: &[u8]) -> HashMap<u8, u8> {
 	let mut threshs = HashMap::<u8, u8>::new();
 

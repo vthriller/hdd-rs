@@ -1,6 +1,6 @@
 use hdd::ata::misc::Misc;
 
-use hdd::ata::data::attr;
+use hdd::ata::data::attr::{self, SmartAttributes};
 use hdd::ata::data::attr::raw::Raw;
 use hdd::drivedb;
 use hdd::drivedb::vendor_attribute;
@@ -279,12 +279,14 @@ fn attrs_ata(path: &str, dev: &DeviceArgument, format: Format, drivedb: Option<d
 			print!("{}\n", format_prom("smart_enabled", &labels, 0)),
 
 		(format, Enabled) => {
-			let values = match dev {
+			let mut values = match dev {
 				#[cfg(not(target_os = "linux"))]
-				DeviceArgument::ATA(dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
-				DeviceArgument::SAT(dev, _) => dev.get_smart_attributes(&dbentry).unwrap(),
+				DeviceArgument::ATA(dev, _) => dev.get_smart_attributes().unwrap(),
+				DeviceArgument::SAT(dev, _) => dev.get_smart_attributes().unwrap(),
 				DeviceArgument::SCSI(_) => unreachable!(),
 			};
+
+			values.annotate(&dbentry);
 
 			match format {
 				Plain => print_attributes(values),
