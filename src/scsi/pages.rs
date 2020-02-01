@@ -162,7 +162,7 @@ impl<'a> SCSIPages<'a, SCSIDevice> {
 		})
 	}
 
-	pub fn supported_pages(&mut self) -> &[u8] {
+	pub fn supported_pages(&self) -> &[u8] {
 		&self.supported_pages
 	}
 
