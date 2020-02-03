@@ -225,7 +225,10 @@ pub fn list_devices() -> Result<Vec<PathBuf>, io::Error> {
 						debug!("      skipped");
 					}
 				},
-				_ => panic!("Unknown match type {}", m.type_)
+				t => {
+					debug!("    unknown type {:?}", t);
+					return Err(io::Error::new(io::ErrorKind::Other, "list_devices: unknown device type"))
+				}
 			}
 		}
 
