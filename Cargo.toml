@@ -1,7 +1,7 @@
 [package]
 name = "hdd"
 description = "hdd: instruments for querying ATA and SCSI disks"
-version = "0.10.2"
+version = "0.10.3"
 authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 repository = "https://github.com/vthriller/hdd-rs"
 license = "MPL-2.0"
