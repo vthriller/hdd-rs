@@ -251,6 +251,16 @@ pub trait SCSICommon {
 				descriptors
 			},
 
+			Some((true, sense::Sense::Descriptor(sense::DescriptorData {
+				descriptors,
+				// some devices/drivers return (Ok, 0, 0) as a sense;
+				// will validate its contents below
+				key: 0x00, asc: 0x00, ascq: 0x00,
+				..
+			}))) => {
+				descriptors
+			},
+
 			Some((true, sense::Sense::Fixed(sense::FixedData::Valid {
 				// Illegal Request / INVALID COMMAND OPERATION CODE
 				key: 0x05, asc: 0x20, ascq: 0x00, ..
