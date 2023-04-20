@@ -1,122 +1,152 @@
-use nom::multispace;
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_until},
+    character::complete::{char, multispace0, none_of, one_of},
+    combinator::{eof, map, value},
+    multi::{many0, many1},
+    sequence::tuple,
+    IResult,
+};
 
-named!(comment_block, do_parse!(
-	tag!("/*") >>
-	take_until!("*/") >>
-	tag!("*/") >>
-	(&[])
-));
+fn comment_block(input: &[u8]) -> IResult<&[u8], ()> {
+    value(
+        (), // output is thrown away
+        tuple((tag("/*"), take_until("*/"), tag("*/"))),
+    )(input)
+}
 
-named!(comment, do_parse!(
-	tag!("//") >>
-	take_until!("\n") >>
-	char!('\n') >>
-	(&[])
-));
+fn comment(input: &[u8]) -> IResult<&[u8], ()> {
+    value(
+        (), // output is thrown away
+        tuple((tag("//"), take_until("\n"), tag("\n"))),
+    )(input)
+}
 
-named!(whitespace, do_parse!(
-	many0!(alt!(
-		multispace | comment | comment_block
-	)) >>
-	(&[])
-));
+fn whitespace(input: &[u8]) -> IResult<&[u8], ()> {
+    value(
+        (), // output is thrown away
+        many0(alt((value((), multispace0), comment, comment_block))),
+    )(input)
+}
 
 // TODO? \[bfav?0] \ooo \xhh
-named!(string_escaped_char <char>, do_parse!(
-	char!('\\') >>
-	s: map!(one_of!("\\\"'nrt"), |c| match c {
-		'\\' => '\\',
-		'"' => '"',
-		'\'' => '\'',
-		'n' => '\n',
-		'r' => '\r',
-		't' => '\t',
-		_ => unreachable!(),
-	}) >>
-	(s)
-));
+fn string_escaped_char(i: &[u8]) -> IResult<&[u8], char> {
+    let (i, _) = char('\\')(i)?;
+    let (i, s) = map(one_of("\\\"'nrt"), |c| match c {
+        '\\' => '\\',
+        '"' => '"',
+        '\'' => '\'',
+        'n' => '\n',
+        'r' => '\r',
+        't' => '\t',
+        _ => unreachable!(),
+    })(i)?;
+    Ok((i, s))
+}
 
-named!(string_char <char>, alt!(
-	none_of!("\n\\\"")
-	| string_escaped_char
-));
+fn string_char(i: &[u8]) -> IResult<&[u8], char> {
+    alt((none_of("\n\\\""), string_escaped_char))(i)
+}
 
-named!(string_literal <String>, do_parse!(
-	char!('\"') >>
-	s: map!(
-		many0!(string_char),
-		|s: Vec<char>| { s.into_iter().collect() }
-	) >>
-	char!('\"') >>
-	(s)
-));
+fn string_literal(i: &[u8]) -> IResult<&[u8], String> {
+    let (i, _) = char('\"')(i)?;
+    let (i, s) = map(many0(string_char), |s: Vec<char>| s.into_iter().collect())(i)?;
+    let (i, _) = char('\"')(i)?;
+    Ok((i, s))
+}
 
-named!(string <String>, do_parse!(
-	s0: string_literal >>
-	ss: many0!(do_parse!(
-		whitespace >>
-		s: string_literal >>
-		(s)
-	)) >>
-	({
-		let mut s = s0.to_owned();
-		for i in ss { s.push_str(i.as_str()) }
-		s
-	})
-));
+fn string(i: &[u8]) -> IResult<&[u8], String> {
+    let (i, s0) = string_literal(i)?;
+    fn parse_ss(i: &[u8]) -> IResult<&[u8], String> {
+        let (i, _) = whitespace(i)?;
+        let (i, s) = string_literal(i)?;
+        Ok((i, s))
+    }
+    let (i, ss) = many0(parse_ss)(i)?;
+
+    let mut out = s0;
+    for s in ss {
+        out.push_str(s.as_str())
+    }
+    Ok((i, out))
+}
 
 /// drivedb.h entry
 #[derive(Debug)]
 pub struct Entry {
-	/// > Informal string about the model family/series of a device.
-	pub family: String,
+    /// > Informal string about the model family/series of a device.
+    pub family: String,
 
-	/// > POSIX extended regular expression to match the model of a device.
-	/// > This should never be "".
-	pub model: String,
+    /// > POSIX extended regular expression to match the model of a device.
+    /// > This should never be "".
+    pub model: String,
 
-	/// > POSIX extended regular expression to match a devices's firmware.
-	///
-	/// Optional if "".
-	pub firmware: String,
+    /// > POSIX extended regular expression to match a devices's firmware.
+    ///
+    /// Optional if "".
+    pub firmware: String,
 
-	/// > A message that may be displayed for matching drives.
-	/// > For example, to inform the user that they may need to apply a firmware patch.
-	pub warning: String,
+    /// > A message that may be displayed for matching drives.
+    /// > For example, to inform the user that they may need to apply a firmware patch.
+    pub warning: String,
 
-	/// > String with vendor-specific attribute ('-v') and firmware bug fix ('-F') options.
-	/// > Same syntax as in smartctl command line.
-	pub presets: String,
+    /// > String with vendor-specific attribute ('-v') and firmware bug fix ('-F') options.
+    /// > Same syntax as in smartctl command line.
+    pub presets: String,
 }
 
-named!(comma, do_parse!(whitespace >> char!(',') >> whitespace >> (&[])));
+fn comma(i: &[u8]) -> IResult<&[u8], ()> {
+    value(
+        (), // output is thrown away
+        tuple((whitespace, char(','), whitespace)),
+    )(i)
+}
 
-named!(entry <Entry>, do_parse!(
-	char!('{') >> whitespace >>
-	family: string >> comma >>
-	model: string >> comma >>
-	firmware: string >> comma >>
-	warning: string >> comma >>
-	presets: string >> whitespace >>
-	char!('}') >>
-	(Entry {
-		family: family,
-		model: model,
-		firmware: firmware,
-		warning: warning,
-		presets: presets,
-	})
-));
+fn entry(i: &[u8]) -> IResult<&[u8], Entry> {
+    let (i, _) = char('{')(i)?;
+    let (i, _) = whitespace(i)?;
+    let (i, family) = string(i)?;
+    let (i, _) = comma(i)?;
+    let (i, model) = string(i)?;
+    let (i, _) = comma(i)?;
+    let (i, firmware) = string(i)?;
+    let (i, _) = comma(i)?;
+    let (i, warning) = string(i)?;
+    let (i, _) = comma(i)?;
+    let (i, presets) = string(i)?;
+    let (i, _) = whitespace(i)?;
+    let (i, _) = char('}')(i)?;
+    Ok((
+        i,
+        Entry {
+            family,
+            model,
+            firmware,
+            warning,
+            presets,
+        },
+    ))
+}
 
-named!(pub database <Vec<Entry>>, do_parse!(
-	whitespace >>
-	entries: many1!(do_parse!(
-		e: entry >> comma >> (e)
-	)) >>
-	whitespace >>
-	eof!() >>
-	(entries.into_iter().filter(|entry| {
-		// > The entry is ignored if [modelfamily] starts with a dollar sign.
-		!entry.family.starts_with('$')
-	}).collect())
-));
+pub fn database(i: &[u8]) -> IResult<&[u8], Vec<Entry>> {
+    fn parse_entry(i: &[u8]) -> IResult<&[u8], Entry> {
+        let (i, entry) = entry(i)?;
+        let (i, _) = comma(i)?;
+        Ok((i, entry))
+    }
+    let (i, _) = whitespace(i)?;
+    let (i, entries) = many1(parse_entry)(i)?;
+    let (i, _) = whitespace(i)?;
+    let (i, _) = eof(i)?;
+
+    Ok((
+        i,
+        entries
+            .into_iter()
+            .filter(|entry| {
+                // > The entry is ignored if [modelfamily] starts with a dollar sign.
+                !entry.family.starts_with('$')
+            })
+            .collect(),
+    ))
+}

@@ -31,21 +31,20 @@ For more, dive into documentation for the module you're interested in.
 	unused_import_braces,
 	unused_qualifications,
 )]
-
 /* XXX
 This lint is here mainly to prevent trait gate method hack from becoming recursive. E.g.:
 
 ```
 impl Foo<Bar> {
-	pub fn foo() {}
+    pub fn foo() {}
 }
 
 impl Foo<Baz> {
-	pub fn foo() {}
+    pub fn foo() {}
 }
 
 impl<T> Whatever for Foo<T> {
-	fn foo() { Self::foo() }
+    fn foo() { Self::foo() }
 }
 ```
 
@@ -63,16 +62,20 @@ extern crate quick_error;
 #[macro_use]
 extern crate log;
 
-#[macro_use]
+extern crate byteorder;
 extern crate nom;
 extern crate regex;
-extern crate byteorder;
 
 extern crate libc;
 
 /// Data transfer direction
 #[derive(Debug, Clone, Copy)]
-pub enum Direction { None, From, To, Both }
+pub enum Direction {
+    None,
+    From,
+    To,
+    Both,
+}
 
 pub mod device;
 pub use device::*;
